@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "822889035029",
+    "project_id": "one-more-tour",
+    "storage_bucket": "one-more-tour.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:822889035029:android:085926cd89d3d1480ba51c",
+        "android_client_info": {
+          "package_name": "onemoretour.com"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "822889035029-hsam8gifn3g4gdde3b11sjuhlf381j9c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-R2qe3B_u0Q0iTGQ7gNuGl_KsGAruSfA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "822889035029-9dih4fmi15h5n8e8qtgb5r19ir9d6djh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "822889035029-pojkf72ud17tpgeftr1l18hfv20s9m67.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.driverApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

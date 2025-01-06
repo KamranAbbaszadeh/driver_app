@@ -1,0 +1,166 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/api/firebase_api.dart';
+// import 'package:driver_app/back/auth/post_api.dart';
+import 'package:driver_app/front/auth/waiting_page.dart';
+// import 'package:driver_app/front/tools/otp_generator.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+Future<void> signUp({
+  required TextEditingController emailController,
+  required TextEditingController passwordController,
+  required TextEditingController firstNameController,
+  required TextEditingController lastNameController,
+  required TextEditingController fathersNameController,
+  required TextEditingController phoneNumberController,
+  required TextEditingController languageController,
+  required TextEditingController birthDayController,
+  required TextEditingController experienceController,
+  required TextEditingController vehicleTypeController,
+  required TextEditingController roleController,
+  required TextEditingController genderController,
+  required dynamic context,
+}) async {
+  try {
+    // final ApiService _apiService = ApiService();
+    // Create user with email and password
+    final userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(
+          email: emailController.text.trim().toLowerCase(),
+          password: passwordController.text.trim(),
+        );
+
+    // If user creation is successful, add user details to Firestore
+    await addUserDetails(
+      birthDayController: birthDayController,
+      emailController: emailController,
+      experienceController: experienceController,
+      fathersNameController: fathersNameController,
+      firstNameController: firstNameController,
+      genderController: genderController,
+      languageController: languageController,
+      lastNameController: lastNameController,
+      phoneNumberController: phoneNumberController,
+      roleController: roleController,
+      userCredential: userCredential,
+      vehicleTypeController: vehicleTypeController,
+    );
+
+    // String oTP = generateOTP();
+    // DateTime parsedDate = DateFormat('dd/MM/yyyy')
+    //     .parse(_birthDayController.text);
+    // String jsonFormattedDate = parsedDate.toIso8601String();
+    // double yOE = double.parse(_experienceController.text);
+
+    // Map<String, dynamic> data = {
+    //   'FirstName': firstNameController.text,
+    //   'LastName': lastNameController.text,
+    //   'FatherName': fathersNameController.text,
+    //   'mobile': phoneNumberController.text,
+    //   'email': emailController.text,
+    //   // 'YoE': yOE,
+    //   'Languages': languageController.text,
+    //   'VehicleCategory': vehicleTypeController.text,
+    //   'VerificationCode': oTP,
+    //   'Gender': genderController.text,
+    //   // 'DateofBirth': jsonFormattedDate,
+    //   'Password': passwordController.text,
+    // };
+
+    // if (_allFilledOut()) {
+    //   final success = await _apiService.postData(data);
+    //   if (success) {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(content: Text("Data posted successfully!")),
+    //     );
+    //   }
+    // }
+    final firebaseApi = FirebaseApi.instance;
+    await firebaseApi.saveFCMToken(userCredential.user!.uid);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => WaitingPage()),
+    );
+  } catch (e) {
+    // String errorMessage = 'Error signing up: ${e.toString()}';
+    // showDialog(
+    //   context: context,
+    //   builder: (ctx) => AlertDialog(
+    //     backgroundColor: Colors.white,
+    //     title: const Text('Invalid Input'),
+    //     content: Text(errorMessage),
+    //     actions: [
+    //       TextButton(
+    //         onPressed: () {
+    //           Navigator.pop(ctx);
+    //         },
+    //         child: Text('Got it'),
+    //       ),
+    //     ],
+    //   ),
+    // );
+  }
+}
+
+Future<void> addUserDetails({
+  required TextEditingController emailController,
+  required TextEditingController firstNameController,
+  required TextEditingController lastNameController,
+  required TextEditingController fathersNameController,
+  required TextEditingController phoneNumberController,
+  required TextEditingController languageController,
+  required TextEditingController birthDayController,
+  required TextEditingController experienceController,
+  required TextEditingController vehicleTypeController,
+  required TextEditingController roleController,
+  required TextEditingController genderController,
+  required UserCredential userCredential,
+}) async {
+  try {
+    // Add user details to Firestore
+    roleController.text == 'Guide'
+        ? await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(userCredential.user!.uid)
+            .set({
+              'E-mail': emailController.text.trim().toLowerCase(),
+              'First Name': firstNameController.text.trim(),
+              'Last Name': lastNameController.text.trim(),
+              'Father\'s Name': fathersNameController.text.trim(),
+              'Gender': genderController.text.trim(),
+              'Day of Birth': birthDayController.text.trim(),
+              'Phone number': phoneNumberController.text.trim(),
+              'Language spoken': languageController.text.trim(),
+              'Role': roleController.text.trim(),
+              'Experience': '${experienceController.text.trim()} years',
+              'Application Form Verified': false,
+              'Personal & Car Details Form Verified': false,
+              'Application Form': 'Submitted',
+              'Personal & Car Details Form': 'Pending',
+            })
+        : await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(userCredential.user!.uid)
+            .set({
+              'E-mail': emailController.text.trim().toLowerCase(),
+              'First Name': firstNameController.text.trim(),
+              'Last Name': lastNameController.text.trim(),
+              'Father\'s Name': fathersNameController.text.trim(),
+              'Gender': genderController.text.trim(),
+              'Day of Birth': birthDayController.text.trim(),
+              'Phone number': phoneNumberController.text.trim(),
+              'Language spoken': languageController.text.trim(),
+              'Role': roleController.text.trim(),
+              'Experience': '${experienceController.text.trim()} years',
+              'Vehicle type': vehicleTypeController.text.trim(),
+              'Application Form Verified': false,
+              'Personal & Car Details Form Verified': false,
+              'Application Form': 'APPLICATION RECEIVED',
+              'Personal & Car Details Form': 'Pending',
+              'Registration Completed': false,
+            });
+  } catch (e) {
+    throw Exception('Error adding user details: ${e.toString()}');
+  }
+}

@@ -1,0 +1,298 @@
+import 'package:driver_app/front/auth/application_form.dart';
+import 'package:driver_app/front/auth/auth_methods/auth_phone.dart';
+import 'package:driver_app/front/intro/terms.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
+
+import '../../main.dart';
+
+class WelcomePage extends StatefulWidget {
+  const WelcomePage({super.key});
+
+  @override
+  State<WelcomePage> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomePage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _offsetAnimation;
+
+  @override
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 5),
+    );
+
+    _offsetAnimation = Tween<Offset>(
+      begin: Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    Future.delayed(Duration(milliseconds: 1), () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+    final width = MediaQuery.of(context).size.width;
+
+    TextStyle defaultStyle = TextStyle(color: Colors.grey, fontSize: 14);
+    TextStyle linkStyle = TextStyle(color: Colors.blue);
+    final darkMode =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final logo = 'assets/splash/onemoretour.png';
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            SlideTransition(
+              position: _offsetAnimation,
+              child: Center(
+                child: Container(
+                  width: width,
+                  height: height,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors:
+                          darkMode
+                              ? [Color.fromARGB(255, 1, 105, 170), Colors.black]
+                              : [
+                                Color.fromARGB(255, 52, 168, 235),
+                                Colors.white,
+                              ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      tileMode: TileMode.decal,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: height * 0.226,
+                        width: width * 0.763,
+                        child: Center(
+                          child: Image.asset(logo, fit: BoxFit.contain),
+                        ),
+                      ),
+                      // SizedBox(height: height * 0.008),
+                      Lottie.asset(
+                        'assets/welcome/Animation_Welcome.json',
+                        fit: BoxFit.fill,
+                        reverse: false,
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              navigatorKey.currentState?.pushNamed(
+                                '/auth_email',
+                              );
+                            },
+                            child: Container(
+                              height: height * 0.058,
+                              width: width * 0.923,
+                              decoration: BoxDecoration(
+                                color:
+                                    darkMode
+                                        ? Color.fromARGB(255, 52, 168, 235)
+                                        : Color.fromARGB(255, 1, 105, 170),
+                                borderRadius: BorderRadius.circular(
+                                  width * 0.019,
+                                ),
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: width * 0.030,
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: width * 0.127,
+                                    height: height * 0.035,
+                                    child: Icon(
+                                      Icons.email,
+                                      color:
+                                          darkMode
+                                              ? Colors.black87
+                                              : Colors.grey.shade300,
+                                      size: width * 0.08,
+                                    ),
+                                  ),
+                                  SizedBox(width: width * 0.12),
+                                  Text(
+                                    'Sign in with email',
+                                    style: TextStyle(
+                                      color:
+                                          darkMode
+                                              ? Colors.black87
+                                              : Colors.grey.shade300,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: height * 0.009),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AuthPhone(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: height * 0.058,
+                              width: width * 0.923,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.grey.shade400,
+                                  width: 0.5,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  width * 0.019,
+                                ),
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: width * 0.030,
+                              ),
+                              child: Row(
+                                children: [
+                                  Image.asset(
+                                    'assets/welcome/smartphone.png',
+                                    color:
+                                        darkMode
+                                            ? Colors.grey.shade300
+                                            : Colors.black87,
+                                    width: width * 0.127,
+                                    height: height * 0.035,
+                                  ),
+                                  SizedBox(width: width * 0.050),
+                                  Text(
+                                    'Sign in with phone number',
+                                    style: TextStyle(
+                                      color:
+                                          darkMode
+                                              ? Colors.grey.shade300
+                                              : Colors.black87,
+                                      fontWeight: FontWeight.w400,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: height * 0.027),
+                          Text(
+                            'Want to become a driver or a tour guide?',
+                            style: GoogleFonts.roboto(
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.normal,
+                              fontSize: 16,
+                            ),
+                          ),
+                          SizedBox(height: height * 0.018),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ApplicationForm(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: height * 0.058,
+                              width: width * 0.923,
+                              decoration: BoxDecoration(
+                                color:
+                                    darkMode
+                                        ? Color.fromARGB(143, 0, 51, 82)
+                                        : Color.fromARGB(136, 181, 224, 249),
+                                borderRadius: BorderRadius.circular(
+                                  width * 0.019,
+                                ),
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: width * 0.030,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Apply now',
+                                  style: TextStyle(
+                                    color: Color.fromARGB(255, 29, 145, 212),
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: height * 0.025),
+                          RichText(
+                            text: TextSpan(
+                              style: defaultStyle,
+                              children: <TextSpan>[
+                                TextSpan(text: 'By signin in you accept '),
+                                TextSpan(
+                                  text: 'the terms and conditions',
+                                  style: linkStyle,
+                                  recognizer:
+                                      TapGestureRecognizer()
+                                        ..onTap = () {
+                                          Navigator.of(
+                                            context,
+                                          ).push(_termsRoute());
+                                        },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Route _termsRoute() {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => Terms(),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(0.0, 1.0);
+        const end = Offset.zero;
+        final tween = Tween(begin: begin, end: end);
+        final offsetAnimation = animation.drive(tween);
+        return SlideTransition(position: offsetAnimation, child: child);
+      },
+    );
+  }
+}

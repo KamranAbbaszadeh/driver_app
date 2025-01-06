@@ -1,0 +1,20 @@
+flutter_native_splash:
+  android: true
+  ios: true
+  web: false
+
+  color: "#34a8eb"
+  image: 'assets/splash/OMT_LIGHT.png'
+  fullscreen: true
+  android_gravity: "bottom"
+
+  color_dark: '#0169aa'
+  image_dark: "assets/splash/OMT_DARK.png"
+
+  android_12:
+    color: "#34a8eb"
+    image:  'assets/splash/OMT_LIGHT.png'
+    color_dark: '#0169aa'
+    image_dark: "assets/splash/OMT_DARK.png"
+    android_gravity: "center"
+

@@ -1,0 +1,100 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:driver_app/back/api/firebase_api.dart';
+import 'package:driver_app/front/auth/application_form.dart';
+import 'package:driver_app/front/auth/auth_methods/auth_email.dart';
+import 'package:driver_app/front/auth/car_details_form.dart';
+import 'package:driver_app/front/auth/personal_data_form.dart';
+import 'package:driver_app/front/auth/waiting_page.dart';
+import 'package:driver_app/front/intro/introduction_screens/introduction_screen.dart';
+import 'package:driver_app/front/no_internet_page.dart';
+import 'package:driver_app/front/notification_page.dart';
+import 'package:driver_app/front/theme/theme.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
+
+int? isViewed;
+final navigatorKey = GlobalKey<NavigatorState>();
+void main() async {
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  runApp(const ProviderScope(child: MyApp()));
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _isConnected = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+    _checkConnection();
+  }
+
+  Future<void> _loadData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    isViewed = prefs.getInt('IntroScreen');
+
+    await FirebaseApi.instance.initialize();
+
+    await FirebaseMessaging.instance.setAutoInitEnabled(true);
+    FirebaseAnalytics.instance;
+
+    await Future.delayed(const Duration(seconds: 3));
+    FlutterNativeSplash.remove();
+
+    setState(() {});
+  }
+
+  Future<void> _checkConnection() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    setState(() {
+      _isConnected = connectivityResult != ConnectivityResult.none;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: lightMode,
+      darkTheme: darkMode,
+      home:
+          _isConnected
+              ? isViewed != 0
+                  ? IntroductionScreen()
+                  : WaitingPage()
+              : NoInternetPage(),
+
+      routes: {
+        '/intro_screen': (context) => IntroductionScreen(),
+        '/waiting_screen': (context) => WaitingPage(),
+        '/no_internet_screen': (context) => NoInternetPage(),
+        '/application_form': (context) => ApplicationForm(),
+        '/personal_data_form': (context) => PersonalDataForm(),
+        '/car_details': (context) => CarDetailsForm(),
+        '/auth_email': (context) => AuthEmail(),
+        '/notification_screen': (context) => NotificationPage(),
+      },
+      navigatorKey: navigatorKey,
+    );
+  }
+}
