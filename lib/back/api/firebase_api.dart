@@ -13,8 +13,6 @@ final Logger logger = Logger();
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  await FirebaseApi.instance.initializeNotifications();
-  await FirebaseApi.instance.handleMessage(message);
 
   try {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -34,9 +32,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     });
 
     await prefs.setString('notification_messages', jsonEncode(messages));
-    logger.d("Saved notification in background: ${message.messageId}");
   } catch (e) {
-    logger.e("Error saving notification locally: $e");
+    logger.e("Error saving notification locally in background: $e");
   }
 }
 
@@ -125,7 +122,13 @@ class FirebaseApi {
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
         if (details.payload != null) {
-          _handleNotificationTap(details.payload!);
+          final Map<String, dynamic> data = jsonDecode(details.payload!);
+          final String? type = data['route'];
+          if (type == '/chat') {
+            navigatorKey.currentState?.pushNamed('/chat', arguments: details);
+          } else {
+            navigatorKey.currentState?.pushNamed('/notification_screen');
+          }
         }
       },
     );
@@ -185,13 +188,33 @@ class FirebaseApi {
     }
   }
 
-  void _handleNotificationTap(String payload) {
+  void _handleNotificationTap(RemoteMessage message) async {
     try {
-      final Map<String, dynamic> data = jsonDecode(payload);
-      final String? type = data['type'];
+      String? messageId = message.messageId;
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? messagesString = prefs.getString('notification_messages');
+      List<dynamic> messages =
+          messagesString != null ? jsonDecode(messagesString) : [];
+
+      if (messageId != null &&
+          messages.any((m) => m['messageId'] == messageId)) {
+        return; // Avoid duplicates
+      }
+
+      messages.add({
+        'message': message.toMap(),
+        'isViewed': false,
+        'messageId': messageId,
+      });
+      await prefs.setString('notification_messages', jsonEncode(messages));
+
+      final Map<String, dynamic> data = message.data;
+
+      final String? type = data['route'];
 
       if (type == 'chat') {
-        navigatorKey.currentState?.pushNamed('/chat', arguments: data);
+        navigatorKey.currentState?.pushNamed('/chat', arguments: message);
       } else {
         navigatorKey.currentState?.pushNamed('/notification_screen');
       }
@@ -205,21 +228,12 @@ class FirebaseApi {
       await handleMessage(message);
     });
 
-    FirebaseMessaging.onMessageOpenedApp.listen((message) async {
-      _handleNotificationTap(jsonEncode(message.data));
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      try {
+        _handleNotificationTap(message);
+      } catch (e) {
+        logger.e("Error handling message opened app: $e");
+      }
     });
-
-    final initialMessage = await _firebaseMessaging.getInitialMessage();
-    if (initialMessage != null) {
-      _handleNotificationTap(jsonEncode(initialMessage.data));
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getSavedNotifications() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? messagesString = prefs.getString('notification_messages');
-    return messagesString != null
-        ? List<Map<String, dynamic>>.from(jsonDecode(messagesString))
-        : [];
   }
 }
