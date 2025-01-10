@@ -79,9 +79,10 @@ class _AuthState extends State<AuthPhoneAlternative> {
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _phoneFocusNode.hasFocus
-                          ? const Color.fromARGB(255, 33, 150, 243)
-                          : const Color.fromARGB(255, 158, 158, 158),
+                      color:
+                          _phoneFocusNode.hasFocus
+                              ? const Color.fromARGB(255, 33, 150, 243)
+                              : const Color.fromARGB(255, 158, 158, 158),
                     ),
                     borderRadius: BorderRadius.circular(7.5),
                   ),
@@ -103,15 +104,16 @@ class _AuthState extends State<AuthPhoneAlternative> {
                       contentPadding: EdgeInsets.only(top: width * 0.05),
                       labelText: 'Phone Number (international format)',
                       labelStyle: TextStyle(
-                        fontSize: 15,
-                        color: _phoneFocusNode.hasFocus
-                            ? const Color.fromARGB(255, 33, 150, 243)
-                            : const Color.fromARGB(255, 158, 158, 158),
+                        fontSize: width * 0.038,
+                        color:
+                            _phoneFocusNode.hasFocus
+                                ? const Color.fromARGB(255, 33, 150, 243)
+                                : const Color.fromARGB(255, 158, 158, 158),
                       ),
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
                       hintText: 'eg. +358411235522',
                       hintStyle: TextStyle(
-                        fontSize: 15,
+                        fontSize: width * 0.038,
                         color: const Color.fromARGB(255, 158, 158, 158),
                         fontWeight: FontWeight.w600,
                       ),
@@ -121,21 +123,23 @@ class _AuthState extends State<AuthPhoneAlternative> {
                         maxWidth: width * 0.844,
                         minWidth: width * 0.844,
                       ),
-                      suffixIcon: _phoneNumberController.text.isEmpty
-                          ? Icon(
-                              Icons.cancel_outlined,
-                              size: 30,
-                              color:
-                                  Colors.grey.shade500.withValues(alpha: 0.5),
-                            )
-                          : IconButton(
-                              onPressed: () {
-                                _phoneNumberController.text = '';
-                              },
-                              icon: Icon(Icons.cancel),
-                              padding: EdgeInsets.zero,
-                              iconSize: width * 0.076,
-                            ),
+                      suffixIcon:
+                          _phoneNumberController.text.isEmpty
+                              ? Icon(
+                                Icons.cancel_outlined,
+                                size: 30,
+                                color: Colors.grey.shade500.withValues(
+                                  alpha: 0.5,
+                                ),
+                              )
+                              : IconButton(
+                                onPressed: () {
+                                  _phoneNumberController.text = '';
+                                },
+                                icon: Icon(Icons.cancel),
+                                padding: EdgeInsets.zero,
+                                iconSize: width * 0.076,
+                              ),
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide.none,
                       ),
@@ -172,13 +176,14 @@ class _AuthState extends State<AuthPhoneAlternative> {
               width: width * 0.923,
               height: height * 0.065,
               decoration: BoxDecoration(
-                color: _characterCount >= 7 && plusCheck
-                    ? (darkMode
-                        ? Color.fromARGB(255, 1, 105, 170)
-                        : Color.fromARGB(255, 0, 134, 179))
-                    : (darkMode
-                        ? Color.fromARGB(255, 52, 168, 235)
-                        : Color.fromARGB(177, 0, 134, 179)),
+                color:
+                    _characterCount >= 7 && plusCheck
+                        ? (darkMode
+                            ? Color.fromARGB(255, 1, 105, 170)
+                            : Color.fromARGB(255, 0, 134, 179))
+                        : (darkMode
+                            ? Color.fromARGB(255, 52, 168, 235)
+                            : Color.fromARGB(177, 0, 134, 179)),
                 borderRadius: BorderRadius.circular(7.5),
               ),
               child: Center(
@@ -186,19 +191,20 @@ class _AuthState extends State<AuthPhoneAlternative> {
                   'Next',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    color: _characterCount >= 7 && plusCheck
-                        ? (darkMode
-                            ? const Color.fromARGB(255, 0, 0, 0)
-                            : const Color.fromARGB(255, 255, 255, 255))
-                        : (darkMode
-                            ? const Color.fromARGB(132, 0, 0, 0)
-                            : const Color.fromARGB(187, 255, 255, 255)),
+                    fontSize: width * 0.04,
+                    color:
+                        _characterCount >= 7 && plusCheck
+                            ? (darkMode
+                                ? const Color.fromARGB(255, 0, 0, 0)
+                                : const Color.fromARGB(255, 255, 255, 255))
+                            : (darkMode
+                                ? const Color.fromARGB(132, 0, 0, 0)
+                                : const Color.fromARGB(187, 255, 255, 255)),
                   ),
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );

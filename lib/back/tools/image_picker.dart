@@ -47,10 +47,7 @@ Future<List<Asset>> loadAssets({
     enabled: true,
     allowSwipe: true,
   );
-  const ListSetting listSetting = ListSetting(
-    spacing: 5,
-    cellsPerRow: 4,
-  );
+  const ListSetting listSetting = ListSetting(spacing: 5, cellsPerRow: 4);
 
   const AssetsSetting assetsSetting = AssetsSetting(
     supportedMediaTypes: {MediaTypes.video, MediaTypes.image},
@@ -66,18 +63,18 @@ Future<List<Asset>> loadAssets({
     resultList = await MultiImagePicker.pickImages(
       selectedAssets: resultList,
       iosOptions: IOSOptions(
-        doneButton: UIBarButtonItem(
-          title: 'Confirm',
-        ),
-        cancelButton: UIBarButtonItem(
-          title: 'Cancel',
-        ),
+        doneButton: UIBarButtonItem(title: 'Confirm'),
+        cancelButton: UIBarButtonItem(title: 'Cancel'),
         settings: iosSettings,
       ),
       androidOptions: AndroidOptions(
         actionBarTitle: 'Select Photo',
         allViewTitle: 'All Photos',
-        useDetailsView: false,
+        useDetailsView: false, // Whether to use the details view
+        maxImages: maxNumOfPhotos,
+        hasCameraInPickerPage: true,
+        textOnNothingSelected:
+            'Please make selection of minimum $minNumOfPhotos files',
       ),
     );
   } on Exception catch (e) {
@@ -96,20 +93,17 @@ Widget buildGridView({
     crossAxisCount: images.length < 3 ? images.length : 3,
     mainAxisSpacing: height * 0.011,
     crossAxisSpacing: width * 0.025,
-    children: List.generate(
-      images.length,
-      (index) {
-        Asset asset = images[index];
-        return FittedBox(
-          fit: BoxFit.contain,
-          alignment: Alignment.topCenter,
-          child: AssetThumb(
-            asset: asset,
-            width: (width * 0.763).toInt(),
-            height: (height * 0.352).toInt(),
-          ),
-        );
-      },
-    ),
+    children: List.generate(images.length, (index) {
+      Asset asset = images[index];
+      return FittedBox(
+        fit: BoxFit.contain,
+        alignment: Alignment.topCenter,
+        child: AssetThumb(
+          asset: asset,
+          width: (width * 0.763).toInt(),
+          height: (height * 0.352).toInt(),
+        ),
+      );
+    }),
   );
 }

@@ -1,10 +1,13 @@
+import 'package:driver_app/back/tools/image_picker.dart';
+import 'package:driver_app/back/upload_files/personal_data/upload_photos_save.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/auth/certificates_details.dart';
-import 'package:driver_app/front/auth/image_picker.dart';
+import 'package:driver_app/front/auth/forms/application_forms/certificates_details.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PersonalDataForm extends ConsumerStatefulWidget {
   const PersonalDataForm({super.key});
@@ -16,19 +19,21 @@ class PersonalDataForm extends ConsumerStatefulWidget {
 class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
   final ScrollController _scrollController = ScrollController();
   bool _showTitle = false;
-  final _vATnumberController = TextEditingController();
   dynamic personalPhoto;
   List<Asset> driverLicensePhoto = <Asset>[];
+  List<Asset> iDPhoto = <Asset>[];
   String error = "No Error Detected";
 
-  late FocusNode _vATnumberFocusNode;
-
-  bool isVATnumberEmpty = false;
-
-  bool _allFilledOut() {
-    if (_vATnumberController.text.isNotEmpty &&
-        personalPhoto != null &&
-        driverLicensePhoto.isNotEmpty) {
+  bool _allFilledOut(String role) {
+    if (personalPhoto != null &&
+        driverLicensePhoto.isNotEmpty &&
+        iDPhoto.isNotEmpty &&
+        role != 'Guide') {
+      return true;
+    } else if (personalPhoto != null &&
+        driverLicensePhoto.isNotEmpty &&
+        iDPhoto.isNotEmpty &&
+        role == 'Guide') {
       return true;
     }
     return false;
@@ -48,39 +53,10 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
         });
       }
     });
-
-    _vATnumberFocusNode = FocusNode();
-
-    _vATnumberFocusNode.addListener(() {
-      if (!_vATnumberFocusNode.hasFocus) {
-        _isEmpty(_vATnumberController, 'VAT Number');
-      }
-    });
-
-    _vATnumberController.addListener(() {
-      setState(() {});
-    });
-  }
-
-  void _isEmpty(TextEditingController controller, String fieldName) {
-    setState(() {
-      if (controller.text.isEmpty) {
-        if (fieldName == 'VAT Number') {
-          isVATnumberEmpty = true;
-        }
-      } else {
-        if (fieldName == 'VAT Number') {
-          isVATnumberEmpty = false;
-        }
-      }
-    });
   }
 
   @override
   void dispose() {
-    _vATnumberController.dispose();
-    _vATnumberFocusNode.dispose();
-
     super.dispose();
   }
 
@@ -91,7 +67,11 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     final role = ref.watch(roleProvider);
-    String numOfPages = role == 'Guide' ? '1/2' : '1/3';
+    String numOfPages = role == 'Guide' ? '1/3' : '1/4';
+
+    if (role == null) {
+      return Center(child: CircularProgressIndicator());
+    }
 
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
@@ -105,7 +85,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
           hoverColor: Colors.transparent,
           icon: Icon(
             Icons.arrow_circle_left_rounded,
-            size: width * 0.127,
+            size: width * 0.1,
             color: Colors.grey.shade400,
           ),
         ),
@@ -117,7 +97,10 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
             '$numOfPages Your Key Details to Get Started',
             overflow: TextOverflow.visible,
             softWrap: true,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: width * 0.05,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -125,7 +108,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
         child: SingleChildScrollView(
           controller: _scrollController,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: width * 0.02),
+            padding: EdgeInsets.symmetric(horizontal: width * 0.04),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -134,7 +117,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                   style: GoogleFonts.daysOne(
                     textStyle: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 26,
+                      fontSize: width * 0.066,
                       color: darkMode ? Colors.white : Colors.black,
                     ),
                   ),
@@ -144,137 +127,32 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                   'We\'re almost there! Share a few important details to complete your profile and set the stage for an exciting partnership ahead.',
                 ),
                 SizedBox(height: height * 0.015),
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isVATnumberEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _vATnumberFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom: _vATnumberFocusNode.hasFocus ? 0 : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      onTap: () {
-                        setState(() {
-                          _vATnumberFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_vATnumberController, 'VAT Number');
-                        setState(() {
-                          _vATnumberFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _vATnumberFocusNode,
-                      textInputAction: TextInputAction.next,
-                      controller: _vATnumberController,
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _vATnumberFocusNode.hasFocus
-                                ? _vATnumberController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _vATnumberController.clear();
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'VAT Number',
-                        hintText: 'Bank Details',
-                        hintStyle: TextStyle(
-                          fontSize: 15,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: 15,
-                          color:
-                              isVATnumberEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _vATnumberFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isVATnumberEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      "Required",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-                SizedBox(height: height * 0.025),
-                Text(
-                  'Attachments',
-                  style: GoogleFonts.daysOne(
-                    textStyle: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: darkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-                SizedBox(height: height * 0.005),
                 Row(
                   children: [
                     Text('Please Upload Your Photo'),
                     Spacer(),
                     IconButton(
                       onPressed: () async {
-                        var resultList = await loadAssets(
-                          error: error,
-                          maxNumOfPhotos: 1,
-                          minNumOfPhotos: 1,
-                        );
-                        setState(() {
-                          personalPhoto = resultList.first;
-                        });
+                        if (await Permission.photos.request().isGranted) {
+                          var resultList = await loadAssets(
+                            error: error,
+                            maxNumOfPhotos: 1,
+                            minNumOfPhotos: 1,
+                          );
+                          setState(() {
+                            personalPhoto = resultList.first;
+                          });
+                        } else {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Permission to access photos is required.',
+                                ),
+                              ),
+                            );
+                          }
+                        }
                       },
                       icon: Icon(Icons.add),
                     ),
@@ -300,6 +178,42 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                       ),
                     ),
                 SizedBox(height: height * 0.015),
+                Row(
+                  children: [
+                    Text('Please Upload Your ID Photo (Front and Back)'),
+                    Spacer(),
+                    IconButton(
+                      onPressed: () async {
+                        var resultList = await loadAssets(
+                          error: error,
+                          maxNumOfPhotos: 2,
+                          minNumOfPhotos: 2,
+                        );
+                        setState(() {
+                          iDPhoto = resultList;
+                        });
+                      },
+                      icon: Icon(Icons.add),
+                    ),
+                  ],
+                ),
+                iDPhoto.isEmpty
+                    ? SizedBox.shrink()
+                    : Container(
+                      width: width,
+                      height: height / 5,
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(113, 80, 79, 79),
+                        borderRadius: BorderRadius.circular(width * 0.019),
+                      ),
+                      padding: EdgeInsets.all(width * 0.02),
+                      child: buildGridView(
+                        images: iDPhoto,
+                        height: height,
+                        width: width,
+                      ),
+                    ),
+                SizedBox(height: height * 0.025),
                 role == 'Guide'
                     ? SizedBox.shrink()
                     : Row(
@@ -339,20 +253,46 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                     ),
                 SizedBox(height: height * 0.025),
                 GestureDetector(
-                  onTap: () async {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CertificatesDetails(role: role!),
-                      ),
-                    );
-                  },
+                  onTap:
+                      _allFilledOut(role)
+                          ? () async {
+                            final userId =
+                                FirebaseAuth.instance.currentUser?.uid;
+                            if (userId != null) {
+                              await uploadPhotosAndSaveData(
+                                userId: userId,
+                                personalPhoto: personalPhoto,
+                                driverLicensePhotos: driverLicensePhoto,
+                                idPhotos: iDPhoto,
+                              );
+                            }
+                            if (context.mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          CertificatesDetails(role: role),
+                                ),
+                              );
+                            }
+                          }
+                          : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        CertificatesDetails(role: role),
+                              ),
+                            );
+                          },
                   child: Container(
                     width: width,
                     height: height * 0.058,
                     decoration: BoxDecoration(
                       color:
-                          _allFilledOut()
+                          _allFilledOut(role)
                               ? (darkMode
                                   ? Color.fromARGB(255, 1, 105, 170)
                                   : Color.fromARGB(255, 0, 134, 179))
@@ -366,9 +306,9 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         'Next',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                          fontSize: width * 0.04,
                           color:
-                              _allFilledOut()
+                              _allFilledOut(role)
                                   ? (darkMode
                                       ? const Color.fromARGB(255, 0, 0, 0)
                                       : const Color.fromARGB(

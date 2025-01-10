@@ -9,26 +9,30 @@ class Terms extends StatelessWidget {
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
-    TextStyle defaultStyle =
-        TextStyle(fontSize: 13, color: const Color.fromARGB(255, 0, 0, 0));
+    TextStyle defaultStyle = TextStyle(
+      fontSize: width * 0.033,
+      color: const Color.fromARGB(255, 0, 0, 0),
+    );
     TextStyle paragraphStyle = GoogleFonts.daysOne(
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-        color: const Color.fromARGB(255, 0, 0, 0));
+      fontSize: width * 0.05,
+      fontWeight: FontWeight.bold,
+      color: const Color.fromARGB(255, 0, 0, 0),
+    );
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: darkMode
-            ? const Color.fromARGB(255, 0, 0, 0)
-            : const Color.fromARGB(255, 255, 255, 255),
+        backgroundColor:
+            darkMode
+                ? const Color.fromARGB(255, 0, 0, 0)
+                : const Color.fromARGB(255, 255, 255, 255),
         leading: Padding(
           padding: const EdgeInsets.only(top: 15, left: 5),
           child: Text(
             'Terms & Conditions',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: width * 0.05,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -42,7 +46,7 @@ class Terms extends StatelessWidget {
             child: Text(
               'Done',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: width * 0.038,
                 color: const Color.fromARGB(255, 33, 150, 243),
                 fontWeight: FontWeight.bold,
               ),
@@ -58,10 +62,12 @@ class Terms extends StatelessWidget {
               Container(
                 width: width,
                 decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 255, 255, 255),
-                    borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(width * 0.04),
-                        bottomRight: Radius.circular(width * 0.04))),
+                  color: const Color.fromARGB(255, 255, 255, 255),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(width * 0.04),
+                    bottomRight: Radius.circular(width * 0.04),
+                  ),
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -70,7 +76,7 @@ class Terms extends StatelessWidget {
                       child: Text(
                         'User Terms of Service - Azerbaijan',
                         style: GoogleFonts.daysOne(
-                          fontSize: 30,
+                          fontSize: width * 0.076,
                           fontWeight: FontWeight.bold,
                           color: const Color.fromARGB(255, 0, 0, 0),
                         ),
@@ -427,13 +433,11 @@ class Terms extends StatelessWidget {
                         softWrap: true,
                       ),
                     ),
-                    SizedBox(
-                      height: height * 0.02,
-                    ),
+                    SizedBox(height: height * 0.02),
                   ],
                 ),
               ),
-              SizedBox(height: height * 0.2)
+              SizedBox(height: height * 0.2),
             ],
           ),
         ),

@@ -20,12 +20,9 @@ class ApiService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return true;
       } else {
-        print('Failed to post data: ${response.statusCode}');
-        print('Error message: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('Error: $e');
       return false;
     }
   }

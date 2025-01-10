@@ -47,7 +47,7 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           },
           token: userToken,
           data: {
-            route: "/personal_data_form",
+            route: "/contract_sign",
             fullBody:
               "Please follow up next steps to sign a contract.",
           },

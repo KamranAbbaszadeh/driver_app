@@ -16,18 +16,51 @@ class _NotificationPageState extends State<NotificationPage> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+    final darkMode =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
     return Scaffold(
+      backgroundColor: darkMode ? Colors.black : Colors.white,
       appBar: AppBar(
-        title: const Text('Notifications'),
+        backgroundColor: darkMode ? Colors.black : Colors.white,
+        title: Text(
+          'Notifications',
+          style: TextStyle(
+            fontSize: width * 0.063,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          hoverColor: Colors.transparent,
+          icon: Icon(
+            Icons.arrow_circle_left_rounded,
+            size: width * 0.1,
+            color: Colors.grey.shade400,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete),
+            hoverColor: Colors.transparent,
+            icon: Icon(
+              Icons.delete,
+              size: width * 0.07,
+              color: Colors.grey.shade400,
+            ),
             onPressed: () {
               context.read<NotificationBloc>().add(DeleteNotifications());
             },
           ),
           IconButton(
-            icon: const Icon(Icons.check),
+            hoverColor: Colors.transparent,
+            icon: Icon(
+              Icons.done_all,
+              size: width * 0.07,
+              color: Colors.grey.shade400,
+            ),
             onPressed: () {
               context.read<NotificationBloc>().add(MarkAllAsViewed());
             },
@@ -61,12 +94,12 @@ class _NotificationPageState extends State<NotificationPage> {
                     navigatorKey.currentState?.pushNamed(route);
                   },
                   child: Container(
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.all(10),
+                    padding: EdgeInsets.all(width * 0.025),
+                    margin: EdgeInsets.all(width * 0.025),
                     width: width,
 
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(width * 0.025),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +111,7 @@ class _NotificationPageState extends State<NotificationPage> {
                               title ?? '',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 18,
+                                fontSize: width * 0.45,
                                 color:
                                     isViewed
                                         ? Colors.grey
@@ -87,14 +120,14 @@ class _NotificationPageState extends State<NotificationPage> {
                                         ).textTheme.bodyMedium?.color!,
                               ),
                             ),
-                            const SizedBox(height: 5),
+                            SizedBox(height: height * 0.005),
                             SizedBox(
                               width: width * 0.8,
                               child: Text(
                                 fullBody ?? '',
                                 softWrap: true,
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: width * 0.04,
                                   color:
                                       isViewed
                                           ? Colors.grey
@@ -114,8 +147,8 @@ class _NotificationPageState extends State<NotificationPage> {
                                 shape: BoxShape.circle,
                                 color: Colors.blue,
                               ),
-                              width: 5,
-                              height: 5,
+                              width: width * 0.012,
+                              height: height * 0.005,
                             ),
                       ],
                     ),

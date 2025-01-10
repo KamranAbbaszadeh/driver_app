@@ -1,4 +1,4 @@
-import 'package:driver_app/front/auth/application_form.dart';
+import 'package:driver_app/front/auth/forms/application_forms/application_form.dart';
 import 'package:driver_app/front/auth/auth_methods/auth_phone.dart';
 import 'package:driver_app/front/intro/terms.dart';
 import 'package:flutter/gestures.dart';
@@ -145,7 +145,7 @@ class _WelcomePageState extends State<WelcomePage>
                                               ? Colors.black87
                                               : Colors.grey.shade300,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 16,
+                                      fontSize: width * 0.04,
                                     ),
                                   ),
                                 ],
@@ -197,7 +197,7 @@ class _WelcomePageState extends State<WelcomePage>
                                               ? Colors.grey.shade300
                                               : Colors.black87,
                                       fontWeight: FontWeight.w400,
-                                      fontSize: 16,
+                                      fontSize: width * 0.04,
                                     ),
                                   ),
                                 ],
@@ -210,7 +210,7 @@ class _WelcomePageState extends State<WelcomePage>
                             style: GoogleFonts.roboto(
                               color: Colors.grey.shade700,
                               fontWeight: FontWeight.normal,
-                              fontSize: 16,
+                              fontSize: width * 0.04,
                             ),
                           ),
                           SizedBox(height: height * 0.018),
@@ -244,7 +244,7 @@ class _WelcomePageState extends State<WelcomePage>
                                   style: TextStyle(
                                     color: Color.fromARGB(255, 29, 145, 212),
                                     fontWeight: FontWeight.w400,
-                                    fontSize: 16,
+                                    fontSize: width * 0.04,
                                   ),
                                 ),
                               ),

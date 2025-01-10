@@ -1,5 +1,6 @@
+import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
-import 'package:driver_app/front/tools/validate_email.dart';
+import 'package:driver_app/back/tools/validate_email.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -96,7 +97,7 @@ class _AuthState extends State<AuthEmail> {
                       style: GoogleFonts.daysOne(
                         textStyle: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 26,
+                          fontSize: width * 0.066,
                           color: darkMode ? Colors.white : Colors.black,
                         ),
                       ),
@@ -107,7 +108,7 @@ class _AuthState extends State<AuthEmail> {
                     padding: EdgeInsets.all(width * 0.02),
                     child: Text(
                       'A sign in link will be sent to this address',
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(fontSize: width * 0.04),
                     ),
                   ),
                   SizedBox(height: height * 0.001),
@@ -200,14 +201,14 @@ class _AuthState extends State<AuthEmail> {
                                 labelText: 'Email',
                                 hintText: 'Email',
                                 hintStyle: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: width * 0.038,
                                   color: Colors.grey.shade500.withValues(
                                     alpha: 0.5,
                                   ),
                                   fontWeight: FontWeight.w600,
                                 ),
                                 labelStyle: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: width * 0.038,
                                   color:
                                       isEmpty || !isValid
                                           ? const Color.fromARGB(
@@ -234,7 +235,7 @@ class _AuthState extends State<AuthEmail> {
                             child: Text(
                               "Required",
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: width * 0.03,
                                 color: const Color.fromARGB(255, 244, 92, 54),
                               ),
                             ),
@@ -248,7 +249,7 @@ class _AuthState extends State<AuthEmail> {
                             child: Text(
                               "Invalid email adress",
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: width * 0.03,
                                 color: const Color.fromARGB(255, 244, 92, 54),
                               ),
                             ),
@@ -337,7 +338,7 @@ class _AuthState extends State<AuthEmail> {
                             floatingLabelBehavior: FloatingLabelBehavior.auto,
                             labelText: 'Password',
                             labelStyle: TextStyle(
-                              fontSize: 15,
+                              fontSize: width * 0.038,
                               color:
                                   _passwordFocusNode.hasFocus
                                       ? Colors.blue
@@ -358,10 +359,16 @@ class _AuthState extends State<AuthEmail> {
                   email: _emailController.text.trim(),
                   password: _passwordController.text.trim(),
                 );
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => WaitingPage()),
-                );
+                final userId = FirebaseAuth.instance.currentUser?.uid;
+                if (userId != null) {
+                  FirebaseApi.instance.saveFCMToken(userId);
+                }
+                if (context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => WaitingPage()),
+                  );
+                }
               },
               child: Container(
                 width: width * 0.923,
@@ -378,7 +385,7 @@ class _AuthState extends State<AuthEmail> {
                     'Sign In',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: width * 0.04,
                       color:
                           darkMode
                               ? const Color.fromARGB(255, 0, 0, 0)

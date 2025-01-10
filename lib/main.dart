@@ -2,10 +2,11 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/back/bloc/notification_bloc.dart';
 import 'package:driver_app/back/bloc/notification_event.dart';
-import 'package:driver_app/front/auth/application_form.dart';
+import 'package:driver_app/front/auth/forms/application_forms/application_form.dart';
 import 'package:driver_app/front/auth/auth_methods/auth_email.dart';
-import 'package:driver_app/front/auth/car_details_form.dart';
-import 'package:driver_app/front/auth/personal_data_form.dart';
+import 'package:driver_app/front/auth/forms/application_forms/car_details_form.dart';
+import 'package:driver_app/front/auth/forms/contracts/contract_sign_form.dart';
+import 'package:driver_app/front/auth/forms/application_forms/personal_data_form.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:driver_app/front/intro/introduction_screens/introduction_screen.dart';
 import 'package:driver_app/front/no_internet_page.dart';
@@ -70,7 +71,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> _checkConnection() async {
     var connectivityResult = await Connectivity().checkConnectivity();
     setState(() {
-      _isConnected = connectivityResult != ConnectivityResult.none;
+      _isConnected = !connectivityResult.contains(ConnectivityResult.none);
     });
   }
 
@@ -101,6 +102,7 @@ class _MyAppState extends State<MyApp> {
                   (context) => NotificationBloc()..add(FetchNotifications()),
               child: NotificationPage(),
             ),
+        '/contract_sign': (context) => ContractSignForm(),
       },
       navigatorKey: navigatorKey,
     );

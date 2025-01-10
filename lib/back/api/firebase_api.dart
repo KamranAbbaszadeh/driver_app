@@ -54,7 +54,7 @@ class FirebaseApi {
     await initializeNotifications();
     if (userID != null) {
       await saveFCMToken(userID);
-      _setupTokenRefresh(userID);
+      setupTokenRefresh(userID);
     }
     await _setupMessageHandlers();
   }
@@ -84,7 +84,7 @@ class FirebaseApi {
     }
   }
 
-  void _setupTokenRefresh(String userId) {
+  void setupTokenRefresh(String userId) {
     _firebaseMessaging.onTokenRefresh.listen((newToken) async {
       try {
         await FirebaseFirestore.instance.collection('Users').doc(userId).update(

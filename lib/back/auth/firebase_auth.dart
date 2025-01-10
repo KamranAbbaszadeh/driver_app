@@ -46,6 +46,8 @@ Future<void> signUp({
       vehicleTypeController: vehicleTypeController,
     );
 
+    FirebaseApi.instance.saveFCMToken(userCredential.user!.uid);
+
     // String oTP = generateOTP();
     // DateTime parsedDate = DateFormat('dd/MM/yyyy')
     //     .parse(_birthDayController.text);

@@ -1,10 +1,10 @@
-import 'package:driver_app/front/auth/auth_methods/firebase_auth.dart';
-import 'package:driver_app/front/tools/date_picker.dart';
-import 'package:driver_app/front/tools/gender_picker.dart';
-import 'package:driver_app/front/tools/language_picker.dart';
-import 'package:driver_app/front/tools/role_picker.dart';
-import 'package:driver_app/front/tools/validate_email.dart';
-import 'package:driver_app/front/tools/vehicle_type_picker.dart';
+import 'package:driver_app/back/auth/firebase_auth.dart';
+import 'package:driver_app/back/tools/date_picker.dart';
+import 'package:driver_app/back/tools/gender_picker.dart';
+import 'package:driver_app/back/tools/language_picker.dart';
+import 'package:driver_app/back/tools/role_picker.dart';
+import 'package:driver_app/back/tools/validate_email.dart';
+import 'package:driver_app/back/tools/vehicle_type_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,6 +18,7 @@ class ApplicationForm extends StatefulWidget {
 
 class _ApplicationFormState extends State<ApplicationForm> {
   final ScrollController _scrollController = ScrollController();
+
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -256,19 +257,17 @@ class _ApplicationFormState extends State<ApplicationForm> {
     _passwordFocusNode = FocusNode();
     _confirmPasswordFocusNode = FocusNode();
 
-    _scrollController.addListener(
-      () {
-        if (_scrollController.offset > 5 && !_showTitle) {
-          setState(() {
-            _showTitle = true;
-          });
-        } else if (_scrollController.offset <= 5 && _showTitle) {
-          setState(() {
-            _showTitle = false;
-          });
-        }
-      },
-    );
+    _scrollController.addListener(() {
+      if (_scrollController.offset > 5 && !_showTitle) {
+        setState(() {
+          _showTitle = true;
+        });
+      } else if (_scrollController.offset <= 5 && _showTitle) {
+        setState(() {
+          _showTitle = false;
+        });
+      }
+    });
 
     _firstNameFocusNode.addListener(() {
       if (!_firstNameFocusNode.hasFocus) {
@@ -439,7 +438,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
           hoverColor: Colors.transparent,
           icon: Icon(
             Icons.arrow_circle_left_rounded,
-            size: width * 0.127,
+            size: width * 0.1,
             color: Colors.grey.shade400,
           ),
         ),
@@ -451,10 +450,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
             'Ready to become a driver or a tour guide?',
             overflow: TextOverflow.visible,
             softWrap: true,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -462,7 +458,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
         child: SingleChildScrollView(
           controller: _scrollController,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: width * 0.02),
+            padding: EdgeInsets.symmetric(horizontal: width * 0.04),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -471,31 +467,29 @@ class _ApplicationFormState extends State<ApplicationForm> {
                   style: GoogleFonts.daysOne(
                     textStyle: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 26,
+                      fontSize: width * 0.066,
                       color: darkMode ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
-                SizedBox(
-                  height: height * 0.025,
-                ),
+                SizedBox(height: height * 0.025),
                 Text(
                   'Before we get you started as our partner, we just need a few details from you. Fill out the quick application below, and we\' get the ball rolling!',
                 ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //FIRSTNAME
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isFirstNameEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _firstNameFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isFirstNameEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _firstNameFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -519,24 +513,34 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       },
                       showCursor: false,
                       focusNode: _firstNameFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _firstNameFocusNode.unfocus();
+                        FocusScope.of(context).requestFocus(_lastNameFocusNode);
+                      },
                       controller: _firstNameController,
                       decoration: InputDecoration(
-                        suffixIcon: _firstNameFocusNode.hasFocus
-                            ? _firstNameController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      _firstNameController.text = '';
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            _firstNameFocusNode.hasFocus
+                                ? _firstNameController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        _firstNameController.text = '';
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -550,15 +554,16 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         labelText: 'First name (as in passport)',
                         hintText: 'eg. Jane',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isFirstNameEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _firstNameFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isFirstNameEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _firstNameFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -570,29 +575,31 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isFirstNameEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //LASTNAME
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isLastNameEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _lastNameFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isLastNameEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _lastNameFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -616,24 +623,36 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       },
                       showCursor: false,
                       focusNode: _lastNameFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _lastNameFocusNode.unfocus();
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(_fathersNameFocusNode);
+                      },
                       controller: _lastNameController,
                       decoration: InputDecoration(
-                        suffixIcon: _lastNameFocusNode.hasFocus
-                            ? _lastNameController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      _lastNameController.text = '';
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            _lastNameFocusNode.hasFocus
+                                ? _lastNameController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        _lastNameController.text = '';
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -647,15 +666,16 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         labelText: 'Last name (as in passport)',
                         hintText: 'eg. Doe',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isLastNameEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _lastNameFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isLastNameEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _lastNameFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -667,29 +687,31 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isLastNameEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //FATHER'S NAME
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isFathersNameEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _fathersNameFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isFathersNameEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _fathersNameFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -713,24 +735,34 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       },
                       showCursor: false,
                       focusNode: _fathersNameFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _fathersNameFocusNode.unfocus();
+                        FocusScope.of(context).requestFocus(_birthDayFocusNode);
+                      },
                       controller: _fathersNameController,
                       decoration: InputDecoration(
-                        suffixIcon: _fathersNameFocusNode.hasFocus
-                            ? _fathersNameController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      _fathersNameController.text = '';
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            _fathersNameFocusNode.hasFocus
+                                ? _fathersNameController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        _fathersNameController.text = '';
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -744,15 +776,16 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         labelText: 'Father\'s name (as in passport)',
                         hintText: 'eg. Russell',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isFathersNameEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _fathersNameFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isFathersNameEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _fathersNameFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -764,29 +797,31 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isFathersNameEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //DATE OF BIRTH
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isBirthDayEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _birthDayFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isBirthDayEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _birthDayFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -816,7 +851,11 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       readOnly: true,
                       showCursor: false,
                       focusNode: _birthDayFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _birthDayFocusNode.unfocus();
+                        FocusScope.of(context).requestFocus(_genderFocusNode);
+                      },
+
                       controller: _birthDayController,
                       decoration: InputDecoration(
                         suffixIcon: Icon(
@@ -835,10 +874,11 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         labelText: 'Date of birth',
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isBirthDayEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _birthDayFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isBirthDayEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _birthDayFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -850,29 +890,31 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isBirthDayEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //GENDER
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isGenderEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _genderFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isGenderEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _genderFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -899,7 +941,10 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       showCursor: false,
                       readOnly: true,
                       focusNode: _genderFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _genderFocusNode.unfocus();
+                        FocusScope.of(context).requestFocus(_emailFocusNode);
+                      },
                       controller: _genderController,
                       decoration: InputDecoration(
                         suffixIcon: Icon(
@@ -918,10 +963,11 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         labelText: 'Choose your gender',
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isGenderEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _genderFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isGenderEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _genderFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -933,29 +979,31 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isGenderEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //EMAIL
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isEmailEmpty || !isValid
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _emailFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isEmailEmpty || !isValid
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _emailFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -980,24 +1028,34 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       },
                       showCursor: false,
                       focusNode: _emailFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _emailFocusNode.unfocus();
+                        FocusScope.of(context).requestFocus(_passwordFocusNode);
+                      },
                       controller: _emailController,
                       decoration: InputDecoration(
-                        suffixIcon: _emailFocusNode.hasFocus
-                            ? (_emailController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      _emailController.text = '';
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  ))
-                            : null,
+                        suffixIcon:
+                            _emailFocusNode.hasFocus
+                                ? (_emailController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        _emailController.text = '';
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    ))
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -1011,15 +1069,16 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         labelText: 'Email',
                         hintText: 'Email',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isEmailEmpty || !isValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _emailFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isEmailEmpty || !isValid
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _emailFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -1031,11 +1090,13 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isEmailEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
@@ -1043,29 +1104,31 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (!isValid && !isEmailEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Invalid email adress",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //PASSWORD
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: !isPasswordValid
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _passwordFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          !isPasswordValid
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _passwordFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -1094,27 +1157,39 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       },
                       showCursor: false,
                       focusNode: _passwordFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _passwordFocusNode.unfocus();
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(_confirmPasswordFocusNode);
+                      },
                       obscureText: passwordObscure,
                       controller: _passwordController,
                       decoration: InputDecoration(
-                        suffixIcon: _passwordFocusNode.hasFocus
-                            ? (_passwordController.text.isEmpty
-                                ? Icon(Icons.remove_red_eye_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        passwordObscure = !passwordObscure;
-                                      });
-                                    },
-                                    icon: Icon(Icons.remove_red_eye_outlined),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  ))
-                            : null,
+                        suffixIcon:
+                            _passwordFocusNode.hasFocus
+                                ? (_passwordController.text.isEmpty
+                                    ? Icon(
+                                      Icons.remove_red_eye_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          passwordObscure = !passwordObscure;
+                                        });
+                                      },
+                                      icon: Icon(Icons.remove_red_eye_outlined),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    ))
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -1127,10 +1202,11 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         labelText: 'Password',
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: !isPasswordValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _passwordFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              !isPasswordValid
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _passwordFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -1142,30 +1218,32 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (!isPasswordValid)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       passwordValidationString,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
 
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //CONFIRM PASSWORD
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isConfirmPasswordEmpty || !isPasswordConfirmed
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _confirmPasswordFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isConfirmPasswordEmpty || !isPasswordConfirmed
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _confirmPasswordFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -1205,27 +1283,39 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       obscureText: confirmPasswordObscure,
                       showCursor: false,
                       focusNode: _confirmPasswordFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _confirmPasswordFocusNode.unfocus();
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(_phoneNumberFocusNode);
+                      },
                       controller: _confirmPasswordController,
                       decoration: InputDecoration(
-                        suffixIcon: _confirmPasswordFocusNode.hasFocus
-                            ? _confirmPasswordController.text.isEmpty
-                                ? Icon(Icons.remove_red_eye_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        confirmPasswordObscure =
-                                            !confirmPasswordObscure;
-                                      });
-                                    },
-                                    icon: Icon(Icons.remove_red_eye_outlined),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            _confirmPasswordFocusNode.hasFocus
+                                ? _confirmPasswordController.text.isEmpty
+                                    ? Icon(
+                                      Icons.remove_red_eye_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          confirmPasswordObscure =
+                                              !confirmPasswordObscure;
+                                        });
+                                      },
+                                      icon: Icon(Icons.remove_red_eye_outlined),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -1238,10 +1328,11 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         labelText: 'Confirm password',
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isConfirmPasswordEmpty || !isPasswordConfirmed
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _confirmPasswordFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isConfirmPasswordEmpty || !isPasswordConfirmed
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _confirmPasswordFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -1253,11 +1344,13 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isConfirmPasswordEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
@@ -1266,29 +1359,31 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (!isPasswordConfirmed)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       'Passwords do not match',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //PHONE NUMBER
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isPhoneNumberEmpty || !isPhoneNumberValid
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _phoneNumberFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isPhoneNumberEmpty || !isPhoneNumberValid
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _phoneNumberFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -1318,24 +1413,34 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       showCursor: false,
                       keyboardType: TextInputType.phone,
                       focusNode: _phoneNumberFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _phoneNumberFocusNode.unfocus();
+                        FocusScope.of(context).requestFocus(_roleFocusNode);
+                      },
                       controller: _phoneNumberController,
                       decoration: InputDecoration(
-                        suffixIcon: _phoneNumberFocusNode.hasFocus
-                            ? _phoneNumberController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      _phoneNumberController.text = '';
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            _phoneNumberFocusNode.hasFocus
+                                ? _phoneNumberController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        _phoneNumberController.text = '';
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -1349,15 +1454,16 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         labelText: 'Phone number (international format)',
                         hintText: 'eg. +358411235522',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isPhoneNumberEmpty || !isPhoneNumberValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _phoneNumberFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isPhoneNumberEmpty || !isPhoneNumberValid
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _phoneNumberFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -1369,11 +1475,13 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isPhoneNumberEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
@@ -1381,18 +1489,18 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (!isPhoneNumberValid && !isPhoneNumberEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Invalid Phone number format",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
 
                 //ROLE
                 Container(
@@ -1400,11 +1508,13 @@ class _ApplicationFormState extends State<ApplicationForm> {
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isRoleEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _roleFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isRoleEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _roleFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -1431,7 +1541,12 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       showCursor: false,
                       readOnly: true,
                       focusNode: _roleFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _roleFocusNode.unfocus();
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(_experienceFocusNode);
+                      },
                       controller: _roleController,
                       decoration: InputDecoration(
                         suffixIcon: Icon(
@@ -1450,10 +1565,11 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         labelText: 'Choose your role',
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isRoleEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _roleFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isRoleEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _roleFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -1465,29 +1581,31 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isRoleEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //EXPERIENCE
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isExperienceEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _experienceFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isExperienceEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _experienceFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -1511,25 +1629,35 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       },
                       showCursor: false,
                       focusNode: _experienceFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _experienceFocusNode.unfocus();
+                        FocusScope.of(context).requestFocus(_languageFocusNode);
+                      },
                       keyboardType: TextInputType.number,
                       controller: _experienceController,
                       decoration: InputDecoration(
-                        suffixIcon: _experienceFocusNode.hasFocus
-                            ? _experienceController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      _experienceController.text = '';
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            _experienceFocusNode.hasFocus
+                                ? _experienceController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        _experienceController.text = '';
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -1542,10 +1670,11 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         labelText: 'Experience',
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isExperienceEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _experienceFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isExperienceEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _experienceFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -1557,35 +1686,38 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isExperienceEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //LANGUAGE
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isLanguageEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : _languageFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isLanguageEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : _languageFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
-                    bottom: _languageFocusNode.hasFocus || !isLanguageEmpty
-                        ? 0
-                        : width * 0.025,
+                    bottom:
+                        _languageFocusNode.hasFocus || !isLanguageEmpty
+                            ? 0
+                            : width * 0.025,
                     left: width * 0.025,
                     top: width * 0.025,
                     right: width * 0.025,
@@ -1610,7 +1742,12 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       showCursor: false,
                       readOnly: true,
                       focusNode: _languageFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _languageFocusNode.unfocus();
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(_vehicleTypeFocusNode);
+                      },
                       controller: _languageController,
                       decoration: InputDecoration(
                         suffixIcon: Icon(
@@ -1629,10 +1766,11 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         labelText: 'Languages spoken',
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isLanguageEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _languageFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isLanguageEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : _languageFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -1644,124 +1782,144 @@ class _ApplicationFormState extends State<ApplicationForm> {
                 if (isLanguageEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
                 SizedBox(
-                  height: _roleController.text == 'Driver' ||
-                          _roleController.text == 'Driver Cum Guide'
-                      ? height * 0.015
-                      : height * 0.045,
+                  height:
+                      _roleController.text == 'Driver' ||
+                              _roleController.text == 'Driver Cum Guide'
+                          ? height * 0.015
+                          : height * 0.045,
                 ),
                 //VEHICLE TYPE
                 _roleController.text == 'Driver' ||
                         _roleController.text == 'Driver Cum Guide'
                     ? SizedBox(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: width,
-                              height: height * 0.065,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                    color: isVehicleTypeEmpty
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: width,
+                            height: height * 0.065,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color:
+                                    isVehicleTypeEmpty
                                         ? const Color.fromARGB(255, 244, 92, 54)
                                         : _vehicleTypeFocusNode.hasFocus
-                                            ? Colors.blue
-                                            : Colors.grey.shade400),
-                                borderRadius:
-                                    BorderRadius.circular(width * 0.019),
+                                        ? Colors.blue
+                                        : Colors.grey.shade400,
                               ),
-                              padding: EdgeInsets.only(
-                                bottom: _vehicleTypeFocusNode.hasFocus
-                                    ? 0
-                                    : width * 0.025,
-                                left: width * 0.025,
-                                top: width * 0.025,
-                                right: width * 0.025,
-                              ),
-                              child: Center(
-                                child: TextField(
-                                  onTap: () async {
-                                    setState(() {
-                                      _vehicleTypeFocusNode.requestFocus();
-                                    });
-                                    await showVehicleTypePicker(
-                                        context, selectedVehicleType);
-                                    _vehicleTypeController.text =
-                                        selectedVehicleType.join(', ');
-                                    _isEmpty(
-                                        _vehicleTypeController, 'vehicleType');
-                                  },
-                                  onTapOutside: (_) {
-                                    _isEmpty(
-                                        _vehicleTypeController, 'vehicleType');
-                                    setState(() {
-                                      _vehicleTypeFocusNode.unfocus();
-                                    });
-                                  },
-                                  readOnly: true,
-                                  focusNode: _vehicleTypeFocusNode,
-                                  textInputAction: TextInputAction.done,
-                                  controller: _vehicleTypeController,
-                                  decoration: InputDecoration(
-                                    suffixIcon: Icon(
-                                      Icons.chevron_right_rounded,
-                                      size: width * 0.085,
-                                    ),
-                                    errorBorder: InputBorder.none,
-                                    contentPadding:
-                                        EdgeInsets.only(top: width * 0.05),
-                                    isDense: true,
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    floatingLabelBehavior:
-                                        FloatingLabelBehavior.auto,
-                                    labelText: 'Vehicle Type',
-                                    labelStyle: TextStyle(
-                                      fontSize: 15,
-                                      color: isVehicleTypeEmpty
-                                          ? const Color.fromARGB(
-                                              255, 244, 92, 54)
-                                          : _vehicleTypeFocusNode.hasFocus
-                                              ? Colors.blue
-                                              : Colors.grey.shade500,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
+                              borderRadius: BorderRadius.circular(
+                                width * 0.019,
                               ),
                             ),
-                            if (isVehicleTypeEmpty)
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    left: width * 0.027, top: width * 0.007),
-                                child: Text(
-                                  "Required",
-                                  style: TextStyle(
-                                    fontSize: 12,
+                            padding: EdgeInsets.only(
+                              bottom:
+                                  _vehicleTypeFocusNode.hasFocus
+                                      ? 0
+                                      : width * 0.025,
+                              left: width * 0.025,
+                              top: width * 0.025,
+                              right: width * 0.025,
+                            ),
+                            child: Center(
+                              child: TextField(
+                                onTap: () async {
+                                  setState(() {
+                                    _vehicleTypeFocusNode.requestFocus();
+                                  });
+                                  await showVehicleTypePicker(
+                                    context,
+                                    selectedVehicleType,
+                                  );
+                                  _vehicleTypeController
+                                      .text = selectedVehicleType.join(', ');
+                                  _isEmpty(
+                                    _vehicleTypeController,
+                                    'vehicleType',
+                                  );
+                                },
+                                onTapOutside: (_) {
+                                  _isEmpty(
+                                    _vehicleTypeController,
+                                    'vehicleType',
+                                  );
+                                  setState(() {
+                                    _vehicleTypeFocusNode.unfocus();
+                                  });
+                                },
+                                readOnly: true,
+                                focusNode: _vehicleTypeFocusNode,
+                                onEditingComplete: () {
+                                  _vehicleTypeFocusNode.unfocus();
+                                },
+                                controller: _vehicleTypeController,
+                                decoration: InputDecoration(
+                                  suffixIcon: Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: width * 0.085,
+                                  ),
+                                  errorBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.only(
+                                    top: width * 0.05,
+                                  ),
+                                  isDense: true,
+                                  focusedBorder: OutlineInputBorder(
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  floatingLabelBehavior:
+                                      FloatingLabelBehavior.auto,
+                                  labelText: 'Vehicle Type',
+                                  labelStyle: TextStyle(
+                                    fontSize: width * 0.038,
                                     color:
-                                        const Color.fromARGB(255, 244, 92, 54),
+                                        isVehicleTypeEmpty
+                                            ? const Color.fromARGB(
+                                              255,
+                                              244,
+                                              92,
+                                              54,
+                                            )
+                                            : _vehicleTypeFocusNode.hasFocus
+                                            ? Colors.blue
+                                            : Colors.grey.shade500,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ),
-                            SizedBox(
-                              height: height * 0.045,
                             ),
-                          ],
-                        ),
-                      )
+                          ),
+                          if (isVehicleTypeEmpty)
+                            Padding(
+                              padding: EdgeInsets.only(
+                                left: width * 0.027,
+                                top: width * 0.007,
+                              ),
+                              child: Text(
+                                "Required",
+                                style: TextStyle(
+                                  fontSize: width * 0.03,
+                                  color: const Color.fromARGB(255, 244, 92, 54),
+                                ),
+                              ),
+                            ),
+                          SizedBox(height: height * 0.045),
+                        ],
+                      ),
+                    )
                     : SizedBox.shrink(),
 
                 Row(
@@ -1775,8 +1933,9 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         value: isChecked,
                         side: BorderSide(
-                            color: const Color.fromARGB(255, 33, 152, 243),
-                            width: width * 0.005),
+                          color: const Color.fromARGB(255, 33, 152, 243),
+                          width: width * 0.005,
+                        ),
                         activeColor: const Color.fromARGB(255, 33, 152, 243),
                         onChanged: (_) {
                           setState(() {
@@ -1786,30 +1945,31 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       ),
                     ),
                     Expanded(
-                        child: Text.rich(
-                      TextSpan(
-                        text: 'I have read and agree with the ',
-                        children: [
-                          TextSpan(
-                            text: 'User Terms of Service',
-                            style: TextStyle(color: Colors.blue),
-                            recognizer: TapGestureRecognizer()..onTap = () {},
-                          ),
-                          TextSpan(
-                            text:
-                                ', and I understand that my personal data will be processed in accordance with ',
-                          ),
-                          TextSpan(
-                            text: 'OnemoreTour Privacy Policy',
-                            style: TextStyle(color: Colors.blue),
-                            recognizer: TapGestureRecognizer()..onTap = () {},
-                          ),
-                          TextSpan(text: '.'),
-                        ],
+                      child: Text.rich(
+                        TextSpan(
+                          text: 'I have read and agree with the ',
+                          children: [
+                            TextSpan(
+                              text: 'User Terms of Service',
+                              style: TextStyle(color: Colors.blue),
+                              recognizer: TapGestureRecognizer()..onTap = () {},
+                            ),
+                            TextSpan(
+                              text:
+                                  ', and I understand that my personal data will be processed in accordance with ',
+                            ),
+                            TextSpan(
+                              text: 'OnemoreTour Privacy Policy',
+                              style: TextStyle(color: Colors.blue),
+                              recognizer: TapGestureRecognizer()..onTap = () {},
+                            ),
+                            TextSpan(text: '.'),
+                          ],
+                        ),
+                        softWrap: true,
+                        overflow: TextOverflow.visible,
                       ),
-                      softWrap: true,
-                      overflow: TextOverflow.visible,
-                    ))
+                    ),
                   ],
                 ),
                 SizedBox(height: height * 0.025),
@@ -1821,7 +1981,6 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       isTapped = true;
                     });
                     // if (_allFilledOut()) {
-                    print('Registration started');
                     await signUp(
                       emailController: _emailController,
                       passwordController: _passwordController,
@@ -1837,7 +1996,6 @@ class _ApplicationFormState extends State<ApplicationForm> {
                       genderController: _genderController,
                       context: context,
                     );
-                    print('Registration finished');
                     //   final success = await _apiService.postData(data);
                     //   if (success) {
                     //     ScaffoldMessenger.of(context).showSnackBar(
@@ -1854,13 +2012,14 @@ class _ApplicationFormState extends State<ApplicationForm> {
                     width: width,
                     height: height * 0.058,
                     decoration: BoxDecoration(
-                      color: _allFilledOut()
-                          ? (darkMode
-                              ? Color.fromARGB(255, 1, 105, 170)
-                              : Color.fromARGB(255, 0, 134, 179))
-                          : (darkMode
-                              ? Color.fromARGB(128, 52, 168, 235)
-                              : Color.fromARGB(177, 0, 134, 179)),
+                      color:
+                          _allFilledOut()
+                              ? (darkMode
+                                  ? Color.fromARGB(255, 1, 105, 170)
+                                  : Color.fromARGB(255, 0, 134, 179))
+                              : (darkMode
+                                  ? Color.fromARGB(128, 52, 168, 235)
+                                  : Color.fromARGB(177, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(7.5),
                     ),
                     child: Center(
@@ -1868,19 +2027,30 @@ class _ApplicationFormState extends State<ApplicationForm> {
                         'Send application',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          color: _allFilledOut()
-                              ? (darkMode
-                                  ? const Color.fromARGB(255, 0, 0, 0)
-                                  : const Color.fromARGB(255, 255, 255, 255))
-                              : (darkMode
-                                  ? const Color.fromARGB(132, 0, 0, 0)
-                                  : const Color.fromARGB(187, 255, 255, 255)),
+                          fontSize: width * 0.04,
+                          color:
+                              _allFilledOut()
+                                  ? (darkMode
+                                      ? const Color.fromARGB(255, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ))
+                                  : (darkMode
+                                      ? const Color.fromARGB(132, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        187,
+                                        255,
+                                        255,
+                                        255,
+                                      )),
                         ),
                       ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),

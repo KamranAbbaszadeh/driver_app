@@ -1,20 +1,23 @@
-import 'package:driver_app/front/auth/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/tools/image_picker.dart';
+import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
+import 'package:driver_app/db/user_data/store_role.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
-import 'package:driver_app/front/tools/vehicle_type_picker.dart';
+import 'package:driver_app/back/tools/vehicle_type_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
 
-class CarDetailsForm extends StatefulWidget {
-  const CarDetailsForm({
-    super.key,
-  });
+class CarDetailsForm extends ConsumerStatefulWidget {
+  const CarDetailsForm({super.key});
 
   @override
-  State<CarDetailsForm> createState() => _CarDetailsFormState();
+  ConsumerState<CarDetailsForm> createState() => _CarDetailsFormState();
 }
 
-class _CarDetailsFormState extends State<CarDetailsForm> {
+class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
   final ScrollController _scrollController = ScrollController();
   String error = "No Error Detected";
 
@@ -96,19 +99,17 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(
-      () {
-        if (_scrollController.offset > 5 && !_showTitle) {
-          setState(() {
-            _showTitle = true;
-          });
-        } else if (_scrollController.offset <= 5 && _showTitle) {
-          setState(() {
-            _showTitle = false;
-          });
-        }
-      },
-    );
+    _scrollController.addListener(() {
+      if (_scrollController.offset > 5 && !_showTitle) {
+        setState(() {
+          _showTitle = true;
+        });
+      } else if (_scrollController.offset <= 5 && _showTitle) {
+        setState(() {
+          _showTitle = false;
+        });
+      }
+    });
 
     nameOfTheCarFocusNode = FocusNode();
     technicalPassportNumberFocusNode = FocusNode();
@@ -126,7 +127,9 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
     technicalPassportNumberFocusNode.addListener(() {
       if (!technicalPassportNumberFocusNode.hasFocus) {
         _isEmpty(
-            technicalPassportNumberController, 'Technical Passport Number');
+          technicalPassportNumberController,
+          'Technical Passport Number',
+        );
       }
     });
     chassisNumberFocusNode.addListener(() {
@@ -152,7 +155,9 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
     vehicleRegistrationNumberFocusNode.addListener(() {
       if (!vehicleRegistrationNumberFocusNode.hasFocus) {
         _isEmpty(
-            vehicleRegistrationNumberController, 'Vehicle Registration Number');
+          vehicleRegistrationNumberController,
+          'Vehicle Registration Number',
+        );
       }
     });
 
@@ -218,6 +223,8 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
 
   @override
   Widget build(BuildContext context) {
+    final role = ref.watch(roleProvider);
+    String numOfPages = role == 'Guide' ? '3/3' : '4/4';
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
@@ -234,7 +241,7 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
           hoverColor: Colors.transparent,
           icon: Icon(
             Icons.arrow_circle_left_rounded,
-            size: width * 0.127,
+            size: width * 0.1,
             color: Colors.grey.shade400,
           ),
         ),
@@ -243,11 +250,11 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
           opacity: _showTitle ? 1.0 : 0.0,
           duration: Duration(milliseconds: 300),
           child: Text(
-            'Your Vehicle, Your Partnership',
+            '$numOfPages Your Vehicle, Your Partnership',
             overflow: TextOverflow.visible,
             softWrap: true,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: width * 0.05,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -257,40 +264,38 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
         child: SingleChildScrollView(
           controller: _scrollController,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: width * 0.02),
+            padding: EdgeInsets.symmetric(horizontal: width * 0.04),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Your Vehicle, Your Partnership',
+                  '$numOfPages Your Vehicle, Your Partnership',
                   style: GoogleFonts.daysOne(
                     textStyle: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 26,
+                      fontSize: width * 0.066,
                       color: darkMode ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
-                SizedBox(
-                  height: height * 0.025,
-                ),
+                SizedBox(height: height * 0.025),
                 Text(
                   'Let\'s get to know your vehicle! Share the details to ensure you\'re fully equipped to provide reliable and safe service.',
                 ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //Name of the car
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isNameOfTheCarEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : nameOfTheCarFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isNameOfTheCarEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : nameOfTheCarFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -314,24 +319,33 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                       },
                       showCursor: false,
                       focusNode: nameOfTheCarFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) {
+                        nameOfTheCarFocusNode.unfocus();
+                      },
                       controller: nameOfTheCarController,
                       decoration: InputDecoration(
-                        suffixIcon: nameOfTheCarFocusNode.hasFocus
-                            ? nameOfTheCarController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      nameOfTheCarController.clear();
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            nameOfTheCarFocusNode.hasFocus
+                                ? nameOfTheCarController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        nameOfTheCarController.clear();
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -345,15 +359,16 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         labelText: 'Name of the car',
                         hintText: 'eg. Mercedes Benz, E220',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isNameOfTheCarEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : nameOfTheCarFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isNameOfTheCarEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : nameOfTheCarFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -365,18 +380,18 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                 if (isNameOfTheCarEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //Car photos picker
                 Row(
                   children: [
@@ -389,9 +404,15 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                           maxNumOfPhotos: 12,
                           minNumOfPhotos: 4,
                         );
+
                         setState(() {
                           carsPhoto = resultList;
                         });
+                        if (context.mounted) {
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(technicalPassportNumberFocusNode);
+                        }
                       },
                       icon: Icon(Icons.add),
                     ),
@@ -401,39 +422,40 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                 carsPhoto.isEmpty
                     ? SizedBox.shrink()
                     : Container(
-                        width: width,
-                        height: height / 5,
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(113, 80, 79, 79),
-                          borderRadius: BorderRadius.circular(width * 0.019),
-                        ),
-                        padding: EdgeInsets.all(width * 0.02),
-                        child: buildGridView(
-                          images: carsPhoto,
-                          height: height,
-                          width: width,
-                        ),
+                      width: width,
+                      height: height / 5,
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(113, 80, 79, 79),
+                        borderRadius: BorderRadius.circular(width * 0.019),
                       ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                      padding: EdgeInsets.all(width * 0.02),
+                      child: buildGridView(
+                        images: carsPhoto,
+                        height: height,
+                        width: width,
+                      ),
+                    ),
+                SizedBox(height: height * 0.015),
                 //Technical Passport Number
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isTechnicalPassportNumberEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : technicalPassportNumberFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isTechnicalPassportNumberEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : technicalPassportNumberFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
-                    bottom: technicalPassportNumberFocusNode.hasFocus
-                        ? 0
-                        : width * 0.025,
+                    bottom:
+                        technicalPassportNumberFocusNode.hasFocus
+                            ? 0
+                            : width * 0.025,
                     left: width * 0.025,
                     top: width * 0.025,
                     right: width * 0.025,
@@ -446,32 +468,44 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         });
                       },
                       onTapOutside: (_) {
-                        _isEmpty(technicalPassportNumberController,
-                            'Technical Passport Number');
+                        _isEmpty(
+                          technicalPassportNumberController,
+                          'Technical Passport Number',
+                        );
                         setState(() {
                           technicalPassportNumberFocusNode.unfocus();
                         });
                       },
                       showCursor: false,
                       focusNode: technicalPassportNumberFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) {
+                        technicalPassportNumberFocusNode.unfocus();
+                      },
                       controller: technicalPassportNumberController,
                       decoration: InputDecoration(
-                        suffixIcon: technicalPassportNumberFocusNode.hasFocus
-                            ? technicalPassportNumberController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      technicalPassportNumberController.clear();
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            technicalPassportNumberFocusNode.hasFocus
+                                ? technicalPassportNumberController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        technicalPassportNumberController
+                                            .clear();
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -485,15 +519,16 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         labelText: 'Technical Passort Number',
                         hintText: 'Vehicle Registration Certificate',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isTechnicalPassportNumberEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : technicalPassportNumberFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isTechnicalPassportNumberEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : technicalPassportNumberFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -505,18 +540,18 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                 if (isTechnicalPassportNumberEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //Technical Passport photos picker
                 Row(
                   children: [
@@ -525,46 +560,55 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                     IconButton(
                       onPressed: () async {
                         var resultList = await loadAssets(
-                            error: error, maxNumOfPhotos: 2, minNumOfPhotos: 2);
+                          error: error,
+                          maxNumOfPhotos: 2,
+                          minNumOfPhotos: 2,
+                        );
                         setState(() {
                           technicalPassportNumberPhoto = resultList;
                         });
+
+                        if (context.mounted) {
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(chassisNumberFocusNode);
+                        }
                       },
                       icon: Icon(Icons.add),
                     ),
                   ],
                 ),
                 //Technical passport photos display
-                carsPhoto.isEmpty
+                technicalPassportNumberPhoto.isEmpty
                     ? SizedBox.shrink()
                     : Container(
-                        width: width,
-                        height: height / 5,
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(113, 80, 79, 79),
-                          borderRadius: BorderRadius.circular(width * 0.019),
-                        ),
-                        padding: EdgeInsets.all(width * 0.02),
-                        child: buildGridView(
-                          images: technicalPassportNumberPhoto,
-                          height: height,
-                          width: width,
-                        ),
+                      width: width,
+                      height: height / 5,
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(113, 80, 79, 79),
+                        borderRadius: BorderRadius.circular(width * 0.019),
                       ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                      padding: EdgeInsets.all(width * 0.02),
+                      child: buildGridView(
+                        images: technicalPassportNumberPhoto,
+                        height: height,
+                        width: width,
+                      ),
+                    ),
+                SizedBox(height: height * 0.015),
                 //Chassis Number
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isChassisNumberEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : chassisNumberFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isChassisNumberEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : chassisNumberFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -588,24 +632,33 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                       },
                       showCursor: false,
                       focusNode: chassisNumberFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        chassisNumberFocusNode.unfocus();
+                      },
                       controller: chassisNumberController,
                       decoration: InputDecoration(
-                        suffixIcon: chassisNumberFocusNode.hasFocus
-                            ? chassisNumberController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      chassisNumberController.clear();
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            chassisNumberFocusNode.hasFocus
+                                ? chassisNumberController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        chassisNumberController.clear();
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -619,15 +672,16 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         labelText: 'Chassis Number',
                         hintText: 'Vehicle Identification Number',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isChassisNumberEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : chassisNumberFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isChassisNumberEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : chassisNumberFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -639,18 +693,18 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                 if (isChassisNumberEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //Chasis Number photos picker
                 Row(
                   children: [
@@ -659,10 +713,18 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                     IconButton(
                       onPressed: () async {
                         var resultList = await loadAssets(
-                            error: error, maxNumOfPhotos: 1, minNumOfPhotos: 1);
+                          error: error,
+                          maxNumOfPhotos: 1,
+                          minNumOfPhotos: 1,
+                        );
                         setState(() {
                           chassisNumberPhoto = resultList.first;
                         });
+                        if (context.mounted) {
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(vehicleRegistrationNumberFocusNode);
+                        }
                       },
                       icon: Icon(Icons.add),
                     ),
@@ -672,42 +734,43 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                 chassisNumberPhoto == null
                     ? SizedBox.shrink()
                     : Container(
-                        width: width,
-                        height: height / 5,
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(113, 80, 79, 79),
-                          borderRadius: BorderRadius.circular(width * 0.019),
-                        ),
-                        padding: EdgeInsets.all(width * 0.02),
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          child: AssetThumb(
-                            asset: chassisNumberPhoto,
-                            width: (width * 0.254).toInt(),
-                            height: (height * 0.117).toInt(),
-                          ),
+                      width: width,
+                      height: height / 5,
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(113, 80, 79, 79),
+                        borderRadius: BorderRadius.circular(width * 0.019),
+                      ),
+                      padding: EdgeInsets.all(width * 0.02),
+                      child: FittedBox(
+                        fit: BoxFit.contain,
+                        child: AssetThumb(
+                          asset: chassisNumberPhoto,
+                          width: (width * 0.254).toInt(),
+                          height: (height * 0.117).toInt(),
                         ),
                       ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                    ),
+                SizedBox(height: height * 0.015),
                 //Vehicle Registration Number
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isVehicleRegistrationNumberEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : vehicleRegistrationNumberFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isVehicleRegistrationNumberEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : vehicleRegistrationNumberFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
-                    bottom: vehicleRegistrationNumberFocusNode.hasFocus
-                        ? 0
-                        : width * 0.025,
+                    bottom:
+                        vehicleRegistrationNumberFocusNode.hasFocus
+                            ? 0
+                            : width * 0.025,
                     left: width * 0.025,
                     top: width * 0.025,
                     right: width * 0.025,
@@ -720,33 +783,49 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         });
                       },
                       onTapOutside: (_) {
-                        _isEmpty(vehicleRegistrationNumberController,
-                            'Vehicle Registration Number');
+                        _isEmpty(
+                          vehicleRegistrationNumberController,
+                          'Vehicle Registration Number',
+                        );
                         setState(() {
                           vehicleRegistrationNumberFocusNode.unfocus();
                         });
                       },
                       showCursor: false,
                       focusNode: vehicleRegistrationNumberFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        vehicleRegistrationNumberFocusNode.unfocus();
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(yearOfTheCarFocusNode);
+                      },
                       controller: vehicleRegistrationNumberController,
                       decoration: InputDecoration(
-                        suffixIcon: vehicleRegistrationNumberFocusNode.hasFocus
-                            ? vehicleRegistrationNumberController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      vehicleRegistrationNumberController
-                                          .clear();
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            vehicleRegistrationNumberFocusNode.hasFocus
+                                ? vehicleRegistrationNumberController
+                                        .text
+                                        .isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        vehicleRegistrationNumberController
+                                            .clear();
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -760,15 +839,16 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         labelText: 'Vehicle Registration Number',
                         hintText: 'eg. 99-AZ-999',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isVehicleRegistrationNumberEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : vehicleRegistrationNumberFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isVehicleRegistrationNumberEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : vehicleRegistrationNumberFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -780,29 +860,31 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                 if (isVehicleRegistrationNumberEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //Year of The Car
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isYearOfTheCarEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : yearOfTheCarFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isYearOfTheCarEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : yearOfTheCarFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -826,24 +908,36 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                       },
                       showCursor: false,
                       focusNode: yearOfTheCarFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        yearOfTheCarFocusNode.unfocus();
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(vehicleCategoryFocusNode);
+                      },
                       controller: yearOfTheCarController,
                       decoration: InputDecoration(
-                        suffixIcon: yearOfTheCarFocusNode.hasFocus
-                            ? yearOfTheCarController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      yearOfTheCarController.clear();
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            yearOfTheCarFocusNode.hasFocus
+                                ? yearOfTheCarController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        yearOfTheCarController.clear();
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -857,15 +951,16 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         labelText: 'Year of the car',
                         hintText: DateTime.now().year.toString(),
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isYearOfTheCarEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : yearOfTheCarFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isYearOfTheCarEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : yearOfTheCarFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -877,29 +972,31 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                 if (isYearOfTheCarEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //Vehicle Type
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isVehicleCategoryEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : vehicleCategoryFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isVehicleCategoryEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : vehicleCategoryFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -916,9 +1013,11 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                           vehicleCategoryFocusNode.requestFocus();
                         });
                         await showVehicleTypePicker(
-                            context, selectedVehicleCategory);
-                        vehicleCategoryController.text =
-                            selectedVehicleCategory.join(', ');
+                          context,
+                          selectedVehicleCategory,
+                        );
+                        vehicleCategoryController.text = selectedVehicleCategory
+                            .join(', ');
                         _isEmpty(vehicleCategoryController, 'Vehicle Category');
                       },
                       onTapOutside: (_) {
@@ -929,7 +1028,12 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                       },
                       readOnly: true,
                       focusNode: vehicleCategoryFocusNode,
-                      textInputAction: TextInputAction.done,
+                      onEditingComplete: () {
+                        vehicleCategoryFocusNode.unfocus();
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(seatNumbersFocusNode);
+                      },
                       controller: vehicleCategoryController,
                       decoration: InputDecoration(
                         suffixIcon: Icon(
@@ -948,10 +1052,11 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         labelText: 'Vehicle Type',
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isVehicleCategoryEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : vehicleCategoryFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isVehicleCategoryEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : vehicleCategoryFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -963,29 +1068,31 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                 if (isVehicleCategoryEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.015,
-                ),
+                SizedBox(height: height * 0.015),
                 //Seat Number
                 Container(
                   width: width,
                   height: height * 0.065,
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: isSeatNumbersEmpty
-                            ? const Color.fromARGB(255, 244, 92, 54)
-                            : seatNumbersFocusNode.hasFocus
-                                ? Colors.blue
-                                : Colors.grey.shade400),
+                      color:
+                          isSeatNumbersEmpty
+                              ? const Color.fromARGB(255, 244, 92, 54)
+                              : seatNumbersFocusNode.hasFocus
+                              ? Colors.blue
+                              : Colors.grey.shade400,
+                    ),
                     borderRadius: BorderRadius.circular(width * 0.019),
                   ),
                   padding: EdgeInsets.only(
@@ -1009,24 +1116,33 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                       },
                       showCursor: false,
                       focusNode: seatNumbersFocusNode,
-                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        seatNumbersFocusNode.unfocus();
+                      },
                       controller: seatNumbersController,
                       decoration: InputDecoration(
-                        suffixIcon: seatNumbersFocusNode.hasFocus
-                            ? seatNumbersController.text.isEmpty
-                                ? Icon(Icons.cancel_outlined,
-                                    size: width * 0.076,
-                                    color: const Color.fromARGB(
-                                        255, 158, 158, 158))
-                                : IconButton(
-                                    onPressed: () {
-                                      seatNumbersController.clear();
-                                    },
-                                    icon: Icon(Icons.cancel),
-                                    padding: EdgeInsets.zero,
-                                    iconSize: width * 0.076,
-                                  )
-                            : null,
+                        suffixIcon:
+                            seatNumbersFocusNode.hasFocus
+                                ? seatNumbersController.text.isEmpty
+                                    ? Icon(
+                                      Icons.cancel_outlined,
+                                      size: width * 0.076,
+                                      color: const Color.fromARGB(
+                                        255,
+                                        158,
+                                        158,
+                                        158,
+                                      ),
+                                    )
+                                    : IconButton(
+                                      onPressed: () {
+                                        seatNumbersController.clear();
+                                      },
+                                      icon: Icon(Icons.cancel),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: width * 0.076,
+                                    )
+                                : null,
                         errorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.only(top: width * 0.05),
                         isDense: true,
@@ -1040,15 +1156,16 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         labelText: 'Seat Number',
                         hintText: 'Mention amout of car\'s seats',
                         hintStyle: TextStyle(
-                          fontSize: 15,
+                          fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 15,
-                          color: isSeatNumbersEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : seatNumbersFocusNode.hasFocus
+                          fontSize: width * 0.038,
+                          color:
+                              isSeatNumbersEmpty
+                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  : seatNumbersFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
                           fontWeight: FontWeight.w500,
@@ -1060,36 +1177,77 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                 if (isSeatNumbersEmpty)
                   Padding(
                     padding: EdgeInsets.only(
-                        left: width * 0.027, top: width * 0.007),
+                      left: width * 0.027,
+                      top: width * 0.007,
+                    ),
                     child: Text(
                       "Required",
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
-                SizedBox(
-                  height: height * 0.025,
-                ),
+                SizedBox(height: height * 0.025),
                 GestureDetector(
-                  onTap: () async {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => WaitingPage()),
-                    );
-                  },
+                  onTap:
+                      _allFilledOut()
+                          ? () async {
+                            final userId =
+                                FirebaseAuth.instance.currentUser?.uid;
+                            if (userId != null) {
+                              await uploadVehicleDetailsAndSave(
+                                userId: userId,
+                                carName: nameOfTheCarController.text,
+                                vehiclePhoto: carsPhoto,
+                                technicalPassportNumber:
+                                    technicalPassportNumberController.text,
+                                technicalPassport: technicalPassportNumberPhoto,
+                                chassisNumber: chassisNumberController.text,
+                                chassisPhoto: chassisNumberPhoto,
+                                vehicleRegistrationNumber:
+                                    vehicleRegistrationNumberController.text,
+                                vehiclesYear: yearOfTheCarController.text,
+                                vehicleType: vehicleCategoryController.text,
+                                seatNumber: seatNumbersController.text,
+                              );
+                              await FirebaseFirestore.instance
+                                  .collection('Users')
+                                  .doc(userId)
+                                  .update({
+                                    'Personal & Car Details Form':
+                                        'APPLICATION RECEIVED',
+                                  });
+                              if (context.mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => WaitingPage(),
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                          : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => WaitingPage(),
+                              ),
+                            );
+                          },
                   child: Container(
                     width: width,
                     height: height * 0.058,
                     decoration: BoxDecoration(
-                      color: _allFilledOut()
-                          ? (darkMode
-                              ? Color.fromARGB(255, 1, 105, 170)
-                              : Color.fromARGB(255, 0, 134, 179))
-                          : (darkMode
-                              ? Color.fromARGB(128, 52, 168, 235)
-                              : Color.fromARGB(177, 0, 134, 179)),
+                      color:
+                          _allFilledOut()
+                              ? (darkMode
+                                  ? Color.fromARGB(255, 1, 105, 170)
+                                  : Color.fromARGB(255, 0, 134, 179))
+                              : (darkMode
+                                  ? Color.fromARGB(128, 52, 168, 235)
+                                  : Color.fromARGB(177, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(7.5),
                     ),
                     child: Center(
@@ -1097,19 +1255,30 @@ class _CarDetailsFormState extends State<CarDetailsForm> {
                         'Submit',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          color: _allFilledOut()
-                              ? (darkMode
-                                  ? const Color.fromARGB(255, 0, 0, 0)
-                                  : const Color.fromARGB(255, 255, 255, 255))
-                              : (darkMode
-                                  ? const Color.fromARGB(132, 0, 0, 0)
-                                  : const Color.fromARGB(187, 255, 255, 255)),
+                          fontSize: width * 0.04,
+                          color:
+                              _allFilledOut()
+                                  ? (darkMode
+                                      ? const Color.fromARGB(255, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ))
+                                  : (darkMode
+                                      ? const Color.fromARGB(132, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        187,
+                                        255,
+                                        255,
+                                        255,
+                                      )),
                         ),
                       ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),

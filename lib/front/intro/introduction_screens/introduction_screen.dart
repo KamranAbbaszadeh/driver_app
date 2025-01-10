@@ -55,7 +55,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                           items.title,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 30,
+                            fontSize: width * 0.076,
                             color: Colors.white,
                           ),
                         ),
@@ -63,20 +63,15 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                         Text(
                           items.subTitle,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white54,
-                          ),
+                          style: TextStyle(fontSize: width * 0.045, color: Colors.white54),
                         ),
                       ],
                     );
                   },
                   onPageChanged: (value) {
-                    setState(
-                      () {
-                        currentIndex = value;
-                      },
-                    );
+                    setState(() {
+                      currentIndex = value;
+                    });
                   },
                 ),
               ),
@@ -85,22 +80,23 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                 children: [
                   currentIndex != 0
                       ? SizedBox(
-                          width: width * 0.178,
-                          child: TextButton(
-                            onPressed: () {
-                              pageController.previousPage(
-                                  duration: Duration(milliseconds: 500),
-                                  curve: Curves.linear);
-                            },
-                            child: Text(
-                              'Prev',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
+                        width: width * 0.178,
+                        child: TextButton(
+                          onPressed: () {
+                            pageController.previousPage(
+                              duration: Duration(milliseconds: 500),
+                              curve: Curves.linear,
+                            );
+                          },
+                          child: Text(
+                            'Prev',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
                             ),
                           ),
-                        )
+                        ),
+                      )
                       : SizedBox(width: width * 0.178),
                   Spacer(),
                   for (int index = 0; index < screens.length; index++)
@@ -112,16 +108,19 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                       onPressed: () async {
                         if (currentIndex == screens.length - 1) {
                           await _storeIntroductionScreen();
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const WelcomePage(),
-                            ),
-                          );
+                          if (context.mounted) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const WelcomePage(),
+                              ),
+                            );
+                          }
                         }
                         pageController.nextPage(
-                            duration: Duration(milliseconds: 500),
-                            curve: Curves.linear);
+                          duration: Duration(milliseconds: 500),
+                          curve: Curves.linear,
+                        );
                       },
                       child: Text(
                         'Next',
