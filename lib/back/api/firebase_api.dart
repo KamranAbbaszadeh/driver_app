@@ -127,7 +127,7 @@ class FirebaseApi {
           if (type == '/chat') {
             navigatorKey.currentState?.pushNamed('/chat', arguments: details);
           } else {
-            navigatorKey.currentState?.pushNamed('/notification_screen');
+            navigatorKey.currentState?.pushNamed(type!);
           }
         }
       },

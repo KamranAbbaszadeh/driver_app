@@ -65,6 +65,13 @@ dependencies:
   equatable: ^2.0.7
   permission_handler: ^11.3.1
   syncfusion_flutter_signaturepad: ^28.1.38
+  google_maps_flutter: ^2.10.0
+  location: ^7.0.1
+  flutter_polyline_points: ^2.1.0
+  geolocator: ^13.0.2
+  geocoding: ^3.0.0
+  cached_network_image: ^3.4.1
+  table_calendar: ^3.2.0
  
 
 flutter_launcher_icons:
@@ -115,6 +122,7 @@ flutter:
     - assets/welcome/Animation_Welcome.json
     - assets/welcome/smartphone.png
     - assets/splash/onemoretour.png
+    - assets/map_style.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
