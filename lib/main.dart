@@ -9,9 +9,10 @@ import 'package:driver_app/front/auth/forms/contracts/contract_sign_form.dart';
 import 'package:driver_app/front/auth/forms/application_forms/personal_data_form.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:driver_app/front/intro/introduction_screens/introduction_screen.dart';
-import 'package:driver_app/front/no_internet_page.dart';
-import 'package:driver_app/front/notification_page.dart';
-import 'package:driver_app/front/theme/theme.dart';
+import 'package:driver_app/front/displayed_items/home_page.dart';
+import 'package:driver_app/front/displayed_items/no_internet_page.dart';
+import 'package:driver_app/front/displayed_items/notification_page.dart';
+import 'package:driver_app/front/tools/theme/theme.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -36,14 +37,14 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   bool _isConnected = true;
 
   @override
@@ -57,7 +58,9 @@ class _MyAppState extends State<MyApp> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     isViewed = prefs.getInt('IntroScreen');
 
-    await FirebaseApi.instance.initialize();
+    if (mounted) {
+      await FirebaseApi.instance.initialize(ref);
+    }
 
     await FirebaseMessaging.instance.setAutoInitEnabled(true);
     FirebaseAnalytics.instance;
@@ -103,6 +106,7 @@ class _MyAppState extends State<MyApp> {
               child: NotificationPage(),
             ),
         '/contract_sign': (context) => ContractSignForm(),
+        '/home_page': (context) => HomePage(),
       },
       navigatorKey: navigatorKey,
     );

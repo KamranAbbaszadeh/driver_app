@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:driver_app/back/map_and_location/get_functions.dart';
-import 'package:driver_app/front/consts.dart';
+import 'package:driver_app/front/tools/consts.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
@@ -32,9 +32,12 @@ class _MyGoogleMapState extends State<MyGoogleMap> {
       locationController: locationController,
       onLocationUpdate: (position) {
         setState(() {
-          currentP = position;
+          currentP = LatLng(position.latitude!, position.longitude!);
         });
-        cameraToPosition(mapController: _mapController, position: position);
+        cameraToPosition(
+          mapController: _mapController,
+          position: LatLng(position.latitude!, position.longitude!),
+        );
       },
     ).then(
       (_) => getPolyLinePoints(

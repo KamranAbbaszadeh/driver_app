@@ -1,11 +1,14 @@
-import 'package:http/http.dart' as http;
+
 import 'dart:convert';
 
-class ApiService {
-  final String baseUrl = "https://onemoretour.com/version-test/api/1.1/wf";
+import 'package:http/http.dart' as http;
 
-  Future<bool> postData(Map<String, dynamic> data) async {
-    final url = Uri.parse('$baseUrl/app-signup');
+class PhotoPostApi {
+    final String baseUrl =
+      "https://tourism-86646.bubbleapps.io/version-test/api/1.1/wf";
+
+      Future<bool> postData(Map<String, dynamic> data) async {
+    final url = Uri.parse('$baseUrl/app-userupdate');
     try {
       final response = await http.post(
         url,
@@ -25,4 +28,9 @@ class ApiService {
       return false;
     }
   }
+
 }
+
+
+
+

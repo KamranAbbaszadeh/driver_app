@@ -1,10 +1,15 @@
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/upload_files/upload_signature/signature_post_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 
-Future<void> uploadSignatureAndSave(Uint8List signBytes) async {
+Future<void> uploadSignatureAndSave(
+  Uint8List signBytes,
+  BuildContext context,
+) async {
   final userID = FirebaseAuth.instance.currentUser?.uid;
   final storageRef = FirebaseStorage.instance.ref();
   final firestore = FirebaseFirestore.instance;
@@ -15,7 +20,27 @@ Future<void> uploadSignatureAndSave(Uint8List signBytes) async {
   UploadTask uploadTask = fileRef.putData(signBytes);
   TaskSnapshot taskSnapshot = await uploadTask;
   String signatureUrl = await taskSnapshot.ref.getDownloadURL();
+  Timestamp date = Timestamp.fromDate(DateTime.now());
   await firestore.collection('Users').doc(userID).set({
     'signatureUrl': signatureUrl,
+    'Contract Signing': 'SIGNED',
+    'Tour end Date': date,
   }, SetOptions(merge: true));
+
+  final currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+  if (currentUserEmail != null) {
+    final SignaturePostApi signaturePostApi = SignaturePostApi();
+    final success = await signaturePostApi.postData({
+      'image': signatureUrl,
+      'user': currentUserEmail,
+    });
+
+    if (context.mounted) {
+      if (success) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
+      }
+    }
+  }
 }

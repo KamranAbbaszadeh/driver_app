@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/front/tools/notification_notifier.dart';
 import 'package:driver_app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
 
@@ -46,7 +48,7 @@ class FirebaseApi {
       FlutterLocalNotificationsPlugin();
   bool isFlutterLocalNotificationsInitialized = false;
 
-  Future<void> initialize() async {
+  Future<void> initialize(WidgetRef ref) async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     final userID = FirebaseAuth.instance.currentUser?.uid;
 
@@ -56,7 +58,9 @@ class FirebaseApi {
       await saveFCMToken(userID);
       setupTokenRefresh(userID);
     }
-    await _setupMessageHandlers();
+
+      await _setupMessageHandlers(ref);
+
   }
 
   Future<void> _requestNotificationPermissions() async {
@@ -223,9 +227,11 @@ class FirebaseApi {
     }
   }
 
-  Future<void> _setupMessageHandlers() async {
+  Future<void> _setupMessageHandlers(WidgetRef ref) async {
     FirebaseMessaging.onMessage.listen((message) async {
       await handleMessage(message);
+
+      ref.read(notificationsProvider.notifier).refresh();
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {

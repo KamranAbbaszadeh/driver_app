@@ -1,21 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/api/firebase_api.dart';
+import 'package:driver_app/back/upload_files/personal_data/photo_post_api.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:logger/logger.dart';
+import 'package:flutter/material.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
 
-final Logger logger = Logger();
 Future<void> uploadPhotosAndSaveData({
   required String userId,
   required dynamic personalPhoto,
   required List<Asset> driverLicensePhotos,
   required List<Asset> idPhotos,
+  required dynamic context,
 }) async {
   final storageRef = FirebaseStorage.instance.ref();
   final firestore = FirebaseFirestore.instance;
+  late String personalPhotoUrl;
+  late String licenseUrl1;
+  late String licenseurl2;
+  late String idUrl1;
+  late String idUrl2;
   try {
     // Upload Personal Photo
     if (personalPhoto != null) {
-      String personalPhotoUrl = await uploadSinglePhoto(
+      personalPhotoUrl = await uploadSinglePhoto(
         storageRef: storageRef,
         userID: userId,
         file: personalPhoto,
@@ -37,6 +45,8 @@ Future<void> uploadPhotosAndSaveData({
       await firestore.collection('Users').doc(userId).set({
         'idPhotos': idPhotoUrls,
       }, SetOptions(merge: true));
+      idUrl1 = idPhotoUrls[0];
+      idUrl2 = idPhotoUrls[1];
     }
 
     // Upload Driver License Photos
@@ -50,6 +60,33 @@ Future<void> uploadPhotosAndSaveData({
       await firestore.collection('Users').doc(userId).set({
         'licensePhotos': licensePhotoUrls,
       }, SetOptions(merge: true));
+      licenseUrl1 = licensePhotoUrls[0];
+      licenseurl2 = licensePhotoUrls[1];
+    }
+
+    final currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+    if (currentUserEmail != null) {
+      try {
+        final PhotoPostApi photoPostApi = PhotoPostApi();
+        final success = await photoPostApi.postData({
+          'User': currentUserEmail,
+          'ProfilPhoto': personalPhotoUrl,
+          'Licence1': licenseUrl1,
+          'Licence2': licenseurl2,
+          'ID1': idUrl1,
+          'ID2': idUrl2,
+        });
+
+        if (success) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
+        }
+      } catch (e) {
+        logger.e('Error posting data: $e');
+      }
+    } else {
+      logger.e('Email is empty');
     }
   } catch (e) {
     logger.e('Error uploading photos: $e');

@@ -32,7 +32,7 @@ class _DatePickerState extends State<DatePicker> {
     final width = MediaQuery.of(context).size.width;
     final ride = widget.ride;
     return Container(
-      height: height * 0.18,
+      height: height * 0.12,
       padding: EdgeInsets.symmetric(vertical: height * 0.02),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.only(
@@ -82,7 +82,7 @@ class _DatePickerState extends State<DatePicker> {
                   : Color.fromARGB(255, 1, 105, 170),
 
           selectedDecoration: BoxDecoration(
-            color: Colors.red,
+            color: Color.fromARGB(255, 202, 33, 39),
             shape: BoxShape.circle,
           ),
           selectedTextStyle: GoogleFonts.ptSans(fontWeight: FontWeight.w600),

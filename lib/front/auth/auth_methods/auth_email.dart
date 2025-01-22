@@ -1,18 +1,21 @@
 import 'package:driver_app/back/api/firebase_api.dart';
+import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:driver_app/back/tools/validate_email.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class AuthEmail extends StatefulWidget {
+class AuthEmail extends ConsumerStatefulWidget {
   const AuthEmail({super.key});
 
   @override
-  State<AuthEmail> createState() => _AuthState();
+  ConsumerState<AuthEmail> createState() => _AuthState();
 }
 
-class _AuthState extends State<AuthEmail> {
+class _AuthState extends ConsumerState<AuthEmail> {
   final TextEditingController _emailController = TextEditingController();
   late FocusNode _emailFocusNode;
   bool isEmpty = false;
@@ -65,6 +68,7 @@ class _AuthState extends State<AuthEmail> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    final isLoading = ref.watch(loadingProvider);
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
       appBar: AppBar(
@@ -107,7 +111,7 @@ class _AuthState extends State<AuthEmail> {
                   Padding(
                     padding: EdgeInsets.all(width * 0.02),
                     child: Text(
-                      'A sign in link will be sent to this address',
+                      'Please input your email & password to sign in!',
                       style: TextStyle(fontSize: width * 0.04),
                     ),
                   ),
@@ -160,7 +164,12 @@ class _AuthState extends State<AuthEmail> {
                                 });
                               },
                               focusNode: _emailFocusNode,
-                              textInputAction: TextInputAction.done,
+                              onEditingComplete: () {
+                                _emailFocusNode.unfocus();
+                                FocusScope.of(
+                                  context,
+                                ).requestFocus(_passwordFocusNode);
+                              },
                               controller: _emailController,
                               decoration: InputDecoration(
                                 suffixIcon:
@@ -295,7 +304,9 @@ class _AuthState extends State<AuthEmail> {
                           },
                           showCursor: false,
                           focusNode: _passwordFocusNode,
-                          textInputAction: TextInputAction.next,
+                          onEditingComplete: () {
+                            _passwordFocusNode.unfocus();
+                          },
                           obscureText: passwordObscure,
                           controller: _passwordController,
                           decoration: InputDecoration(
@@ -355,6 +366,7 @@ class _AuthState extends State<AuthEmail> {
             ),
             GestureDetector(
               onTap: () async {
+                ref.read(loadingProvider.notifier).startLoading();
                 await FirebaseAuth.instance.signInWithEmailAndPassword(
                   email: _emailController.text.trim(),
                   password: _passwordController.text.trim(),
@@ -363,37 +375,52 @@ class _AuthState extends State<AuthEmail> {
                 if (userId != null) {
                   FirebaseApi.instance.saveFCMToken(userId);
                 }
+                ref.read(loadingProvider.notifier).stopLoading();
                 if (context.mounted) {
-                  Navigator.push(
+                  Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => WaitingPage()),
+                    (route) => false,
                   );
                 }
               },
-              child: Container(
-                width: width * 0.923,
-                height: height * 0.058,
-                decoration: BoxDecoration(
-                  color:
-                      darkMode
-                          ? Color.fromARGB(255, 52, 168, 235)
-                          : Color.fromARGB(177, 0, 134, 179),
-                  borderRadius: BorderRadius.circular(7.5),
-                ),
-                child: Center(
-                  child: Text(
-                    'Sign In',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: width * 0.04,
-                      color:
-                          darkMode
-                              ? const Color.fromARGB(255, 0, 0, 0)
-                              : const Color.fromARGB(255, 255, 255, 255),
-                    ),
-                  ),
-                ),
-              ),
+              child:
+                  isLoading
+                      ? Center(
+                        child: SpinKitThreeBounce(
+                          color: const Color.fromRGBO(231, 231, 231, 1),
+                          size: width * 0.061,
+                        ),
+                      )
+                      : Container(
+                        width: width * 0.923,
+                        height: height * 0.058,
+                        decoration: BoxDecoration(
+                          color:
+                              darkMode
+                                  ? Color.fromARGB(255, 52, 168, 235)
+                                  : Color.fromARGB(177, 0, 134, 179),
+                          borderRadius: BorderRadius.circular(7.5),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Sign In',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: width * 0.04,
+                              color:
+                                  darkMode
+                                      ? const Color.fromARGB(255, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ),
+                            ),
+                          ),
+                        ),
+                      ),
             ),
           ],
         ),

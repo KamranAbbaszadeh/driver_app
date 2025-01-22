@@ -1,3 +1,4 @@
+import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/bank_details/upload_bank_details.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
 import 'package:driver_app/front/auth/forms/application_forms/car_details_form.dart';
@@ -5,6 +6,7 @@ import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class BankDetailsForm extends ConsumerStatefulWidget {
@@ -231,7 +233,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     _bankNameController.dispose();
     _bankNameFocusNode.dispose();
 
-    _iBANController.dispose();
+    _iBANFocusNode.dispose();
     _iBANController.dispose();
 
     _mHController.dispose();
@@ -253,6 +255,8 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    final isLoading = ref.watch(loadingProvider);
+
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
       appBar: AppBar(
@@ -1216,52 +1220,40 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
                 SizedBox(height: height * 0.025),
                 GestureDetector(
-                  onTap:
-                      _allFilledOut()
-                          ? () async {
-                            final userId =
-                                FirebaseAuth.instance.currentUser?.uid;
-                            Map<String, dynamic> bankDetails = {
-                              'Address': _addressController.text,
-                              'FIN': _finCodeController.text,
-                              'VAT': _vATnumberController.text,
-                              'Bank Name': _bankNameController.text,
-                              'Bank Code': _bankCodeController.text,
-                              'M.H': _mHController.text,
-                              'SWIFT': _sWIFTController.text,
-                              'IBAN': _iBANController.text,
-                            };
-                            if (userId != null) {
-                              await uploadBankDetails(
-                                bankDetails: bankDetails,
-                                userId: userId,
-                              );
-                              if (context.mounted) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) =>
-                                            role == 'Guide'
-                                                ? WaitingPage()
-                                                : CarDetailsForm(),
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                          : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        role == 'Guide'
-                                            ? WaitingPage()
-                                            : CarDetailsForm(),
-                              ),
-                            );
-                          },
+                  onTap: () async {
+                    final userId = FirebaseAuth.instance.currentUser?.uid;
+                    Map<String, dynamic> bankDetails = {
+                      'Address': _addressController.text,
+                      'FIN': _finCodeController.text,
+                      'VAT': _vATnumberController.text,
+                      'Bank Name': _bankNameController.text,
+                      'Bank Code': _bankCodeController.text,
+                      'M.H': _mHController.text,
+                      'SWIFT': _sWIFTController.text,
+                      'IBAN': _iBANController.text,
+                    };
+                    if (userId != null) {
+                      ref.read(loadingProvider.notifier).startLoading();
+                      await uploadBankDetails(
+                        bankDetails: bankDetails,
+                        userId: userId,
+                        context: context,
+                      );
+                      ref.read(loadingProvider.notifier).stopLoading();
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) =>
+                                    role == 'Guide'
+                                        ? WaitingPage()
+                                        : CarDetailsForm(),
+                          ),
+                        );
+                      }
+                    }
+                  },
                   child: Container(
                     width: width,
                     height: height * 0.058,
@@ -1276,35 +1268,54 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                                   : Color.fromARGB(177, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(7.5),
                     ),
-                    child: Center(
-                      child: Text(
-                        role == 'Guide' ? 'Submit' : 'Next',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: width * 0.04,
-                          color:
-                              _allFilledOut()
-                                  ? (darkMode
-                                      ? const Color.fromARGB(255, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        255,
-                                        255,
-                                        255,
-                                        255,
-                                      ))
-                                  : (darkMode
-                                      ? const Color.fromARGB(132, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        187,
-                                        255,
-                                        255,
-                                        255,
-                                      )),
-                        ),
-                      ),
-                    ),
+                    child:
+                        isLoading
+                            ? Center(
+                              child: SpinKitThreeBounce(
+                                color: const Color.fromRGBO(231, 231, 231, 1),
+                                size: width * 0.061,
+                              ),
+                            )
+                            : Center(
+                              child: Text(
+                                role == 'Guide' ? 'Submit' : 'Next',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: width * 0.04,
+                                  color:
+                                      _allFilledOut()
+                                          ? (darkMode
+                                              ? const Color.fromARGB(
+                                                255,
+                                                0,
+                                                0,
+                                                0,
+                                              )
+                                              : const Color.fromARGB(
+                                                255,
+                                                255,
+                                                255,
+                                                255,
+                                              ))
+                                          : (darkMode
+                                              ? const Color.fromARGB(
+                                                132,
+                                                0,
+                                                0,
+                                                0,
+                                              )
+                                              : const Color.fromARGB(
+                                                187,
+                                                255,
+                                                255,
+                                                255,
+                                              )),
+                                ),
+                              ),
+                            ),
                   ),
                 ),
+                SizedBox(height: height * 0.058),
               ],
             ),
           ),

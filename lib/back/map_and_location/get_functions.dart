@@ -7,7 +7,7 @@ import 'package:location/location.dart';
 
 Future<void> getLocationUpdates({
   required Location locationController,
-  required Function(LatLng) onLocationUpdate,
+  required Function(LocationData) onLocationUpdate,
 }) async {
   bool serviceEnabled;
   PermissionStatus permissionGranted;
@@ -27,7 +27,7 @@ Future<void> getLocationUpdates({
   locationController.onLocationChanged.listen((LocationData currentLocation) {
     if (currentLocation.latitude != null && currentLocation.longitude != null) {
       onLocationUpdate(
-        LatLng(currentLocation.latitude!, currentLocation.longitude!),
+        currentLocation,
       );
     }
   });
@@ -66,7 +66,7 @@ void generatePolyLineFromPoints({
   PolylineId id = PolylineId('poly');
   Polyline polyLine = Polyline(
     polylineId: id,
-    color: const Color.fromARGB(100, 33, 149, 243),
+    color: const Color.fromARGB(183, 139, 2, 2),
     points: polylineCoordinates,
     width: 8,
   );

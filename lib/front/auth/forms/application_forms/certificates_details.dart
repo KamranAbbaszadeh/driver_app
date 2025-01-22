@@ -1,21 +1,25 @@
 import 'dart:io';
 
+import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/certificates/upload_certificate_save.dart';
 import 'package:driver_app/front/auth/forms/application_forms/bank_details_form.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class CertificatesDetails extends StatefulWidget {
+class CertificatesDetails extends ConsumerStatefulWidget {
   final String role;
   const CertificatesDetails({super.key, required this.role});
 
   @override
-  State<CertificatesDetails> createState() => _CertificatesDetailsState();
+  ConsumerState<CertificatesDetails> createState() =>
+      _CertificatesDetailsState();
 }
 
-class _CertificatesDetailsState extends State<CertificatesDetails> {
+class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   final ScrollController _scrollController = ScrollController();
   bool _showTitle = false;
   List<Map<String, dynamic>> certificates = [];
@@ -281,6 +285,7 @@ class _CertificatesDetailsState extends State<CertificatesDetails> {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     final role = widget.role;
+    final isLoading = ref.watch(loadingProvider);
     String numOfPages = role == 'Guide' ? '2/3' : '2/4';
 
     return Scaffold(
@@ -402,34 +407,29 @@ class _CertificatesDetailsState extends State<CertificatesDetails> {
                 ),
                 SizedBox(height: 20),
                 GestureDetector(
-                  onTap:
-                      _allFilledOut()
-                          ? () async {
-                            final userId =
-                                FirebaseAuth.instance.currentUser?.uid;
-                            if (userId != null) {
-                              await uploadCertificateAndSave(
-                                userId: userId,
-                                certificates: certificates,
-                              );
-                              if (context.mounted) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BankDetailsForm(),
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                          : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BankDetailsForm(),
-                              ),
-                            );
-                          },
+                  onTap: () async {
+                    if (_allFilledOut()) {
+                      final userId = FirebaseAuth.instance.currentUser?.uid;
+                      if (userId != null) {
+                        ref.read(loadingProvider.notifier).startLoading();
+                        await uploadCertificateAndSave(
+                          userId: userId,
+                          certificates: certificates,
+                          context: context,
+                        );
+                        ref.read(loadingProvider.notifier).stopLoading();
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BankDetailsForm(),
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+
                   child: Container(
                     width: width,
                     height: height * 0.058,
@@ -444,31 +444,70 @@ class _CertificatesDetailsState extends State<CertificatesDetails> {
                                   : Color.fromARGB(177, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(7.5),
                     ),
-                    child: Center(
-                      child: Text(
-                        'Next',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: width * 0.04,
-                          color:
-                              _allFilledOut()
-                                  ? (darkMode
-                                      ? const Color.fromARGB(255, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        255,
-                                        255,
-                                        255,
-                                        255,
-                                      ))
-                                  : (darkMode
-                                      ? const Color.fromARGB(132, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        187,
-                                        255,
-                                        255,
-                                        255,
-                                      )),
+                    child:
+                        isLoading
+                            ? Center(
+                              child: SpinKitThreeBounce(
+                                color: const Color.fromRGBO(231, 231, 231, 1),
+                                size: width * 0.061,
+                              ),
+                            )
+                            : Center(
+                              child: Text(
+                                'Next',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: width * 0.04,
+                                  color:
+                                      _allFilledOut()
+                                          ? (darkMode
+                                              ? const Color.fromARGB(
+                                                255,
+                                                0,
+                                                0,
+                                                0,
+                                              )
+                                              : const Color.fromARGB(
+                                                255,
+                                                255,
+                                                255,
+                                                255,
+                                              ))
+                                          : (darkMode
+                                              ? const Color.fromARGB(
+                                                132,
+                                                0,
+                                                0,
+                                                0,
+                                              )
+                                              : const Color.fromARGB(
+                                                187,
+                                                255,
+                                                255,
+                                                255,
+                                              )),
+                                ),
+                              ),
+                            ),
+                  ),
+                ),
+
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BankDetailsForm(),
                         ),
+                      );
+                    },
+                    child: Text(
+                      'Skip this step',
+                      style: GoogleFonts.robotoCondensed(
+                        fontSize: width * 0.04,
+                        fontWeight: FontWeight.w500,
+                        color: darkMode ? Colors.white : Colors.black,
                       ),
                     ),
                   ),

@@ -2,21 +2,24 @@ import 'package:driver_app/back/auth/firebase_auth.dart';
 import 'package:driver_app/back/tools/date_picker.dart';
 import 'package:driver_app/back/tools/gender_picker.dart';
 import 'package:driver_app/back/tools/language_picker.dart';
+import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/tools/role_picker.dart';
 import 'package:driver_app/back/tools/validate_email.dart';
 import 'package:driver_app/back/tools/vehicle_type_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ApplicationForm extends StatefulWidget {
+class ApplicationForm extends ConsumerStatefulWidget {
   const ApplicationForm({super.key});
 
   @override
-  State<ApplicationForm> createState() => _ApplicationFormState();
+  ConsumerState<ApplicationForm> createState() => _ApplicationFormState();
 }
 
-class _ApplicationFormState extends State<ApplicationForm> {
+class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   final ScrollController _scrollController = ScrollController();
 
   final _firstNameController = TextEditingController();
@@ -425,6 +428,7 @@ class _ApplicationFormState extends State<ApplicationForm> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    final isLoading = ref.watch(loadingProvider);
 
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
@@ -511,12 +515,14 @@ class _ApplicationFormState extends State<ApplicationForm> {
                           _firstNameFocusNode.unfocus();
                         });
                       },
+
                       showCursor: false,
                       focusNode: _firstNameFocusNode,
                       onEditingComplete: () {
                         _firstNameFocusNode.unfocus();
                         FocusScope.of(context).requestFocus(_lastNameFocusNode);
                       },
+
                       controller: _firstNameController,
                       decoration: InputDecoration(
                         suffixIcon:
@@ -1980,29 +1986,25 @@ class _ApplicationFormState extends State<ApplicationForm> {
                     setState(() {
                       isTapped = true;
                     });
-                    // if (_allFilledOut()) {
-                    await signUp(
-                      emailController: _emailController,
-                      passwordController: _passwordController,
-                      firstNameController: _firstNameController,
-                      lastNameController: _lastNameController,
-                      fathersNameController: _fathersNameController,
-                      phoneNumberController: _phoneNumberController,
-                      languageController: _languageController,
-                      birthDayController: _birthDayController,
-                      experienceController: _experienceController,
-                      vehicleTypeController: _vehicleTypeController,
-                      roleController: _roleController,
-                      genderController: _genderController,
-                      context: context,
-                    );
-                    //   final success = await _apiService.postData(data);
-                    //   if (success) {
-                    //     ScaffoldMessenger.of(context).showSnackBar(
-                    //       SnackBar(content: Text("Data posted successfully!")),
-                    //     );
-                    //   }
-                    // }
+                    if (_allFilledOut()) {
+                      ref.read(loadingProvider.notifier).startLoading();
+                      await signUp(
+                        emailController: _emailController,
+                        passwordController: _passwordController,
+                        firstNameController: _firstNameController,
+                        lastNameController: _lastNameController,
+                        fathersNameController: _fathersNameController,
+                        phoneNumberController: _phoneNumberController,
+                        languageController: _languageController,
+                        birthDayController: _birthDayController,
+                        experienceController: _experienceController,
+                        vehicleTypeController: _vehicleTypeController,
+                        roleController: _roleController,
+                        genderController: _genderController,
+                        context: context,
+                      );
+                      ref.read(loadingProvider.notifier).stopLoading();
+                    }
 
                     setState(() {
                       isTapped = false;
@@ -2022,33 +2024,51 @@ class _ApplicationFormState extends State<ApplicationForm> {
                                   : Color.fromARGB(177, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(7.5),
                     ),
-                    child: Center(
-                      child: Text(
-                        'Send application',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: width * 0.04,
-                          color:
-                              _allFilledOut()
-                                  ? (darkMode
-                                      ? const Color.fromARGB(255, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        255,
-                                        255,
-                                        255,
-                                        255,
-                                      ))
-                                  : (darkMode
-                                      ? const Color.fromARGB(132, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        187,
-                                        255,
-                                        255,
-                                        255,
-                                      )),
-                        ),
-                      ),
-                    ),
+                    child:
+                        isLoading
+                            ? Center(
+                              child: SpinKitThreeBounce(
+                                color: const Color.fromRGBO(231, 231, 231, 1),
+                                size: width * 0.061,
+                              ),
+                            )
+                            : Center(
+                              child: Text(
+                                'Send application',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: width * 0.04,
+                                  color:
+                                      _allFilledOut()
+                                          ? (darkMode
+                                              ? const Color.fromARGB(
+                                                255,
+                                                0,
+                                                0,
+                                                0,
+                                              )
+                                              : const Color.fromARGB(
+                                                255,
+                                                255,
+                                                255,
+                                                255,
+                                              ))
+                                          : (darkMode
+                                              ? const Color.fromARGB(
+                                                132,
+                                                0,
+                                                0,
+                                                0,
+                                              )
+                                              : const Color.fromARGB(
+                                                187,
+                                                255,
+                                                255,
+                                                255,
+                                              )),
+                                ),
+                              ),
+                            ),
                   ),
                 ),
               ],

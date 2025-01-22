@@ -56,6 +56,7 @@ class ContractBodyGuide extends StatelessWidget {
               style: TextStyle(
                 fontSize: width * 0.05,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
               textAlign: TextAlign.center,
             ),
@@ -65,15 +66,19 @@ class ContractBodyGuide extends StatelessWidget {
               style: TextStyle(
                 fontSize: width * 0.05,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
             ),
             SizedBox(height: 10),
             Text(
               'Bu müqavilə $formattedDate tarixində bağlanmışdır:',
-              style: TextStyle(fontSize: width * 0.04),
+              style: TextStyle(
+                fontSize: width * 0.04,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
             ),
             SizedBox(height: height * 0.011),
-            buildSectionTitle('Tərəflər', width),
+            buildSectionTitle('Tərəflər', width, context),
             SizedBox(height: height * 0.011),
             RichText(
               text: TextSpan(
@@ -81,12 +86,16 @@ class ContractBodyGuide extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: width * 0.04,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
                 children: [
                   TextSpan(
                     text:
                         'Bakı şəhəri, Nəsimi rayonu, Bülbül pr. 79B ünvanda qeydiyyatdan olan 1403258191 VÖEN-i ilə "START TRAVEL" MMC, bundan sonra “Agentlik” adlandırılacaq.',
-                    style: TextStyle(fontWeight: FontWeight.normal),
+                    style: TextStyle(
+                      fontWeight: FontWeight.normal,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                 ],
               ),
@@ -98,19 +107,23 @@ class ContractBodyGuide extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: width * 0.04,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
                 children: [
                   TextSpan(
                     text:
                         '$address ünvanda qeydiyyatda olan $vatNum VÖEN-li, $finCode Fərdi İdentifikasiya Nömrəli $fullName bundan sonra “Bələdçi” adlandırılacaq.',
-                    style: TextStyle(fontWeight: FontWeight.normal),
+                    style: TextStyle(
+                      fontWeight: FontWeight.normal,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                 ],
               ),
             ),
 
             SizedBox(height: height * 0.023),
-            buildSectionTitle('1. Tərəflərin Öhdəlikləri', width),
+            buildSectionTitle('1. Tərəflərin Öhdəlikləri', width, context),
             SizedBox(height: height * 0.011),
             buildSubsection(
               '1.1 Agentliyin Öhdəlikləri',
@@ -121,6 +134,7 @@ class ContractBodyGuide extends StatelessWidget {
             ''',
               height,
               width,
+              context,
             ),
             buildSubsection(
               '1.2 Bələdçinin Öhdəlikləri',
@@ -132,6 +146,7 @@ class ContractBodyGuide extends StatelessWidget {
             ''',
               height,
               width,
+              context,
             ),
             SizedBox(height: height * 0.023),
             buildSubsection(
@@ -143,6 +158,7 @@ class ContractBodyGuide extends StatelessWidget {
               ''',
               height,
               width,
+              context,
             ),
             SizedBox(height: height * 0.023),
             buildSubsection(
@@ -154,6 +170,7 @@ class ContractBodyGuide extends StatelessWidget {
               ''',
               height,
               width,
+              context,
             ),
             SizedBox(height: height * 0.023),
             buildSubsection(
@@ -163,6 +180,7 @@ class ContractBodyGuide extends StatelessWidget {
             ''',
               height,
               width,
+              context,
             ),
             buildSubsection(
               '3.2	Tariflər:',
@@ -173,6 +191,7 @@ class ContractBodyGuide extends StatelessWidget {
             ''',
               height,
               width,
+              context,
             ),
             buildSubsection(
               '3.3	Tarif Şərtləri:',
@@ -182,6 +201,7 @@ class ContractBodyGuide extends StatelessWidget {
             ''',
               height,
               width,
+              context,
             ),
             SizedBox(height: height * 0.023),
             buildSubsection(
@@ -192,6 +212,7 @@ class ContractBodyGuide extends StatelessWidget {
               ''',
               height,
               width,
+              context,
             ),
 
             SizedBox(height: height * 0.023),
@@ -213,6 +234,7 @@ class ContractBodyGuide extends StatelessWidget {
             ''',
               height,
               width,
+              context,
             ),
             SizedBox(height: height * 0.023),
             buildSubsection(
@@ -224,6 +246,7 @@ class ContractBodyGuide extends StatelessWidget {
               ''',
               height,
               width,
+              context,
             ),
 
             SizedBox(height: height * 0.023),
@@ -235,6 +258,7 @@ class ContractBodyGuide extends StatelessWidget {
               ''',
               height,
               width,
+              context,
             ),
 
             SizedBox(height: height * 0.023),
@@ -247,6 +271,7 @@ class ContractBodyGuide extends StatelessWidget {
               ''',
               height,
               width,
+              context,
             ),
             SizedBox(height: height * 0.035),
             Column(
@@ -255,48 +280,75 @@ class ContractBodyGuide extends StatelessWidget {
                 Center(
                   child: Text(
                     'Bank Rekvizitləri:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                 ),
                 SizedBox(height: height * 0.046),
                 Text(
                   '"START TRAVEL" MMC',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'VÖEN: 1403258191',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'Bank: Kapital Bank ASC Mərkəz filialı',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'Kod: 200026',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'M.H: AZ37NABZ01350100000000001944',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'SWIFT: AIIBAZ2XXXX',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'IBAN: AZ28AIIB40060019440437962102',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.046),
                 Text(
                   'Agentliyin Nümayəndəsi:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.046),
                 Container(
@@ -313,7 +365,10 @@ class ContractBodyGuide extends StatelessWidget {
                 SizedBox(height: height * 0.023),
                 Text(
                   'Tarix və Möhür:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.046),
                 Container(
@@ -331,37 +386,67 @@ class ContractBodyGuide extends StatelessWidget {
                 SizedBox(height: 40),
                 Text(
                   'Sürücünün Tam Adı: $fullName',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'VÖEN: $vatNum',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'Bank: $bankName',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'Kod: $bankCode',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
-                Text('M.H: $mH', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'M.H: $mH',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'SWIFT: $swift',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.011),
                 Text(
                   'IBAN: $iban',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
                 SizedBox(height: height * 0.046),
-                Text('Sürücü:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Sürücü:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
                 SizedBox(height: height * 0.011),
                 Container(
                   width: width,
@@ -441,9 +526,14 @@ class ContractBodyGuide extends StatelessWidget {
                     userID: userID,
                   );
                 }
-                if (signBytes != null) {
-                  await uploadSignatureAndSave(signBytes!);
-                  navigatorKey.currentState?.pushNamed('/waiting_screen');
+                if (context.mounted) {
+                  if (signBytes != null) {
+                    await uploadSignatureAndSave(signBytes!, context);
+                    navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                      '/waiting_screen',
+                      (route) => false,
+                    );
+                  }
                 }
               },
               child: Container(

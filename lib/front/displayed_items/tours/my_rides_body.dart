@@ -1,0 +1,230 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/api/firebase_api.dart';
+import 'package:driver_app/front/displayed_items/tours/my_rides.dart';
+import 'package:driver_app/front/tools/ride_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class MyRidesBody extends StatefulWidget {
+  const MyRidesBody({super.key});
+
+  @override
+  State<MyRidesBody> createState() => _MyRidesBodyState();
+}
+
+class _MyRidesBodyState extends State<MyRidesBody> {
+  List<Ride> filteredRides = [];
+  List<Ride> filteredRidesbyDate = [];
+  Map<String, dynamic>? userData;
+  Map<DateTime, int> datasets = {};
+  bool showAllRides = true;
+
+  StreamSubscription<QuerySnapshot>? carsSubscription;
+
+  Future<void> fetchUserData() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        final docSnapshot =
+            await FirebaseFirestore.instance
+                .collection('Users')
+                .doc(userId)
+                .get();
+        if (docSnapshot.exists) {
+          setState(() {
+            userData = docSnapshot.data();
+          });
+          fetchAndFilterRides(userData: userData!);
+        }
+      }
+    } catch (e) {
+      logger.e('Error fetching user\'s data: $e');
+    }
+  }
+
+  Future<void> fetchAndFilterRides({
+    required Map<String, dynamic> userData,
+  }) async {
+    carsSubscription = FirebaseFirestore.instance
+        .collection('Cars')
+        .snapshots()
+        .listen((querySnapshot) {
+          final allRides =
+              querySnapshot.docs.map((doc) {
+                return Ride.fromFirestore(data: doc.data(), id: doc.id);
+              }).toList();
+          final userId = FirebaseAuth.instance.currentUser?.uid;
+          final filtered =
+              allRides.where((ride) {
+                return ride.driver == userId;
+              }).toList();
+
+          setState(() {
+            filteredRides = filtered;
+          });
+          populateDatasets(filtered);
+        });
+  }
+
+  void populateDatasets(List<Ride> rides) {
+    datasets.clear();
+
+    for (int i = 0; i < filteredRides.length; i++) {
+      filteredRides[i].routes.forEach((key, route) {
+        if (route['StartDate'] != null && route['StartDate'] is Timestamp) {
+          final startDate = (route['StartDate'] as Timestamp).toDate();
+          final dateKey = DateTime(
+            startDate.year,
+            startDate.month,
+            startDate.day,
+          );
+
+          if (route['Start Arrived'] == true && route['End Arrived'] == true) {
+            datasets.update(dateKey, (key) => 2, ifAbsent: () => 2);
+          } else {
+            datasets.update(dateKey, (key) => 1, ifAbsent: () => 1);
+          }
+        }
+      });
+    }
+  }
+
+  Future<void> filterRidesbyDate({
+    required List<Ride> filteredRides,
+    required DateTime selectedDate,
+  }) async {
+    final filtered =
+        filteredRides.where((ride) {
+          for (var route in ride.routes.values) {
+            if (route is Map && route['StartDate'] != null) {
+              final rideDate = (route['StartDate'] as Timestamp).toDate();
+              if (rideDate.year == selectedDate.year &&
+                  rideDate.month == selectedDate.month &&
+                  rideDate.day == selectedDate.day) {
+                return true;
+              }
+            }
+          }
+          return false;
+        }).toList();
+
+    setState(() {
+      filteredRidesbyDate = filtered;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final darkMode =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final height = MediaQuery.of(context).size.height;
+    final width = MediaQuery.of(context).size.width;
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors:
+              darkMode
+                  ? [Color.fromARGB(255, 1, 105, 170), Colors.black]
+                  : [Color.fromARGB(255, 52, 168, 235), Colors.white],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: width * 0.04),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              HeatMapCalendar(
+                defaultColor: Colors.white,
+                size: width * 0.1,
+                flexible: true,
+                colorMode: ColorMode.color,
+                showColorTip: false,
+                monthFontSize: width * 0.05,
+                textColor: Colors.black,
+                weekTextColor: Theme.of(context).textTheme.bodyMedium?.color,
+                datasets: datasets,
+                colorsets: {
+                  1: const Color.fromARGB(255, 231, 1, 55),
+                  2: const Color.fromARGB(255, 103, 168, 120),
+                },
+                onClick: (value) async {
+                  await filterRidesbyDate(
+                    filteredRides: filteredRides,
+                    selectedDate: value,
+                  );
+                  setState(() {
+                    showAllRides = false;
+                  });
+                },
+                fontSize: width * 0.035,
+              ),
+              SizedBox(height: height * 0.011),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'My Rides',
+                    style: GoogleFonts.daysOne(
+                      fontSize: width * 0.055,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        showAllRides = true;
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color:
+                            darkMode
+                                ? Color.fromARGB(255, 52, 168, 235)
+                                : Color.fromARGB(255, 1, 105, 170),
+                        borderRadius: BorderRadius.circular(width * 0.01),
+                      ),
+                      padding: EdgeInsets.all(width * 0.01),
+                      child: Text(
+                        'Show All Rides',
+                        style: GoogleFonts.lexend(
+                          fontWeight: FontWeight.w600,
+                          color: darkMode ? Colors.black : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: height * 0.011),
+
+              MyRides(
+                filteredRides:
+                    showAllRides
+                        ? filteredRides
+                        : filteredRidesbyDate.isNotEmpty
+                        ? filteredRidesbyDate
+                        : [],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

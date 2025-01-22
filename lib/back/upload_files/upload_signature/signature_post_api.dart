@@ -1,11 +1,12 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-class ApiService {
+import 'package:http/http.dart' as http;
+
+class SignaturePostApi {
   final String baseUrl = "https://onemoretour.com/version-test/api/1.1/wf";
 
   Future<bool> postData(Map<String, dynamic> data) async {
-    final url = Uri.parse('$baseUrl/app-signup');
+    final url = Uri.parse('$baseUrl/app-signature');
     try {
       final response = await http.post(
         url,

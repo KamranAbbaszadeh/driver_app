@@ -1,12 +1,38 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/upload_files/bank_details/bank_details_post_api.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 Future<void> uploadBankDetails({
   required Map<String, dynamic> bankDetails,
   required String userId,
+  required context,
 }) async {
   if (bankDetails.isNotEmpty) {
     await FirebaseFirestore.instance.collection('Users').doc(userId).set({
       'Bank Details': bankDetails,
     }, SetOptions(merge: true));
+
+    final currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+    if (currentUserEmail != null) {
+      final BankDetailsPostApi bankDetailsPostApi = BankDetailsPostApi();
+      final success = await bankDetailsPostApi.postData({
+        'User': currentUserEmail,
+        'BankName': bankDetails['Bank Name'],
+        'Code': bankDetails['Bank Code'],
+        'MH': bankDetails['M.H'],
+        'SWIFT': bankDetails['SWIFT'],
+        'IBAN': bankDetails['IBAN'],
+        'VAT': bankDetails['VAT'],
+        'RegistrationAddress': bankDetails['Address'],
+        'FINCode': bankDetails['FIN'],
+      });
+
+      if (success) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
+      }
+    }
   }
 }

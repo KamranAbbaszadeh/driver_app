@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/tools/image_picker.dart';
+import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
@@ -7,6 +8,7 @@ import 'package:driver_app/back/tools/vehicle_type_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
 
@@ -229,6 +231,8 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    final isLoading = ref.watch(loadingProvider);
+
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
       appBar: AppBar(
@@ -291,7 +295,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     border: Border.all(
                       color:
                           isNameOfTheCarEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
+                              ? Color.fromARGB(255, 244, 92, 54)
                               : nameOfTheCarFocusNode.hasFocus
                               ? Colors.blue
                               : Colors.grey.shade400,
@@ -312,7 +316,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         });
                       },
                       onTapOutside: (_) {
-                        _isEmpty(nameOfTheCarController, 'Name of the car');
+                        _isEmpty(nameOfTheCarController, 'Name of the vehicle');
                         setState(() {
                           nameOfTheCarFocusNode.unfocus();
                         });
@@ -330,12 +334,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                                     ? Icon(
                                       Icons.cancel_outlined,
                                       size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
+                                      color: Color.fromARGB(255, 158, 158, 158),
                                     )
                                     : IconButton(
                                       onPressed: () {
@@ -367,7 +366,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           fontSize: width * 0.038,
                           color:
                               isNameOfTheCarEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  ? Color.fromARGB(255, 244, 92, 54)
                                   : nameOfTheCarFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
@@ -387,7 +386,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       "Required",
                       style: TextStyle(
                         fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
+                        color: Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
@@ -425,7 +424,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       width: width,
                       height: height / 5,
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(113, 80, 79, 79),
+                        color: Color.fromARGB(113, 80, 79, 79),
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
@@ -444,7 +443,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     border: Border.all(
                       color:
                           isTechnicalPassportNumberEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
+                              ? Color.fromARGB(255, 244, 92, 54)
                               : technicalPassportNumberFocusNode.hasFocus
                               ? Colors.blue
                               : Colors.grey.shade400,
@@ -489,12 +488,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                                     ? Icon(
                                       Icons.cancel_outlined,
                                       size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
+                                      color: Color.fromARGB(255, 158, 158, 158),
                                     )
                                     : IconButton(
                                       onPressed: () {
@@ -527,7 +521,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           fontSize: width * 0.038,
                           color:
                               isTechnicalPassportNumberEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  ? Color.fromARGB(255, 244, 92, 54)
                                   : technicalPassportNumberFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
@@ -547,7 +541,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       "Required",
                       style: TextStyle(
                         fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
+                        color: Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
@@ -585,7 +579,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       width: width,
                       height: height / 5,
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(113, 80, 79, 79),
+                        color: Color.fromARGB(113, 80, 79, 79),
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
@@ -604,7 +598,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     border: Border.all(
                       color:
                           isChassisNumberEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
+                              ? Color.fromARGB(255, 244, 92, 54)
                               : chassisNumberFocusNode.hasFocus
                               ? Colors.blue
                               : Colors.grey.shade400,
@@ -643,12 +637,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                                     ? Icon(
                                       Icons.cancel_outlined,
                                       size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
+                                      color: Color.fromARGB(255, 158, 158, 158),
                                     )
                                     : IconButton(
                                       onPressed: () {
@@ -680,7 +669,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           fontSize: width * 0.038,
                           color:
                               isChassisNumberEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  ? Color.fromARGB(255, 244, 92, 54)
                                   : chassisNumberFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
@@ -700,7 +689,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       "Required",
                       style: TextStyle(
                         fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
+                        color: Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
@@ -737,7 +726,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       width: width,
                       height: height / 5,
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(113, 80, 79, 79),
+                        color: Color.fromARGB(113, 80, 79, 79),
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
@@ -759,7 +748,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     border: Border.all(
                       color:
                           isVehicleRegistrationNumberEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
+                              ? Color.fromARGB(255, 244, 92, 54)
                               : vehicleRegistrationNumberFocusNode.hasFocus
                               ? Colors.blue
                               : Colors.grey.shade400,
@@ -809,12 +798,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                                     ? Icon(
                                       Icons.cancel_outlined,
                                       size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
+                                      color: Color.fromARGB(255, 158, 158, 158),
                                     )
                                     : IconButton(
                                       onPressed: () {
@@ -847,7 +831,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           fontSize: width * 0.038,
                           color:
                               isVehicleRegistrationNumberEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  ? Color.fromARGB(255, 244, 92, 54)
                                   : vehicleRegistrationNumberFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
@@ -867,7 +851,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       "Required",
                       style: TextStyle(
                         fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
+                        color: Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
@@ -880,7 +864,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     border: Border.all(
                       color:
                           isYearOfTheCarEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
+                              ? Color.fromARGB(255, 244, 92, 54)
                               : yearOfTheCarFocusNode.hasFocus
                               ? Colors.blue
                               : Colors.grey.shade400,
@@ -922,12 +906,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                                     ? Icon(
                                       Icons.cancel_outlined,
                                       size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
+                                      color: Color.fromARGB(255, 158, 158, 158),
                                     )
                                     : IconButton(
                                       onPressed: () {
@@ -959,7 +938,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           fontSize: width * 0.038,
                           color:
                               isYearOfTheCarEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  ? Color.fromARGB(255, 244, 92, 54)
                                   : yearOfTheCarFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
@@ -979,7 +958,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       "Required",
                       style: TextStyle(
                         fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
+                        color: Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
@@ -992,7 +971,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     border: Border.all(
                       color:
                           isVehicleCategoryEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
+                              ? Color.fromARGB(255, 244, 92, 54)
                               : vehicleCategoryFocusNode.hasFocus
                               ? Colors.blue
                               : Colors.grey.shade400,
@@ -1055,7 +1034,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           fontSize: width * 0.038,
                           color:
                               isVehicleCategoryEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  ? Color.fromARGB(255, 244, 92, 54)
                                   : vehicleCategoryFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
@@ -1075,7 +1054,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       "Required",
                       style: TextStyle(
                         fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
+                        color: Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
@@ -1088,7 +1067,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     border: Border.all(
                       color:
                           isSeatNumbersEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
+                              ? Color.fromARGB(255, 244, 92, 54)
                               : seatNumbersFocusNode.hasFocus
                               ? Colors.blue
                               : Colors.grey.shade400,
@@ -1127,12 +1106,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                                     ? Icon(
                                       Icons.cancel_outlined,
                                       size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
+                                      color: Color.fromARGB(255, 158, 158, 158),
                                     )
                                     : IconButton(
                                       onPressed: () {
@@ -1164,7 +1138,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           fontSize: width * 0.038,
                           color:
                               isSeatNumbersEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
+                                  ? Color.fromARGB(255, 244, 92, 54)
                                   : seatNumbersFocusNode.hasFocus
                                   ? Colors.blue
                                   : Colors.grey.shade500,
@@ -1184,58 +1158,52 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       "Required",
                       style: TextStyle(
                         fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
+                        color: Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
                 SizedBox(height: height * 0.025),
                 GestureDetector(
-                  onTap:
-                      _allFilledOut()
-                          ? () async {
-                            final userId =
-                                FirebaseAuth.instance.currentUser?.uid;
-                            if (userId != null) {
-                              await uploadVehicleDetailsAndSave(
-                                userId: userId,
-                                carName: nameOfTheCarController.text,
-                                vehiclePhoto: carsPhoto,
-                                technicalPassportNumber:
-                                    technicalPassportNumberController.text,
-                                technicalPassport: technicalPassportNumberPhoto,
-                                chassisNumber: chassisNumberController.text,
-                                chassisPhoto: chassisNumberPhoto,
-                                vehicleRegistrationNumber:
-                                    vehicleRegistrationNumberController.text,
-                                vehiclesYear: yearOfTheCarController.text,
-                                vehicleType: vehicleCategoryController.text,
-                                seatNumber: seatNumbersController.text,
-                              );
-                              await FirebaseFirestore.instance
-                                  .collection('Users')
-                                  .doc(userId)
-                                  .update({
-                                    'Personal & Car Details Form':
-                                        'APPLICATION RECEIVED',
-                                  });
-                              if (context.mounted) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => WaitingPage(),
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                          : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => WaitingPage(),
-                              ),
-                            );
-                          },
+                  onTap: () async {
+                    if (_allFilledOut()) {
+                      final userId = FirebaseAuth.instance.currentUser?.uid;
+                      if (userId != null) {
+                        ref.read(loadingProvider.notifier).startLoading();
+                        await uploadVehicleDetailsAndSave(
+                          userId: userId,
+                          carName: nameOfTheCarController.text,
+                          vehiclePhoto: carsPhoto,
+                          technicalPassportNumber:
+                              technicalPassportNumberController.text,
+                          technicalPassport: technicalPassportNumberPhoto,
+                          chassisNumber: chassisNumberController.text,
+                          chassisPhoto: chassisNumberPhoto,
+                          vehicleRegistrationNumber:
+                              vehicleRegistrationNumberController.text,
+                          vehiclesYear: yearOfTheCarController.text,
+                          vehicleType: vehicleCategoryController.text,
+                          seatNumber: seatNumbersController.text,
+                          context: context,
+                        );
+                        await FirebaseFirestore.instance
+                            .collection('Users')
+                            .doc(userId)
+                            .update({
+                              'Personal & Car Details Form':
+                                  'APPLICATION RECEIVED',
+                            });
+                        ref.read(loadingProvider.notifier).stopLoading();
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => WaitingPage(),
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
                   child: Container(
                     width: width,
                     height: height * 0.058,
@@ -1250,35 +1218,44 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                                   : Color.fromARGB(177, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(7.5),
                     ),
-                    child: Center(
-                      child: Text(
-                        'Submit',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: width * 0.04,
-                          color:
-                              _allFilledOut()
-                                  ? (darkMode
-                                      ? const Color.fromARGB(255, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        255,
-                                        255,
-                                        255,
-                                        255,
-                                      ))
-                                  : (darkMode
-                                      ? const Color.fromARGB(132, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        187,
-                                        255,
-                                        255,
-                                        255,
-                                      )),
-                        ),
-                      ),
-                    ),
+                    child:
+                        isLoading
+                            ? Center(
+                              child: SpinKitThreeBounce(
+                                color: Color.fromRGBO(231, 231, 231, 1),
+                                size: width * 0.061,
+                              ),
+                            )
+                            : Center(
+                              child: Text(
+                                'Submit',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: width * 0.04,
+                                  color:
+                                      _allFilledOut()
+                                          ? (darkMode
+                                              ? Color.fromARGB(255, 0, 0, 0)
+                                              : Color.fromARGB(
+                                                255,
+                                                255,
+                                                255,
+                                                255,
+                                              ))
+                                          : (darkMode
+                                              ? Color.fromARGB(132, 0, 0, 0)
+                                              : Color.fromARGB(
+                                                187,
+                                                255,
+                                                255,
+                                                255,
+                                              )),
+                                ),
+                              ),
+                            ),
                   ),
                 ),
+                SizedBox(height: height * 0.058),
               ],
             ),
           ),

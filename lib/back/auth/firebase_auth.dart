@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/api/firebase_api.dart';
-// import 'package:driver_app/back/auth/post_api.dart';
+import 'package:driver_app/back/auth/post_api.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
-// import 'package:driver_app/front/tools/otp_generator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 Future<void> signUp({
   required TextEditingController emailController,
@@ -22,7 +22,7 @@ Future<void> signUp({
   required dynamic context,
 }) async {
   try {
-    // final ApiService _apiService = ApiService();
+    final ApiService apiService = ApiService();
     // Create user with email and password
     final userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(
@@ -48,60 +48,62 @@ Future<void> signUp({
 
     FirebaseApi.instance.saveFCMToken(userCredential.user!.uid);
 
-    // String oTP = generateOTP();
-    // DateTime parsedDate = DateFormat('dd/MM/yyyy')
-    //     .parse(_birthDayController.text);
-    // String jsonFormattedDate = parsedDate.toIso8601String();
-    // double yOE = double.parse(_experienceController.text);
 
-    // Map<String, dynamic> data = {
-    //   'FirstName': firstNameController.text,
-    //   'LastName': lastNameController.text,
-    //   'FatherName': fathersNameController.text,
-    //   'mobile': phoneNumberController.text,
-    //   'email': emailController.text,
-    //   // 'YoE': yOE,
-    //   'Languages': languageController.text,
-    //   'VehicleCategory': vehicleTypeController.text,
-    //   'VerificationCode': oTP,
-    //   'Gender': genderController.text,
-    //   // 'DateofBirth': jsonFormattedDate,
-    //   'Password': passwordController.text,
-    // };
+    DateTime parsedDate = DateFormat(
+      'dd/MM/yyyy',
+    ).parse(birthDayController.text);
+    String jsonFormattedDate = parsedDate.toIso8601String();
+    double yOE = double.parse(experienceController.text);
 
-    // if (_allFilledOut()) {
-    //   final success = await _apiService.postData(data);
-    //   if (success) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(content: Text("Data posted successfully!")),
-    //     );
-    //   }
-    // }
+    Map<String, dynamic> data = {
+      'FirstName': firstNameController.text,
+      'LastName': lastNameController.text,
+      'FatherName': fathersNameController.text,
+      'mobile': phoneNumberController.text,
+      'email': emailController.text,
+      'YoE': yOE,
+      'Languages': languageController.text,
+      'VehicleCategory': vehicleTypeController.text,
+      'Gender': genderController.text,
+      'DateofBirth': jsonFormattedDate,
+      'Password': passwordController.text,
+      'UID': userCredential.user!.uid,
+    };
+
+    final success = await apiService.postData(data);
+    if (success) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
+    }
+
     final firebaseApi = FirebaseApi.instance;
     await firebaseApi.saveFCMToken(userCredential.user!.uid);
 
-    Navigator.push(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => WaitingPage()),
+      (route) => false,
     );
   } catch (e) {
-    // String errorMessage = 'Error signing up: ${e.toString()}';
-    // showDialog(
-    //   context: context,
-    //   builder: (ctx) => AlertDialog(
-    //     backgroundColor: Colors.white,
-    //     title: const Text('Invalid Input'),
-    //     content: Text(errorMessage),
-    //     actions: [
-    //       TextButton(
-    //         onPressed: () {
-    //           Navigator.pop(ctx);
-    //         },
-    //         child: Text('Got it'),
-    //       ),
-    //     ],
-    //   ),
-    // );
+    String errorMessage = 'Error signing up: ${e.toString()}';
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: Colors.white,
+            title: const Text('Invalid Input'),
+            content: Text(errorMessage),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                },
+                child: Text('Got it'),
+              ),
+            ],
+          ),
+    );
   }
 }
 
@@ -138,8 +140,13 @@ Future<void> addUserDetails({
               'Experience': '${experienceController.text.trim()} years',
               'Application Form Verified': false,
               'Personal & Car Details Form Verified': false,
-              'Application Form': 'Submitted',
-              'Personal & Car Details Form': 'Pending',
+              'Application Form Decline': false,
+              'Personal & Car Details Decline': false,
+              'Contract Signing Decline': false,
+              'Application Form': 'APPLICATION SUBMITTED',
+              'Personal & Car Details Form': 'PENDING',
+              'Contract Signing': 'PENDING',
+              'Registration Completed': false,
             })
         : await FirebaseFirestore.instance
             .collection('Users')
@@ -158,8 +165,12 @@ Future<void> addUserDetails({
               'Vehicle type': vehicleTypeController.text.trim(),
               'Application Form Verified': false,
               'Personal & Car Details Form Verified': false,
-              'Application Form': 'APPLICATION RECEIVED',
-              'Personal & Car Details Form': 'Pending',
+              'Application Form Decline': false,
+              'Personal & Car Details Decline': false,
+              'Contract Signing Decline': false,
+              'Application Form': 'APPLICATION SUBMITTED',
+              'Personal & Car Details Form': 'PENDING',
+              'Contract Signing': 'PENDING',
               'Registration Completed': false,
             });
   } catch (e) {

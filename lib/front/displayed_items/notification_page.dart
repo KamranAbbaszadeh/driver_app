@@ -1,18 +1,20 @@
 import 'package:driver_app/back/bloc/notification_bloc.dart';
 import 'package:driver_app/back/bloc/notification_event.dart';
 import 'package:driver_app/back/bloc/notification_state.dart';
+import 'package:driver_app/front/tools/notification_notifier.dart';
 import 'package:driver_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class NotificationPage extends StatefulWidget {
+class NotificationPage extends ConsumerStatefulWidget {
   const NotificationPage({super.key});
 
   @override
-  State<NotificationPage> createState() => _NotificationPageState();
+  ConsumerState<NotificationPage> createState() => _NotificationPageState();
 }
 
-class _NotificationPageState extends State<NotificationPage> {
+class _NotificationPageState extends ConsumerState<NotificationPage> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -63,6 +65,9 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
             onPressed: () {
               context.read<NotificationBloc>().add(MarkAllAsViewed());
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ref.watch(notificationsProvider.notifier).refresh();
+              });
             },
           ),
         ],
@@ -111,7 +116,7 @@ class _NotificationPageState extends State<NotificationPage> {
                               title ?? '',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: width * 0.45,
+                                fontSize: width * 0.045,
                                 color:
                                     isViewed
                                         ? Colors.grey

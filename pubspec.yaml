@@ -48,7 +48,7 @@ dependencies:
   cloud_functions: ^5.2.0
   firebase_storage: ^12.3.7
   cloud_firestore: ^5.6.1
-  flutter_bloc: ^8.1.6
+  flutter_bloc: ^9.0.0
   internet_connection_checker_plus: ^2.5.2
  
   multi_image_picker_plus: ^0.0.5
@@ -61,7 +61,7 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   flutter_launcher_icons: ^0.14.2
   logger: ^2.5.0
-  bloc: ^8.1.4
+  bloc: ^9.0.0
   equatable: ^2.0.7
   permission_handler: ^11.3.1
   syncfusion_flutter_signaturepad: ^28.1.38
@@ -72,6 +72,11 @@ dependencies:
   geocoding: ^3.0.0
   cached_network_image: ^3.4.1
   table_calendar: ^3.2.0
+  expandable_section: ^0.0.3
+  bottom_bar_matu: ^1.5.0
+  flutter_heatmap_calendar: ^1.0.5
+  fbroadcast: ^2.0.0
+  flutter_spinkit: ^5.2.1
  
 
 flutter_launcher_icons:
@@ -123,6 +128,7 @@ flutter:
     - assets/welcome/smartphone.png
     - assets/splash/onemoretour.png
     - assets/map_style.json
+    - assets/Car.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

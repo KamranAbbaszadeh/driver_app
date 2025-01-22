@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/front/auth/waiting_page_view.dart';
 import 'package:driver_app/front/intro/welcome_page.dart';
-import 'package:driver_app/front/main_page.dart';
+import 'package:driver_app/front/displayed_items/home_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -13,37 +13,43 @@ class WaitingPage extends StatefulWidget {
 }
 
 class _WaitingPageState extends State<WaitingPage> {
-  Future<bool> checkUserStatus(String uid) async {
-    final doc =
-        await FirebaseFirestore.instance.collection('Users').doc(uid).get();
-
-    return doc.data()?['Registration Completed'];
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getUserStatusStream(
+    String uid,
+  ) {
+    return FirebaseFirestore.instance.collection('Users').doc(uid).snapshots();
   }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+      builder: (context, authSnapshot) {
+        if (authSnapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (snapshot.hasData && snapshot.data != null) {
-          final user = snapshot.data!;
-          return FutureBuilder<bool>(
-            future: checkUserStatus(user.uid),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+        if (authSnapshot.hasData && authSnapshot.data != null) {
+          final user = authSnapshot.data!;
+          return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: getUserStatusStream(user.uid),
+            builder: (context, userStatusSnapshot) {
+              if (userStatusSnapshot.connectionState ==
+                  ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (snapshot.hasError) {
+              if (userStatusSnapshot.hasError ||
+                  !userStatusSnapshot.hasData ||
+                  userStatusSnapshot.data?.data() == null) {
                 return const Center(child: Text("Error loading data"));
               }
 
-              if (snapshot.data == true) {
-                return MainPage();
+              final userData = userStatusSnapshot.data!.data();
+              final isRegistrationCompleted =
+                  userData?['Registration Completed'] ?? false;
+
+              if (isRegistrationCompleted) {
+                return HomePage();
               } else {
                 return WaitingPageView();
               }

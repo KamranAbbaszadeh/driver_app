@@ -11,6 +11,7 @@ class Ride {
   Map<String, dynamic> routes;
   String vehicleType;
   String driver;
+  String docId;
 
   Ride({
     required this.tourName,
@@ -23,9 +24,13 @@ class Ride {
     required this.routes,
     required this.vehicleType,
     required this.driver,
+    required this.docId,
   });
 
-  factory Ride.fromFirestore({required Map<String, dynamic> data}) {
+  factory Ride.fromFirestore({
+    required Map<String, dynamic> data,
+    required String id,
+  }) {
     return Ride(
       tourName: data['TourName'],
       transfer: data['Transfer?'],
@@ -35,8 +40,9 @@ class Ride {
       pickUpLocation: data['Pickuplocation'],
       price: data['Price'],
       routes: data['Routes'],
-      vehicleType: data['Vehicle type'],
+      vehicleType: data['Category'],
       driver: data['Driver'],
+      docId: id,
     );
   }
 }
