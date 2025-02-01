@@ -7,17 +7,17 @@ import 'package:intl/intl.dart';
 
 class MyRides extends StatefulWidget {
   final List<Ride> filteredRides;
-  const MyRides({super.key, required this.filteredRides});
+  final double height;
+  const MyRides({super.key, required this.filteredRides, required this.height});
 
   @override
   State<MyRides> createState() => _MyRidesState();
 }
 
 class _MyRidesState extends State<MyRides> {
-  late bool expand;
+  final Set<int> expandedIndices = {};
   @override
   void initState() {
-    expand = false;
     super.initState();
   }
 
@@ -30,7 +30,7 @@ class _MyRidesState extends State<MyRides> {
     return widget.filteredRides.isNotEmpty
         ? SizedBox(
           width: width,
-          height: height * 0.31,
+          height: widget.height,
           child: ListView.builder(
             itemCount: widget.filteredRides.length,
             itemBuilder:
@@ -40,6 +40,7 @@ class _MyRidesState extends State<MyRides> {
                   height: height,
                   width: width,
                   ride: widget.filteredRides[index],
+                  index: index,
                 ),
           ),
         )
@@ -58,6 +59,7 @@ class _MyRidesState extends State<MyRides> {
     required double height,
     required double width,
     required bool darkMode,
+    required int index,
   }) {
     final tourStartDate = DateFormat(
       'dd MMMM yyyy, HH:mm',
@@ -67,18 +69,24 @@ class _MyRidesState extends State<MyRides> {
       'dd MMMM yyyy, HH:mm',
     ).format(ride.endDate.toDate());
 
+    final isExpanded = expandedIndices.contains(index);
+
     return Column(
       children: [
         GestureDetector(
           onTap: () {
             setState(() {
-              expand = !expand;
+              if (isExpanded) {
+                expandedIndices.remove(index);
+              } else {
+                expandedIndices.add(index);
+              }
             });
           },
 
           child: Container(
             padding:
-                expand
+                isExpanded
                     ? EdgeInsets.only(
                       left: width * 0.033,
                       right: width * 0.033,
@@ -89,7 +97,7 @@ class _MyRidesState extends State<MyRides> {
             decoration: BoxDecoration(
               color: darkMode ? Colors.black54 : Colors.white38,
               borderRadius:
-                  expand
+                  isExpanded
                       ? BorderRadius.only(
                         topLeft: Radius.circular(width * 0.012),
                         topRight: Radius.circular(width * 0.012),
@@ -135,7 +143,9 @@ class _MyRidesState extends State<MyRides> {
                   ],
                 ),
                 Icon(
-                  expand ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  isExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                 ),
               ],
             ),
@@ -143,7 +153,7 @@ class _MyRidesState extends State<MyRides> {
         ),
 
         ExpandableSection(
-          expand: expand,
+          expand: isExpanded,
           curve: Curves.fastOutSlowIn,
           child: Container(
             padding: EdgeInsets.only(
@@ -267,6 +277,7 @@ class _MyRidesState extends State<MyRides> {
             ),
           ),
         ),
+        SizedBox(height: height * 0.005),
       ],
     );
   }

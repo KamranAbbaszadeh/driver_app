@@ -18,67 +18,75 @@ class NewOrdersPage extends StatefulWidget {
 class _NewOrdersPageState extends State<NewOrdersPage> {
   List<Ride> filteredRides = [];
   Map<String, dynamic>? userData;
+  StreamSubscription<DocumentSnapshot>? userSubscription;
   StreamSubscription<QuerySnapshot>? carsSubscription;
 
   @override
   void initState() {
     super.initState();
-    fetchUserData();
+    listenToUserData();
   }
 
   @override
   void dispose() {
+    userSubscription?.cancel();
     carsSubscription?.cancel();
     super.dispose();
   }
 
-  Future<void> fetchUserData() async {
-    try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId != null) {
-        final docSnapshot =
-            await FirebaseFirestore.instance
-                .collection('Users')
-                .doc(userId)
-                .get();
-        if (docSnapshot.exists) {
-          setState(() {
-            userData = docSnapshot.data();
+  void listenToUserData() {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      userSubscription = FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .snapshots()
+          .listen((docSnapshot) {
+            if (docSnapshot.exists) {
+              setState(() {
+                userData = docSnapshot.data();
+              });
+              listenToRidesUpdates(); // Reinitialize ride listener if user data changes
+            }
           });
-          listenToRidesUpdates();
-        }
-      }
-    } catch (e) {
-      logger.e('Error fetching user\'s data: $e');
     }
   }
 
   void listenToRidesUpdates() {
     if (userData == null) return;
 
+    carsSubscription
+        ?.cancel(); // Cancel the previous subscription to avoid duplicates
     carsSubscription = FirebaseFirestore.instance
         .collection('Cars')
         .snapshots()
         .listen((querySnapshot) {
           final allRides =
-              querySnapshot.docs.map((doc) {
-                return Ride.fromFirestore(data: doc.data(), id: doc.id);
-              }).toList();
+              querySnapshot.docs
+                  .map(
+                    (doc) => Ride.fromFirestore(data: doc.data(), id: doc.id),
+                  )
+                  .toList();
 
-          final filtered =
-              allRides.where((ride) {
-                final tourStartDate = ride.startDate.toDate();
-                final userTourEndDate = userData!['Tour End Date'];
+          try {
+            final filtered =
+                allRides.where((ride) {
+                  final tourStartDate = ride.startDate.toDate();
+                  final userTourEndDate = userData!['Tour end Date'];
 
-                return ride.vehicleType == userData!['Vehicle type'] &&
-                    ride.numOfGuests <= userData!['Seat Number'] &&
-                    tourStartDate.isAfter(userTourEndDate.toDate()) &&
-                    ride.driver == '';
-              }).toList();
+                  return ride.vehicleType == userData!['Vehicle type'] &&
+                      ride.numOfGuests <=
+                          userData!['Vehicle Details']['Seat Number'] &&
+                      tourStartDate.isAfter(userTourEndDate.toDate()) &&
+                      ride.driver == '';
+                }).toList();
 
-          setState(() {
-            filteredRides = filtered;
-          });
+            setState(() {
+              filteredRides = filtered;
+            });
+          } catch (e) {
+            logger.e('Error fetching routes: $e');
+          }
         });
   }
 
@@ -116,7 +124,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                 ),
               ),
               SizedBox(height: height * 0.011),
-              MyRides(filteredRides: filteredRides),
+              MyRides(filteredRides: filteredRides, height: height * 0.77),
             ],
           ),
         ),

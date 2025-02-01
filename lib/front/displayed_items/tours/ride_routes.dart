@@ -24,6 +24,7 @@ class _RideRoutesState extends State<RideRoutes> {
   String? endLocationName;
   bool isLoading = true;
   String? startDate;
+  
 
   LatLng? startLatLngObj;
   LatLng? endLatLngObj;
@@ -31,17 +32,25 @@ class _RideRoutesState extends State<RideRoutes> {
   GoogleMapController? mapController;
   Map<PolylineId, Polyline> polylines = {};
   CameraPosition? initialCameraPosition;
-  late String _mapStyleString;
+  late String _mapStyleDarkString;
+  late String _mapStyleLightString;
 
   @override
   void initState() {
     super.initState();
     _fetchLocationNames();
-    DefaultAssetBundle.of(context).loadString('assets/map_style.json').then((
-      value,
-    ) {
+    DefaultAssetBundle.of(
+      context,
+    ).loadString('assets/map_style_dark.json').then((value) {
       setState(() {
-        _mapStyleString = value;
+        _mapStyleDarkString = value;
+      });
+    });
+    DefaultAssetBundle.of(
+      context,
+    ).loadString('assets/map_style_light.json').then((value) {
+      setState(() {
+        _mapStyleLightString = value;
       });
     });
   }
@@ -135,6 +144,8 @@ class _RideRoutesState extends State<RideRoutes> {
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    final darkMode =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
 
     return Center(
       child:
@@ -201,6 +212,7 @@ class _RideRoutesState extends State<RideRoutes> {
                           ),
                           heigt: height,
                           width: width,
+                          darkMode: darkMode,
                         )
                         : SizedBox.shrink(),
                     SizedBox(height: height * 0.058),
@@ -221,6 +233,7 @@ class _RideRoutesState extends State<RideRoutes> {
     required Icon endIcon,
     required double heigt,
     required double width,
+    required bool darkMode,
   }) {
     if (initialCameraPosition == null) {
       return const Center(child: CircularProgressIndicator());
@@ -302,7 +315,7 @@ class _RideRoutesState extends State<RideRoutes> {
                 initialCameraPosition: initialCameraPosition!,
                 mapType: MapType.normal,
 
-                style: _mapStyleString,
+                style: darkMode ? _mapStyleDarkString : _mapStyleLightString,
                 gestureRecognizers: {
                   Factory<OneSequenceGestureRecognizer>(
                     () => EagerGestureRecognizer(),

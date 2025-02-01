@@ -41,6 +41,10 @@ class _DatePickerState extends State<DatePicker> {
         ),
       ),
       child: TableCalendar(
+        startingDayOfWeek:
+            ride.startDate.toDate().weekday == 7
+                ? StartingDayOfWeek.sunday
+                : StartingDayOfWeek.monday,
         focusedDay: selectedDate,
         firstDay: ride.startDate.toDate(),
         lastDay: ride.endDate.toDate(),

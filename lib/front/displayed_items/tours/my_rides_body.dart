@@ -63,10 +63,12 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                 return ride.driver == userId;
               }).toList();
 
-          setState(() {
-            filteredRides = filtered;
-          });
-          populateDatasets(filtered);
+          if (mounted) {
+            setState(() {
+              filteredRides = filtered;
+              populateDatasets(filtered);
+            });
+          }
         });
   }
 
@@ -119,8 +121,8 @@ class _MyRidesBodyState extends State<MyRidesBody> {
 
   @override
   void initState() {
-    super.initState();
     fetchUserData();
+    super.initState();
   }
 
   @override
@@ -129,6 +131,7 @@ class _MyRidesBodyState extends State<MyRidesBody> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    final today = DateTime.now();
     return Container(
       width: width,
       height: height,
@@ -156,6 +159,7 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                 showColorTip: false,
                 monthFontSize: width * 0.05,
                 textColor: Colors.black,
+                initDate: today,
                 weekTextColor: Theme.of(context).textTheme.bodyMedium?.color,
                 datasets: datasets,
                 colorsets: {
@@ -220,6 +224,7 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                         : filteredRidesbyDate.isNotEmpty
                         ? filteredRidesbyDate
                         : [],
+                height: height * 0.31,
               ),
             ],
           ),

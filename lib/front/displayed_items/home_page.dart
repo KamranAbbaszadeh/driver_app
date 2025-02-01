@@ -25,7 +25,7 @@ class HomePage extends ConsumerWidget {
         child: BuildAppBar(),
       ),
       body: listNavBar[selectedIndex],
-      bottomNavigationBar: SafeArea(child: BottomNavBar()),
+      bottomNavigationBar: BottomNavBar(),
       floatingActionButton:
           index == 0
               ? Padding(

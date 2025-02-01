@@ -1,36 +1,57 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:location/location.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 Future<void> getLocationUpdates({
   required Location locationController,
   required Function(LocationData) onLocationUpdate,
 }) async {
-  bool serviceEnabled;
-  PermissionStatus permissionGranted;
+  await requestLocationPermission();
 
-  serviceEnabled = await locationController.serviceEnabled();
+  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
-    serviceEnabled = await locationController.requestService();
-    if (!serviceEnabled) return;
+    await Geolocator.openAppSettings();
+    return Future.error('Location services are disabled.');
   }
 
-  permissionGranted = await locationController.hasPermission();
-  if (permissionGranted == PermissionStatus.denied) {
-    permissionGranted = await locationController.requestPermission();
-    if (permissionGranted != PermissionStatus.granted) return;
+  LocationPermission permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) {
+      return Future.error('Location permissions are denied');
+    }
+  }
+
+  if (permission == LocationPermission.deniedForever) {
+    return Future.error(
+      'Location permissions are permanently denied, we cannot request permissions.',
+    );
   }
 
   locationController.onLocationChanged.listen((LocationData currentLocation) {
     if (currentLocation.latitude != null && currentLocation.longitude != null) {
-      onLocationUpdate(
-        currentLocation,
-      );
+      onLocationUpdate(currentLocation);
     }
   });
+}
+
+Future<void> requestLocationPermission() async {
+  var status = await Permission.location.status;
+  if (status.isDenied) {
+    await Permission.location.request();
+  }
+  if (await Permission.locationAlways.isDenied) {
+    await Permission.locationAlways.request();
+  }
+
+  if (status.isPermanentlyDenied) {
+    await openAppSettings();
+  }
 }
 
 Future<List<LatLng>> getPolyLinePoints({
@@ -40,6 +61,7 @@ Future<List<LatLng>> getPolyLinePoints({
 }) async {
   List<LatLng> polylineCoordinates = [];
   PolylinePoints polylinePoints = PolylinePoints();
+
   PolylineResult polylineResult = await polylinePoints
       .getRouteBetweenCoordinates(
         googleApiKey: googleApiKey,
@@ -55,6 +77,7 @@ Future<List<LatLng>> getPolyLinePoints({
       polylineCoordinates.add(LatLng(point.latitude, point.longitude));
     }
   }
+
   return polylineCoordinates;
 }
 
@@ -77,8 +100,55 @@ void generatePolyLineFromPoints({
 Future<void> cameraToPosition({
   required Completer<GoogleMapController> mapController,
   required LatLng position,
+  required LocationData currentPosition,
+  required bool isStarted,
+  required LatLng mid,
+  required double zoom,
+  required bool isUserInteracting,
+  required ValueNotifier<bool> isAnimatingCamera,
 }) async {
+  if (isAnimatingCamera.value) {
+    return;
+  }
+
+  if (!mapController.isCompleted) {
+    return;
+  }
+
   final GoogleMapController controller = await mapController.future;
-  CameraPosition newCameraPosition = CameraPosition(target: position, zoom: 15);
-  controller.animateCamera(CameraUpdate.newCameraPosition(newCameraPosition));
+
+  if (isUserInteracting && !isStarted) {
+    return;
+  }
+
+  isAnimatingCamera.value = true;
+
+  try {
+    if (isStarted) {
+      CameraPosition newCameraPosition = CameraPosition(
+        target: position,
+        zoom: 15,
+        tilt: 45,
+        bearing: currentPosition.heading ?? 0,
+      );
+      await controller.animateCamera(
+        CameraUpdate.newCameraPosition(newCameraPosition),
+      );
+    }
+    if (!isStarted) {
+      CameraPosition cameraPosition = CameraPosition(
+        target: mid,
+        zoom: zoom,
+        bearing: 0,
+        tilt: 0,
+      );
+      await controller.animateCamera(
+        CameraUpdate.newCameraPosition(cameraPosition),
+      );
+    }
+  } catch (e, stackTrace) {
+    debugPrint("Error animating camera: $e, StackTrace: $stackTrace");
+  } finally {
+    isAnimatingCamera.value = false;
+  }
 }

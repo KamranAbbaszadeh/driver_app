@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/api/firebase_api.dart';
+import 'package:driver_app/back/user_assign.dart/user_assign.dart';
 import 'package:driver_app/front/tools/date_picker.dart';
 import 'package:driver_app/front/displayed_items/tours/ride_routes.dart';
 import 'package:driver_app/front/tools/ride_model.dart';
-import 'package:driver_app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,11 +19,33 @@ class DetailsPage extends StatefulWidget {
 
 class _DetailsPageState extends State<DetailsPage> {
   late DateTime selectedDay;
+  Map<String, dynamic>? userData;
 
   @override
   void initState() {
     super.initState();
     selectedDay = widget.ride.startDate.toDate();
+    fetchUserData();
+  }
+
+  Future<void> fetchUserData() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        final docSnapshot =
+            await FirebaseFirestore.instance
+                .collection('Users')
+                .doc(userId)
+                .get();
+        if (docSnapshot.exists) {
+          setState(() {
+            userData = docSnapshot.data();
+          });
+        }
+      }
+    } catch (e) {
+      logger.e('Error fetching user\'s data: $e');
+    }
   }
 
   void updateSelectedDay(DateTime day) {
@@ -110,8 +133,13 @@ class _DetailsPageState extends State<DetailsPage> {
     required double width,
     required bool darkMode,
   }) {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-
+    if (userData == null) {
+      return Center(child: CircularProgressIndicator());
+    }
+    final baseUrl =
+        userData!['Role'] == 'Guide'
+            ? 'https://onemoretour.com/version-test/api/1.1/wf/assign-guide'
+            : 'https://onemoretour.com/version-test/api/1.1/wf/assign-driver';
     return AppBar(
       backgroundColor: darkMode ? Colors.black : Colors.white,
       leading: IconButton(
@@ -132,11 +160,7 @@ class _DetailsPageState extends State<DetailsPage> {
         widget.ride.driver == ''
             ? GestureDetector(
               onTap: () async {
-                await FirebaseFirestore.instance
-                    .collection('Cars')
-                    .doc(widget.ride.docId)
-                    .update({'Driver': userId});
-                navigatorKey.currentState?.pop();
+                userAssign(docId: widget.ride.docId, baseUrl: baseUrl);
               },
               child: Container(
                 width: width * 0.22,
