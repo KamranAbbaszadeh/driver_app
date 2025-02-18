@@ -28,7 +28,9 @@ class _MyRidesBodyState extends State<MyRidesBody> {
   Future<void> fetchUserData() async {
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
+
       if (userId != null) {
+        FirebaseApi.instance.saveFCMToken(userId);
         final docSnapshot =
             await FirebaseFirestore.instance
                 .collection('Users')

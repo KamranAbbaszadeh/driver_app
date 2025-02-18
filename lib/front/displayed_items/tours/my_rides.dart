@@ -74,11 +74,13 @@ class _MyRidesState extends State<MyRides> {
     return Column(
       children: [
         GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
             setState(() {
               if (isExpanded) {
                 expandedIndices.remove(index);
               } else {
+                expandedIndices.clear();
                 expandedIndices.add(index);
               }
             });
@@ -244,12 +246,14 @@ class _MyRidesState extends State<MyRides> {
                     SizedBox(height: height * 0.005),
 
                     GestureDetector(
-                      onTap:
-                          () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => DetailsPage(ride: ride),
-                            ),
+                      onTap: () {
+                        expandedIndices.remove(index);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => DetailsPage(ride: ride),
                           ),
+                        );
+                      },
                       child: Container(
                         width: 200,
                         height: 40,

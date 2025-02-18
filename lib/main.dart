@@ -8,6 +8,7 @@ import 'package:driver_app/front/auth/forms/application_forms/car_details_form.d
 import 'package:driver_app/front/auth/forms/contracts/contract_sign_form.dart';
 import 'package:driver_app/front/auth/forms/application_forms/personal_data_form.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
+import 'package:driver_app/front/displayed_items/chat_page.dart';
 import 'package:driver_app/front/intro/introduction_screens/introduction_screen.dart';
 import 'package:driver_app/front/displayed_items/home_page.dart';
 import 'package:driver_app/front/displayed_items/no_internet_page.dart';
@@ -107,6 +108,8 @@ class _MyAppState extends ConsumerState<MyApp> {
             ),
         '/contract_sign': (context) => ContractSignForm(),
         '/home_page': (context) => HomePage(),
+        '/chat_page':
+            (context) => ChatPage(tourId: 'tourId', width: 0, height: 0),
       },
       navigatorKey: navigatorKey,
     );

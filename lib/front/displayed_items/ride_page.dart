@@ -4,16 +4,18 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/back/map_and_location/get_functions.dart';
+import 'package:driver_app/front/displayed_items/chat_page.dart';
 import 'package:driver_app/front/tools/consts.dart';
 import 'package:driver_app/front/tools/get_location_name.dart';
 import 'package:driver_app/front/tools/ride_model.dart';
 import 'package:driver_app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_swipe_button/flutter_swipe_button.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:timeline_tile/timeline_tile.dart';
@@ -34,13 +36,15 @@ class _RidePageState extends State<RidePage> {
   ValueNotifier<bool> isAnimatingCamera = ValueNotifier<bool>(false);
   String? docId;
   String? routeKey;
+  String tourName = '';
 
   String? startLocationName;
   String? endLocationName;
 
   LocationData? startLatLngObj;
   LatLng? currentLocation;
-  LatLng? endLatLngObj;
+  LatLng? endLatLng;
+  LatLng? startLatLng;
   double? speedMps;
 
   final PanelController _panelController = PanelController();
@@ -52,47 +56,12 @@ class _RidePageState extends State<RidePage> {
   bool? startArrived;
   bool? endArrived;
 
-  GoogleMapController? mapController;
-  Map<PolylineId, Polyline> polylines = {};
-  CameraPosition? initialCameraPosition;
-  late String _mapStyleDarkString;
-  late String _mapStyleLightString;
   Location locationController = Location();
-  final Completer<GoogleMapController> _mapController =
-      Completer<GoogleMapController>();
-  BitmapDescriptor customIcon = BitmapDescriptor.defaultMarker;
-  Set<Marker> markers = {};
-
-  void customMarker() {
-    BitmapDescriptor.asset(
-      ImageConfiguration(size: Size(50, 40)),
-      'assets/Car.png',
-    ).then((icon) {
-      setState(() {
-        customIcon = icon;
-      });
-    });
-  }
 
   @override
   void initState() {
     super.initState();
 
-    customMarker();
-    DefaultAssetBundle.of(
-      context,
-    ).loadString('assets/map_style_dark.json').then((value) {
-      setState(() {
-        _mapStyleDarkString = value;
-      });
-    });
-    DefaultAssetBundle.of(
-      context,
-    ).loadString('assets/map_style_light.json').then((value) {
-      setState(() {
-        _mapStyleLightString = value;
-      });
-    });
     fetchUserData();
     getLocationUpdates(
       locationController: locationController,
@@ -108,88 +77,30 @@ class _RidePageState extends State<RidePage> {
         }
 
         if (currentLocation != null) {
-          var start = MarkerId('start_location');
-          var end = MarkerId('end_location');
           var newPosition = LatLng(
             currentLocation!.latitude,
             currentLocation!.longitude,
           );
 
-          double distanceInMeters = Geolocator.distanceBetween(
-            currentLocation!.latitude,
-            currentLocation!.longitude,
-            endLatLngObj!.latitude,
-            endLatLngObj!.longitude,
-          );
+          // double distanceInMeters = Geolocator.distanceBetween(
+          //   currentLocation!.latitude,
+          //   currentLocation!.longitude,
+          //   endLatLngObj!.latitude,
+          //   endLatLngObj!.longitude,
+          // );
 
-          swipeButtonEnable = distanceInMeters < 100;
-
-          markers = {
-            Marker(
-              markerId: start,
-              position: newPosition,
-              icon: customIcon,
-              anchor: const Offset(0.5, 0.5),
-            ),
-            Marker(
-              markerId: end,
-              position: endLatLngObj!,
-              icon:
-                  nextRoute!['Start Arrived']
-                      ? BitmapDescriptor.defaultMarker
-                      : BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueAzure,
-                      ),
-            ),
-          };
-
-          if (startLatLngObj != null && endLatLngObj != null) {
-            getPolyLinePoints(
-              googleApiKey: GOOGLE_MAPS_API_KEY,
-              source: currentLocation!,
-              destination: endLatLngObj!,
-            ).then((coordinates) {
-              if (coordinates.isNotEmpty) {
-                final polylineId = PolylineId('main_route');
-                final Polyline polyline = Polyline(
-                  polylineId: polylineId,
-                  color: Colors.blue,
-                  width: 5,
-                  points: coordinates,
-                );
-
-                if (mounted) {
-                  setState(() {
-                    polylines[polylineId] = polyline;
-                  });
-                }
-
-                cameraToPosition(
-                  mapController: _mapController,
-                  position: newPosition,
-                  currentPosition: startLatLngObj!,
-                  isStarted: isStarted,
-                  mid: getMidpoint(currentLocation, endLatLngObj),
-                  zoom: getZoomLevel(distanceInMeters),
-                  isUserInteracting: isUserInteracting,
-                  isAnimatingCamera: isAnimatingCamera,
-                );
-              } else {
-                logger.e('Failed to fetch polyline coordinates');
-              }
-            });
-          }
+          // swipeButtonEnable = distanceInMeters < 100;
         }
       },
     );
   }
 
-  LatLng getMidpoint(LatLng? start, LatLng? end) {
-    if (start == null || end == null) {
+  LatLng getMidpoint(LatLng? start, LatLng? end, LatLng? current) {
+    if (start == null || end == null || current == null) {
       return const LatLng(0.0, 0.0);
     }
-    double midLat = (start.latitude + end.latitude) / 2;
-    double midLng = (start.longitude + end.longitude) / 2;
+    double midLat = (start.latitude + end.latitude + current.latitude) / 3;
+    double midLng = (start.longitude + end.longitude + current.longitude) / 3;
 
     return LatLng(midLat, midLng);
   }
@@ -250,7 +161,7 @@ class _RidePageState extends State<RidePage> {
           tourStartDate.month,
           tourStartDate.day,
         );
-        final currentDateTime = DateTime(2025, 01, 13);
+        final currentDateTime = DateTime(2025, 01, 31);
         final currentDate = DateTime(
           currentDateTime.year,
           currentDateTime.month,
@@ -280,23 +191,15 @@ class _RidePageState extends State<RidePage> {
       return !(routeData["Start Arrived"] as bool) ||
           !(routeData["End Arrived"] as bool);
     }, orElse: () => {});
-
     if (nextRoute != null) {
       int routeIndex = currentRides.indexOf(nextRoute!);
       routeKey = "Route${routeIndex + 1}";
       docId = nextRoute!['ID'];
 
-      String endCoordinates =
-          nextRoute!['Start Arrived'] == false
-              ? nextRoute!['Start']
-              : nextRoute!['End'];
-      List<String> endLatLng = endCoordinates.split(",");
-      double endLat = double.parse(endLatLng[0]);
-      double endLng = double.parse(endLatLng[1]);
       String startLocation = nextRoute!['Start'];
-      List<String> startLatLng = startLocation.split(",");
-      double startLat = double.parse(startLatLng[0]);
-      double startLng = double.parse(startLatLng[1]);
+      List<String> startLatLngString = startLocation.split(",");
+      double startLat = double.parse(startLatLngString[0]);
+      double startLng = double.parse(startLatLngString[1]);
 
       String startLocationDraft = await getLocationName(startLat, startLng);
       String endLocation = nextRoute!['End'];
@@ -312,7 +215,8 @@ class _RidePageState extends State<RidePage> {
 
       if (mounted) {
         setState(() {
-          endLatLngObj = LatLng(endLat, endLng);
+          endLatLng = LatLng(endLocationLat, endLocationLng);
+          startLatLng = LatLng(startLat, startLng);
           startLocationName = startLocationDraft;
           endLocationName = endLocationDraft;
         });
@@ -336,25 +240,25 @@ class _RidePageState extends State<RidePage> {
     return zoomLevel;
   }
 
-  Future<void> _moveCameraToCurrentLocation() async {
-    if (_mapController.isCompleted) {
-      setState(() {
-        isUserInteracting = false;
-      });
-    }
-  }
+  // Future<void> _moveCameraToCurrentLocation() async {
+  //   if (_mapController.isCompleted) {
+  //     setState(() {
+  //       isUserInteracting = false;
+  //     });
+  //   }
+  // }
 
   @override
   void dispose() {
     carsSubscription?.cancel();
-    if (mapController != null) {
-      mapController!.dispose();
-    }
-    if (_mapController.isCompleted) {
-      _mapController.future.then((controller) {
-        controller.dispose();
-      });
-    }
+    // if (mapController != null) {
+    //   mapController!.dispose();
+    // }
+    // if (_mapController.isCompleted) {
+    //   _mapController.future.then((controller) {
+    //     controller.dispose();
+    //   });
+    // }
     isAnimatingCamera.dispose();
     super.dispose();
   }
@@ -374,6 +278,15 @@ class _RidePageState extends State<RidePage> {
       );
     }
 
+    final midPoint = getMidpoint(startLatLng, endLatLng, currentLocation);
+    final distance = Geolocator.distanceBetween(
+      currentLocation!.latitude,
+      currentLocation!.longitude,
+      endLatLng!.latitude,
+      endLatLng!.longitude,
+    );
+    final zoomLvl = getZoomLevel(distance);
+
     return Scaffold(
       body: Center(
         child:
@@ -381,34 +294,79 @@ class _RidePageState extends State<RidePage> {
                 ? Stack(
                   children: [
                     SizedBox(
-                      child: GoogleMap(
-                        onCameraMoveStarted: () {
-                          setState(() {
-                            isUserInteracting = true;
-                          });
-                        },
-                        onMapCreated: (controller) {
-                          if (!_mapController.isCompleted) {
-                            _mapController.complete(controller);
-                          }
-                        },
-                        initialCameraPosition:
-                            initialCameraPosition ??
-                            CameraPosition(
-                              target: currentLocation ?? const LatLng(0, 0),
-                              zoom: 15,
-                            ),
-                        zoomControlsEnabled: false,
+                      child: FlutterMap(
+                        options: MapOptions(
+                          initialCenter: LatLng(
+                            midPoint.latitude,
+                            midPoint.longitude,
+                          ),
+                          initialZoom: zoomLvl,
+                        ),
+                        children: [
+                          TileLayer(
+                            // Display map tiles from any source
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
+                            userAgentPackageName: 'com.example.app',
+                            // And many more recommended properties!
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: currentLocation!,
+                                child: Image.asset(
+                                  'assets/Car.png',
+                                  width: width * 0.1,
+                                  height: height * 0.1,
+                                ),
+                              ),
+                              Marker(
+                                point: startLatLng!,
+                                child: Container(
+                                  width: width * 0.1,
+                                  height: height * 0.1,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.white),
+                                    color: Colors.black,
+                                  ),
 
-                        mapType: MapType.normal,
-                        style:
-                            darkMode
-                                ? _mapStyleDarkString
-                                : _mapStyleLightString,
-                        compassEnabled: false,
-                        tiltGesturesEnabled: true,
-                        markers: markers,
-                        polylines: Set<Polyline>.of(polylines.values),
+                                  child: Center(
+                                    child: Text(
+                                      '1',
+                                      style: GoogleFonts.cabin(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Marker(
+                                point: endLatLng!,
+                                child: Container(
+                                  width: width * 0.1,
+                                  height: height * 0.1,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.white),
+                                    color: Colors.black,
+                                  ),
+
+                                  child: Center(
+                                    child: Text(
+                                      '2',
+                                      style: GoogleFonts.cabin(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                     Positioned(
@@ -430,7 +388,7 @@ class _RidePageState extends State<RidePage> {
                       child: GestureDetector(
                         onTap: () {
                           if (currentLocation != null) {
-                            _moveCameraToCurrentLocation();
+                            // _moveCameraToCurrentLocation();
                           }
                         },
                         child: Container(
@@ -456,16 +414,17 @@ class _RidePageState extends State<RidePage> {
                       ),
                     ),
                     SlidingUpPanel(
-                      maxHeight: height * 0.42,
-                      minHeight: height * 0.08,
+                      maxHeight: height * 0.43,
+                      minHeight: height * 0.10,
                       parallaxEnabled: true,
                       parallaxOffset: .5,
                       borderRadius: BorderRadius.circular(width * 0.05),
                       padding: EdgeInsets.all(width * 0.019),
                       controller: _panelController,
                       backdropTapClosesPanel: true,
-                      panel: Stack(
-                        alignment: Alignment.topCenter,
+                      panel: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(height: height * 0.004),
                           Container(
@@ -476,267 +435,321 @@ class _RidePageState extends State<RidePage> {
                               color: Colors.grey.shade400,
                             ),
                           ),
-                          SizedBox(height: height * 0.01),
-                          TextButton(
-                            onPressed: () {
-                              _panelController.isPanelOpen
-                                  ? _panelController.close()
-                                  : _panelController.open();
-                            },
-                            child: Text(
-                              "Ride Details",
-                              style: GoogleFonts.notoSans(
-                                fontSize: width * 0.05,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                          Row(
+                            children: [
+                              SizedBox(width: width * 0.33),
+                              Text(
+                                "Ride Details",
+                                style: GoogleFonts.notoSans(
+                                  fontSize: width * 0.05,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
                               ),
-                            ),
+                              Spacer(),
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    if (_panelController.isPanelOpen) {
+                                      _panelController.close();
+                                    } else {
+                                      _panelController.open();
+                                    }
+                                  });
+                                },
+                                icon:
+                                    _panelController.isAttached
+                                        ? _panelController.isPanelOpen
+                                            ? Icon(
+                                              Icons
+                                                  .keyboard_arrow_down_outlined,
+                                              color: Colors.black,
+                                            )
+                                            : Icon(
+                                              Icons.keyboard_arrow_up_outlined,
+                                              color: Colors.black,
+                                            )
+                                        : Icon(
+                                          Icons.keyboard_arrow_up_outlined,
+                                          color: Colors.black,
+                                        ),
+                              ),
+                            ],
                           ),
-                          Positioned(
-                            top: height * 0.004,
-                            child: SizedBox(
-                              width: width * 0.95,
-                              height: height * 0.38,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  TimelineTile(
-                                    alignment: TimelineAlign.start,
-                                    indicatorStyle: IndicatorStyle(
-                                      color: Colors.black,
-                                      drawGap: true,
-                                      width: width * 0.076,
-                                      height: height * 0.03,
-                                      indicator: Transform.rotate(
-                                        angle: pi,
-                                        child: Image.asset('assets/Car.png'),
-                                      ),
-                                    ),
-                                    isFirst: true,
-                                    hasIndicator: true,
-                                    afterLineStyle: LineStyle(
-                                      color:
-                                          startArrived!
-                                              ? Colors.green.shade600
-                                              : Colors.black,
-                                      thickness: width * 0.0076,
-                                    ),
-                                  ),
-                                  TimelineTile(
-                                    alignment: TimelineAlign.start,
-                                    indicatorStyle: IndicatorStyle(
-                                      color: Colors.black,
-                                      drawGap: true,
-                                      width: width * 0.076,
+                          SizedBox(
+                            width: width * 0.95,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  spacing: 20,
+                                  children: [
+                                    Container(
+                                      width: width * 0.1,
                                       height: height * 0.05,
-                                      indicator: Image.asset(
-                                        'assets/location.png',
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.white),
                                         color:
                                             startArrived!
-                                                ? Colors.green.shade600
-                                                : Colors.blue.shade800,
+                                                ? const Color.fromARGB(
+                                                  255,
+                                                  103,
+                                                  168,
+                                                  120,
+                                                )
+                                                : Colors.black,
                                       ),
-                                    ),
 
-                                    hasIndicator: true,
-                                    beforeLineStyle: LineStyle(
-                                      color:
-                                          startArrived!
-                                              ? Colors.green.shade600
-                                              : Colors.black,
-
-                                      thickness: width * 0.0076,
-                                    ),
-                                    afterLineStyle: LineStyle(
-                                      color:
-                                          startArrived!
-                                              ? endArrived!
-                                                  ? Colors.green.shade600
-                                                  : Colors.black
-                                              : Colors.grey.shade300,
-
-                                      thickness: width * 0.0076,
-                                    ),
-                                    lineXY: 1,
-
-                                    endChild: SizedBox(
-                                      height: height * 0.08,
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
+                                      child: Center(
                                         child: Text(
-                                          startLocationName ?? '',
-                                          style: GoogleFonts.notoSans(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: width * 0.04,
+                                          '1',
+                                          style: GoogleFonts.cabin(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ),
                                     ),
+                                    SizedBox(
+                                      width: width * 0.8,
+                                      child: Text(
+                                        startLocationName!,
+                                        softWrap: true,
+                                        style: GoogleFonts.cabin(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: width * 0.04,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: height * 0.01),
+                                Row(
+                                  spacing: 20,
+                                  children: [
+                                    Container(
+                                      width: width * 0.1,
+                                      height: height * 0.05,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.white),
+                                        color: Colors.black,
+                                      ),
+
+                                      child: Center(
+                                        child: Text(
+                                          '2',
+                                          style: GoogleFonts.cabin(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: width * 0.8,
+                                      child: Text(
+                                        endLocationName!,
+                                        softWrap: true,
+                                        style: GoogleFonts.cabin(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: width * 0.04,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          Divider(
+                            color: const Color.fromARGB(180, 183, 182, 182),
+                            thickness: 2,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            spacing: 10,
+                            children: [
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    width * 0.019,
                                   ),
-                                  TimelineTile(
-                                    alignment: TimelineAlign.start,
-                                    indicatorStyle: IndicatorStyle(
+                                  color: const Color.fromARGB(
+                                    180,
+                                    183,
+                                    182,
+                                    182,
+                                  ),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    IconButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) => ChatPage(
+                                                  tourId: docId!,
+                                                  width: width,
+                                                  height: height,
+                                                ),
+                                          ),
+                                        );
+                                      },
+                                      icon: Icon(
+                                        Icons.message,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 23.5,
+                                      left: 44,
+                                      height: 13,
+                                      width: 13,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    width * 0.019,
+                                  ),
+                                  color: const Color.fromARGB(
+                                    180,
+                                    183,
+                                    182,
+                                    182,
+                                  ),
+                                ),
+                                child: IconButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => ChatPage(
+                                              tourId: docId!,
+                                              width: width,
+                                              height: height,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                  icon: Transform.rotate(
+                                    angle: 90 * (pi / 180),
+                                    child: Icon(
+                                      Icons.navigation_sharp,
                                       color: Colors.black,
-                                      drawGap: true,
-                                      width: width * 0.076,
-                                      height: height * 0.03,
-                                      indicator: Image.asset(
-                                        'assets/location.png',
-                                        color:
-                                            startArrived!
-                                                ? Colors.red.shade800
-                                                : Colors.grey.shade300,
-                                      ),
-                                    ),
-                                    isLast: true,
-                                    hasIndicator: true,
-                                    beforeLineStyle: LineStyle(
-                                      color:
-                                          startArrived!
-                                              ? endArrived!
-                                                  ? Colors.green.shade600
-                                                  : Colors.black
-                                              : Colors.grey.shade300,
-
-                                      thickness: width * 0.0076,
-                                    ),
-
-                                    endChild: SizedBox(
-                                      height: height * 0.08,
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          endLocationName ?? '',
-                                          style: GoogleFonts.notoSans(
-                                            color:
-                                                startArrived!
-                                                    ? Colors.black
-                                                    : Colors.grey.shade300,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: width * 0.04,
-                                          ),
-                                        ),
-                                      ),
+                                      size: 40,
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          Positioned(
-                            top: height * 0.3,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(
-                                  width * 0.019,
-                                ),
-                                boxShadow:
-                                    isStarted
-                                        ? swipeButtonEnable!
-                                            ? [
-                                              BoxShadow(
-                                                blurRadius: 5,
-                                                blurStyle: BlurStyle.outer,
-                                                color: Colors.black45,
-                                                spreadRadius: 0.4,
-                                              ),
-                                            ]
-                                            : []
-                                        : [
-                                          BoxShadow(
-                                            blurRadius: 5,
-                                            blurStyle: BlurStyle.outer,
-                                            color: Colors.black45,
-                                            spreadRadius: 0.4,
-                                          ),
-                                        ],
-                              ),
-                              child: SwipeButton(
-                                thumb: Padding(
-                                  padding: EdgeInsets.all(width * 0.02),
 
-                                  child: Image.asset(
-                                    'assets/start_icon.png',
-                                    color:
-                                        isStarted
-                                            ? swipeButtonEnable!
-                                                ? Colors.black
-                                                : Colors.white
-                                            : Colors.black,
-                                  ),
-                                ),
+                          //
+                          // SwipeButton(
+                          //   thumb: Padding(
+                          //     padding: EdgeInsets.all(width * 0.02),
 
-                                width: width * 0.95,
-                                borderRadius: BorderRadius.circular(
-                                  width * 0.019,
-                                ),
-                                activeThumbColor: Colors.white,
-                                inactiveTrackColor: Colors.white,
-                                activeTrackColor: Colors.black38,
-                                inactiveThumbColor: Colors.white,
-                                enabled: isStarted ? swipeButtonEnable! : true,
-                                onSwipe:
-                                    isStarted
-                                        ? startArrived!
-                                            ? () async {
-                                              setState(() {
-                                                isStarted = !isStarted;
-                                                isUserInteracting = false;
-                                                toComplete = !toComplete;
-                                              });
-                                              await FirebaseFirestore.instance
-                                                  .collection('Cars')
-                                                  .doc(docId)
-                                                  .set({
-                                                    'Routes': {
-                                                      routeKey!: {
-                                                        'End Arrived': true,
-                                                      },
-                                                    },
-                                                  }, SetOptions(merge: true));
-                                              _panelController.close();
-                                              navigatorKey.currentState?.pop();
-                                            }
-                                            : () async {
-                                              setState(() {
-                                                isStarted = !isStarted;
-                                                isUserInteracting = false;
-                                                toComplete = !toComplete;
-                                              });
-                                              await FirebaseFirestore.instance
-                                                  .collection('Cars')
-                                                  .doc(docId)
-                                                  .set({
-                                                    'Routes': {
-                                                      routeKey!: {
-                                                        'Start Arrived': true,
-                                                      },
-                                                    },
-                                                  }, SetOptions(merge: true));
-                                              _panelController.close();
-                                            }
-                                        : () {
-                                          setState(() {
-                                            isStarted = !isStarted;
-                                            isUserInteracting = false;
-                                            toComplete = !toComplete;
-                                          });
-                                          _panelController.close();
-                                        },
-                                child: Text(
-                                  toComplete
-                                      ? 'Complete the ride'
-                                      : 'Start the ride',
-                                  style: GoogleFonts.notoSans(
-                                    color: Colors.white54,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: width * 0.045,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          //     child: Image.asset(
+                          //       'assets/start_icon.png',
+                          //       color:
+                          //           isStarted
+                          //               ? swipeButtonEnable!
+                          //                   ? Colors.black
+                          //                   : Colors.white
+                          //               : Colors.black,
+                          //     ),
+                          //   ),
+
+                          //   width: width * 0.95,
+                          //   borderRadius: BorderRadius.circular(
+                          //     width * 0.019,
+                          //   ),
+                          //   activeThumbColor: Colors.white,
+                          //   inactiveTrackColor: Colors.white,
+                          //   activeTrackColor: Colors.black38,
+                          //   inactiveThumbColor: Colors.white,
+                          //   enabled: isStarted ? swipeButtonEnable! : true,
+                          //   onSwipe:
+                          //       isStarted
+                          //           ? startArrived!
+                          //               ? () async {
+                          //                 setState(() {
+                          //                   isStarted = !isStarted;
+                          //                   isUserInteracting = false;
+                          //                   toComplete = !toComplete;
+                          //                 });
+                          //                 await FirebaseFirestore.instance
+                          //                     .collection('Cars')
+                          //                     .doc(docId)
+                          //                     .set({
+                          //                       'Routes': {
+                          //                         routeKey!: {
+                          //                           'End Arrived': true,
+                          //                         },
+                          //                       },
+                          //                     }, SetOptions(merge: true));
+                          //                 _panelController.close();
+                          //                 navigatorKey.currentState?.pop();
+                          //               }
+                          //               : () async {
+                          //                 setState(() {
+                          //                   isStarted = !isStarted;
+                          //                   isUserInteracting = false;
+                          //                   toComplete = !toComplete;
+                          //                 });
+                          //                 await FirebaseFirestore.instance
+                          //                     .collection('Cars')
+                          //                     .doc(docId)
+                          //                     .set({
+                          //                       'Routes': {
+                          //                         routeKey!: {
+                          //                           'Start Arrived': true,
+                          //                         },
+                          //                       },
+                          //                     }, SetOptions(merge: true));
+                          //                 _panelController.close();
+                          //               }
+                          //           : () {
+                          //             setState(() {
+                          //               isStarted = !isStarted;
+                          //               isUserInteracting = false;
+                          //               toComplete = !toComplete;
+                          //             });
+                          //             _panelController.close();
+                          //           },
+                          //   child: Text(
+                          //     toComplete
+                          //         ? 'Complete the ride'
+                          //         : 'Start the ride',
+                          //     style: GoogleFonts.notoSans(
+                          //       color: Colors.white54,
+                          //       fontWeight: FontWeight.w600,
+                          //       fontSize: width * 0.045,
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                     ),

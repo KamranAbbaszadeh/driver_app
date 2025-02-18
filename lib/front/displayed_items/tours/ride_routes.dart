@@ -24,7 +24,6 @@ class _RideRoutesState extends State<RideRoutes> {
   String? endLocationName;
   bool isLoading = true;
   String? startDate;
-  
 
   LatLng? startLatLngObj;
   LatLng? endLatLngObj;

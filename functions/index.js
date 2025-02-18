@@ -131,3 +131,60 @@ exports.notifyMatchingUsers = onDocumentCreated(
       }
     },
 );
+
+exports.sendNewMessageNotification =
+  onDocumentUpdated("Chat/{userId}/{tourId}/sender",
+      async (event) => {
+        if (!event || !event.params) {
+          console.error("Context or params is missing!");
+          return null;
+        }
+        const userId = event.params.userId;
+        const tourId = event.params.tourId;
+        const senderDoc = event.data.after.data();
+        const previousSenderDoc = event.data.before.data();
+        if (!senderDoc) {
+          return null;
+        }
+        const newMessages = Object.keys(senderDoc)
+            .filter((key) => key.startsWith("message") &&
+            (!previousSenderDoc || !previousSenderDoc[key]))
+            .map((key) => ({key, ...senderDoc[key]}));
+
+        if (newMessages.length === 0) {
+          return null;
+        }
+        const latestMessage = newMessages[newMessages.length - 1];
+
+        try {
+          const userDoc = await admin.firestore().
+              collection("Users").doc(userId).get();
+          if (!userDoc.exists) {
+            return null;
+          }
+          const fcmToken = userDoc.data().fcmToken;
+
+          if (!fcmToken) {
+            return null;
+          }
+          const message = {
+            notification: {
+              title: latestMessage.name || "New Message",
+              body: latestMessage.message || "You have a new message",
+            },
+            data: {
+              userId: userId,
+              tourId: tourId,
+              position: latestMessage.position || "",
+            },
+            token: fcmToken,
+          };
+
+          const response = await admin.messaging().send(message);
+          console.log("Notification sent successfully!", response);
+        } catch (error) {
+          console.error("Error sending notification:", error);
+        }
+
+        return null;
+      });

@@ -97,7 +97,7 @@ class _AuthState extends ConsumerState<AuthEmail> {
                   Padding(
                     padding: EdgeInsets.all(width * 0.02),
                     child: Text(
-                      'Please enter your email address',
+                      'Please sign with your email address',
                       style: GoogleFonts.daysOne(
                         textStyle: TextStyle(
                           fontWeight: FontWeight.bold,
