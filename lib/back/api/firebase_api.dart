@@ -59,8 +59,7 @@ class FirebaseApi {
       setupTokenRefresh(userID);
     }
 
-      await _setupMessageHandlers(ref);
-
+    await _setupMessageHandlers(ref);
   }
 
   Future<void> _requestNotificationPermissions() async {
@@ -128,8 +127,11 @@ class FirebaseApi {
         if (details.payload != null) {
           final Map<String, dynamic> data = jsonDecode(details.payload!);
           final String? type = data['route'];
-          if (type == '/chat') {
-            navigatorKey.currentState?.pushNamed('/chat', arguments: details);
+          if (type == 'chat') {
+            navigatorKey.currentState?.pushNamed(
+              '/notification_page',
+              arguments: details,
+            );
           } else {
             navigatorKey.currentState?.pushNamed(type!);
           }
@@ -151,34 +153,68 @@ class FirebaseApi {
 
       if (messageId != null &&
           messages.any((m) => m['messageId'] == messageId)) {
-        return; // Avoid duplicates
+        return;
       }
 
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
 
       if (notification != null && android != null) {
-        await _localNotifications.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              'high_importance_channel',
-              'High Importance Notifications',
-              channelDescription:
-                  'This channel is used for important notifications',
-              importance: Importance.high,
-              icon: '@mipmap/launcher_icon',
+        if (message.data['route'] == 'chat') {
+          String? tourId = message.data['body'];
+          if (tourId != null) {
+            String? tourName = await _fetchTourName(tourId);
+            if (tourName != null) {
+              String notificationTitle = 'Tour: $tourName';
+              String notificationBody =
+                  '${message.data['name']} just sent you a message for tour $tourName';
+
+              await _localNotifications.show(
+                notification.hashCode,
+                notificationTitle,
+                notificationBody,
+                NotificationDetails(
+                  android: AndroidNotificationDetails(
+                    'high_importance_channel',
+                    'High Importance Notifications',
+                    channelDescription:
+                        'This channel is used for important notifications',
+                    importance: Importance.high,
+                    icon: '@mipmap/launcher_icon',
+                  ),
+                  iOS: const DarwinNotificationDetails(
+                    presentAlert: true,
+                    presentBadge: true,
+                    presentSound: true,
+                  ),
+                ),
+                payload: jsonEncode(message.data),
+              );
+            }
+          }
+        } else {
+          await _localNotifications.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                'high_importance_channel',
+                'High Importance Notifications',
+                channelDescription:
+                    'This channel is used for important notifications',
+                importance: Importance.high,
+                icon: '@mipmap/launcher_icon',
+              ),
+              iOS: const DarwinNotificationDetails(
+                presentAlert: true,
+                presentBadge: true,
+                presentSound: true,
+              ),
             ),
-            iOS: const DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            ),
-          ),
-          payload: jsonEncode(message.data),
-        );
+            payload: jsonEncode(message.data),
+          );
+        }
       }
 
       messages.add({
@@ -203,7 +239,7 @@ class FirebaseApi {
 
       if (messageId != null &&
           messages.any((m) => m['messageId'] == messageId)) {
-        return; // Avoid duplicates
+        return;
       }
 
       messages.add({
@@ -218,7 +254,16 @@ class FirebaseApi {
       final String? type = data['route'];
 
       if (type == 'chat') {
-        navigatorKey.currentState?.pushNamed('/chat', arguments: message);
+        String? tourId = data['body'];
+        if (tourId != null) {
+          String? tourName = await _fetchTourName(tourId);
+          if (tourName != null) {
+            navigatorKey.currentState?.pushNamed(
+              '/chat_page',
+              arguments: {'tourName': tourName, 'latestMessage': data['name']},
+            );
+          }
+        }
       } else {
         navigatorKey.currentState?.pushNamed('/notification_screen');
       }
@@ -241,5 +286,32 @@ class FirebaseApi {
         logger.e("Error handling message opened app: $e");
       }
     });
+  }
+
+  Future<String?> _fetchTourName(String tourId) async {
+    try {
+      String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (userId.isEmpty) return null;
+
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(userId)
+              .get();
+
+      String? role = userDoc['role'];
+      String collectionName = role == 'Guide' ? 'Guide' : 'Cars';
+
+      DocumentSnapshot tourDoc =
+          await FirebaseFirestore.instance
+              .collection(collectionName)
+              .doc(tourId)
+              .get();
+
+      return tourDoc.exists ? tourDoc['tourName'] : null;
+    } catch (e) {
+      logger.e("Error fetching tour name: $e");
+      return null;
+    }
   }
 }

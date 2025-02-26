@@ -1,3 +1,4 @@
+import 'package:driver_app/back/map_and_location/get_functions.dart';
 import 'package:driver_app/front/displayed_items/ride_page.dart';
 import 'package:driver_app/front/tools/app_bar.dart';
 import 'package:driver_app/front/tools/bottom_bar_provider.dart';
@@ -5,13 +6,47 @@ import 'package:driver_app/front/tools/bottom_nav_bar.dart';
 import 'package:driver_app/front/tools/list_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  LatLng? currentLocation;
+  Position? currentPosition;
+  double? currentSpeed;
+
+  @override
+  void initState() {
+    super.initState();
+
+    getLocationUpdates(
+      onLocationUpdate: (position) {
+        if (mounted) {
+          setState(() {
+            currentPosition = position;
+            if (currentPosition != null) {
+              currentLocation = LatLng(
+                currentPosition!.latitude,
+                currentPosition!.longitude,
+              );
+              currentSpeed = position.speed * 3.6;
+            }
+          });
+        }
+      },
+      context: context,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selectedIndex = ref.watch(selectedIndexProvider);
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
@@ -34,7 +69,13 @@ class HomePage extends ConsumerWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => RidePage()),
+                      MaterialPageRoute(
+                        builder:
+                            (context) => RidePage(
+                              currentLocation: currentLocation,
+                              currentSpeed: currentSpeed,
+                            ),
+                      ),
                     );
                   },
                   child: Container(

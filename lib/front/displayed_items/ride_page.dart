@@ -1,27 +1,29 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/map_and_location/get_functions.dart';
 import 'package:driver_app/front/displayed_items/chat_page.dart';
-import 'package:driver_app/front/tools/consts.dart';
 import 'package:driver_app/front/tools/get_location_name.dart';
 import 'package:driver_app/front/tools/ride_model.dart';
 import 'package:driver_app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_swipe_button/flutter_swipe_button.dart';
+import 'package:flutter_sliding_panel/flutter_sliding_panel.dart';
+// import 'package:flutter_swipe_button/flutter_swipe_button.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
-import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'package:timeline_tile/timeline_tile.dart';
 
 class RidePage extends StatefulWidget {
-  const RidePage({super.key});
+  final LatLng? currentLocation;
+  final double? currentSpeed;
+  const RidePage({
+    super.key,
+    required this.currentLocation,
+    required this.currentSpeed,
+  });
 
   @override
   State<RidePage> createState() => _RidePageState();
@@ -42,12 +44,11 @@ class _RidePageState extends State<RidePage> {
   String? endLocationName;
 
   LocationData? startLatLngObj;
-  LatLng? currentLocation;
   LatLng? endLatLng;
   LatLng? startLatLng;
   double? speedMps;
 
-  final PanelController _panelController = PanelController();
+  final SlidingPanelController _panelController = SlidingPanelController();
   bool isStarted = false;
   bool isUserInteracting = false;
   bool? swipeButtonEnable;
@@ -56,43 +57,13 @@ class _RidePageState extends State<RidePage> {
   bool? startArrived;
   bool? endArrived;
 
-  Location locationController = Location();
+  Position? currentPosition;
+  double currentSpeed = 0.0;
 
   @override
   void initState() {
     super.initState();
-
     fetchUserData();
-    getLocationUpdates(
-      locationController: locationController,
-      onLocationUpdate: (position) {
-        if (mounted) {
-          setState(() {
-            startLatLngObj = position;
-            currentLocation = LatLng(
-              startLatLngObj!.latitude!,
-              startLatLngObj!.longitude!,
-            );
-          });
-        }
-
-        if (currentLocation != null) {
-          var newPosition = LatLng(
-            currentLocation!.latitude,
-            currentLocation!.longitude,
-          );
-
-          // double distanceInMeters = Geolocator.distanceBetween(
-          //   currentLocation!.latitude,
-          //   currentLocation!.longitude,
-          //   endLatLngObj!.latitude,
-          //   endLatLngObj!.longitude,
-          // );
-
-          // swipeButtonEnable = distanceInMeters < 100;
-        }
-      },
-    );
   }
 
   LatLng getMidpoint(LatLng? start, LatLng? end, LatLng? current) {
@@ -161,7 +132,7 @@ class _RidePageState extends State<RidePage> {
           tourStartDate.month,
           tourStartDate.day,
         );
-        final currentDateTime = DateTime(2025, 01, 31);
+        final currentDateTime = DateTime(2025, 02, 16);
         final currentDate = DateTime(
           currentDateTime.year,
           currentDateTime.month,
@@ -267,8 +238,9 @@ class _RidePageState extends State<RidePage> {
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
-    final darkMode =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
+    // final darkMode =
+    //     MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final startArrivedBool = startArrived;
 
     if (startLatLngObj == null) {
       return Scaffold(
@@ -278,13 +250,21 @@ class _RidePageState extends State<RidePage> {
       );
     }
 
-    final midPoint = getMidpoint(startLatLng, endLatLng, currentLocation);
-    final distance = Geolocator.distanceBetween(
-      currentLocation!.latitude,
-      currentLocation!.longitude,
-      endLatLng!.latitude,
-      endLatLng!.longitude,
+    final midPoint = getMidpoint(
+      startLatLng,
+      endLatLng,
+      widget.currentLocation,
     );
+    final distance =
+        endLatLng != null && widget.currentLocation != null
+            ? Geolocator.distanceBetween(
+              widget.currentLocation!.latitude,
+              widget.currentLocation!.longitude,
+              endLatLng!.latitude,
+              endLatLng!.longitude,
+            )
+            : 0.0;
+    setState(() {});
     final zoomLvl = getZoomLevel(distance);
 
     return Scaffold(
@@ -313,7 +293,7 @@ class _RidePageState extends State<RidePage> {
                           MarkerLayer(
                             markers: [
                               Marker(
-                                point: currentLocation!,
+                                point: widget.currentLocation!,
                                 child: Image.asset(
                                   'assets/Car.png',
                                   width: width * 0.1,
@@ -321,47 +301,77 @@ class _RidePageState extends State<RidePage> {
                                 ),
                               ),
                               Marker(
-                                point: startLatLng!,
-                                child: Container(
-                                  width: width * 0.1,
-                                  height: height * 0.1,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.white),
-                                    color: Colors.black,
-                                  ),
+                                point: startLatLng ?? LatLng(0.0, 0.0),
+                                width: width * 0.1,
+                                height: height * 0.065,
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: width * 0.08,
+                                      height: height * 0.035,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.white),
+                                        color: Colors.black,
+                                      ),
 
-                                  child: Center(
-                                    child: Text(
-                                      '1',
-                                      style: GoogleFonts.cabin(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
+                                      child: Center(
+                                        child: Text(
+                                          '1',
+                                          style: GoogleFonts.cabin(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                    Container(
+                                      width: width * 0.03,
+                                      height: height * 0.03,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white),
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               Marker(
-                                point: endLatLng!,
-                                child: Container(
-                                  width: width * 0.1,
-                                  height: height * 0.1,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.white),
-                                    color: Colors.black,
-                                  ),
+                                point: endLatLng ?? LatLng(0.0, 0.0),
+                                width: width * 0.1,
+                                height: height * 0.065,
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: width * 0.08,
+                                      height: height * 0.035,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.white),
+                                        color: Colors.black,
+                                      ),
 
-                                  child: Center(
-                                    child: Text(
-                                      '2',
-                                      style: GoogleFonts.cabin(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
+                                      child: Center(
+                                        child: Text(
+                                          '2',
+                                          style: GoogleFonts.cabin(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                    Container(
+                                      width: width * 0.03,
+                                      height: height * 0.03,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white),
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -369,6 +379,7 @@ class _RidePageState extends State<RidePage> {
                         ],
                       ),
                     ),
+
                     Positioned(
                       top: height * 0.017,
                       child: IconButton(
@@ -382,59 +393,41 @@ class _RidePageState extends State<RidePage> {
                         ),
                       ),
                     ),
+
                     Positioned(
-                      bottom: height * 0.12,
-                      right: width * 0.02,
-                      child: GestureDetector(
-                        onTap: () {
-                          if (currentLocation != null) {
-                            // _moveCameraToCurrentLocation();
-                          }
-                        },
-                        child: Container(
-                          width: width * 0.1,
-                          height: width * 0.1,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                blurRadius: 3,
-                                blurStyle: BlurStyle.outer,
-                                color: Colors.grey.shade200,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.my_location,
-                            size: width * 0.055,
-                            color: Colors.black,
-                          ),
-                        ),
+                      child: Text(
+                        widget.currentSpeed.toString(),
+                        style: TextStyle(color: Colors.red),
                       ),
                     ),
-                    SlidingUpPanel(
-                      maxHeight: height * 0.43,
-                      minHeight: height * 0.10,
-                      parallaxEnabled: true,
-                      parallaxOffset: .5,
-                      borderRadius: BorderRadius.circular(width * 0.05),
-                      padding: EdgeInsets.all(width * 0.019),
+
+                    SlidingPanel(
                       controller: _panelController,
-                      backdropTapClosesPanel: true,
-                      panel: Column(
+
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            blurRadius: 5,
+                            spreadRadius: 2,
+                            color: Color(0x11000000),
+                          ),
+                        ],
+                      ),
+                      config: SlidingPanelConfig(
+                        anchorPosition: height * 0.10,
+                        expandPosition: height * 0.43,
+                      ),
+                      panelContent: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(height: height * 0.004),
-                          Container(
-                            width: width * 0.2,
-                            height: height * 0.007,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(width * 0.05),
-                              color: Colors.grey.shade400,
-                            ),
-                          ),
+
                           Row(
                             children: [
                               SizedBox(width: width * 0.33),
@@ -446,36 +439,45 @@ class _RidePageState extends State<RidePage> {
                                   color: Colors.black,
                                 ),
                               ),
-                              Spacer(),
-                              IconButton(
+                              SizedBox(width: 80),
+                              FloatingActionButton(
+                                backgroundColor: const Color.fromARGB(
+                                  255,
+                                  255,
+                                  255,
+                                  255,
+                                ),
+                                splashColor: Colors.transparent,
+
+                                mini: true,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child:
+                                    ValueListenableBuilder<SlidingPanelDetail>(
+                                      valueListenable: _panelController,
+                                      builder: (_, detail, __) {
+                                        return Icon(
+                                          detail.status ==
+                                                  SlidingPanelStatus.anchored
+                                              ? Icons.keyboard_arrow_up_rounded
+                                              : Icons
+                                                  .keyboard_arrow_down_rounded,
+                                        );
+                                      },
+                                    ),
                                 onPressed: () {
-                                  setState(() {
-                                    if (_panelController.isPanelOpen) {
-                                      _panelController.close();
-                                    } else {
-                                      _panelController.open();
-                                    }
-                                  });
+                                  if (_panelController.status ==
+                                      SlidingPanelStatus.anchored) {
+                                    _panelController.expand();
+                                  } else {
+                                    _panelController.anchor();
+                                  }
                                 },
-                                icon:
-                                    _panelController.isAttached
-                                        ? _panelController.isPanelOpen
-                                            ? Icon(
-                                              Icons
-                                                  .keyboard_arrow_down_outlined,
-                                              color: Colors.black,
-                                            )
-                                            : Icon(
-                                              Icons.keyboard_arrow_up_outlined,
-                                              color: Colors.black,
-                                            )
-                                        : Icon(
-                                          Icons.keyboard_arrow_up_outlined,
-                                          color: Colors.black,
-                                        ),
                               ),
                             ],
                           ),
+                          SizedBox(height: height * 0.02),
                           SizedBox(
                             width: width * 0.95,
                             child: Column(
@@ -491,13 +493,15 @@ class _RidePageState extends State<RidePage> {
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(color: Colors.white),
                                         color:
-                                            startArrived!
-                                                ? const Color.fromARGB(
-                                                  255,
-                                                  103,
-                                                  168,
-                                                  120,
-                                                )
+                                            startArrivedBool != null
+                                                ? startArrivedBool
+                                                    ? const Color.fromARGB(
+                                                      255,
+                                                      103,
+                                                      168,
+                                                      120,
+                                                    )
+                                                    : Colors.black
                                                 : Colors.black,
                                       ),
 
@@ -514,7 +518,7 @@ class _RidePageState extends State<RidePage> {
                                     SizedBox(
                                       width: width * 0.8,
                                       child: Text(
-                                        startLocationName!,
+                                        startLocationName ?? "",
                                         softWrap: true,
                                         style: GoogleFonts.cabin(
                                           color: Colors.black,
@@ -551,7 +555,7 @@ class _RidePageState extends State<RidePage> {
                                     SizedBox(
                                       width: width * 0.8,
                                       child: Text(
-                                        endLocationName!,
+                                        endLocationName ?? "",
                                         softWrap: true,
                                         style: GoogleFonts.cabin(
                                           color: Colors.black,

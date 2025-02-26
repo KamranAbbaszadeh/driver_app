@@ -1,11 +1,21 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/chat/message_provider.dart';
+import 'package:driver_app/back/api/firebase_api.dart';
+import 'package:driver_app/back/chat/chat_service.dart';
+import 'package:driver_app/back/chat/media_files_picker.dart';
+import 'package:driver_app/back/chat/upload_media_files.dart';
+import 'package:driver_app/back/chat/video_widget.dart';
+import 'package:driver_app/back/tools/video_player_widget.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ChatPage extends StatefulWidget {
   final String tourId;
@@ -24,46 +34,60 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  late MessageProvider _messageProvider;
+  late ScrollController _scrollController;
   String tourName = '';
+  final ChatService _chatService = ChatService();
+  final FirebaseAuth auth = FirebaseAuth.instance;
+  List<Map<String, dynamic>> media = [];
+  String error = "No Error Detected";
+  final storageRef = FirebaseStorage.instance.ref();
 
   @override
   void initState() {
     super.initState();
-    _messageProvider = MessageProvider(tourId: widget.tourId);
     getTourName();
+    _scrollController = ScrollController();
   }
 
   void _sendMessage() {
     if (_messageController.text.isNotEmpty) {
-      _messageProvider.sendMessage(_messageController.text);
+      _chatService.sendMessage(
+        message: _messageController.text,
+        tourID: widget.tourId,
+      );
       _messageController.clear();
       _scrollToBottom();
     }
   }
 
   void getTourName() async {
-    final FirebaseAuth auth = FirebaseAuth.instance;
-    final User? user = auth.currentUser;
+    try {
+      final User? user = auth.currentUser;
 
-    if (user != null) {
-      final uid = user.uid;
-      final doc =
-          await FirebaseFirestore.instance.collection('Users').doc(uid).get();
+      if (user != null) {
+        final uid = user.uid;
+        final doc =
+            await FirebaseFirestore.instance.collection('Users').doc(uid).get();
 
-      String role = doc['Role'];
-      String collection = role == 'Guide' ? 'Guide' : 'Cars';
+        String role = doc['Role'];
+        String collection = role == 'Guide' ? 'Guide' : 'Cars';
 
-      final FirebaseFirestore storage = FirebaseFirestore.instance;
-      final ref = storage.collection(collection).doc(widget.tourId);
-      String tourNameRaw = await ref.get().then((DocumentSnapshot doc) {
-        return doc['TourName'];
-      });
+        final ref = FirebaseFirestore.instance
+            .collection(collection)
+            .doc(widget.tourId);
+        String tourNameRaw = await ref.get().then((DocumentSnapshot doc) {
+          return doc['TourName'];
+        });
 
+        setState(() {
+          tourName = tourNameRaw;
+        });
+      }
+    } catch (e) {
       setState(() {
-        tourName = tourNameRaw;
+        error = "Error fetching tour name: $e";
       });
+      logger.e('Error: $e');
     }
   }
 
@@ -105,30 +129,257 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  
+  Widget displayMessageWithMedia(BuildContext context, String text) {
+    final urlPattern =
+        r'(?:(?:https?|ftp):\/\/)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/?[^\s]*';
+    final regExp = RegExp(urlPattern, caseSensitive: false);
+
+    Iterable<Match> matches = regExp.allMatches(text);
+    List<String> urls = matches.map((match) => match.group(0)!).toList();
+
+    if (urls.isEmpty) {
+      return Text(text);
+    }
+
+    String? imageUrl;
+    String? videoUrl;
+    String? firstUrl;
+    for (var url in urls) {
+      Uri? uri = Uri.tryParse(url);
+      if (uri != null) {
+        if (_isImageExtension(uri.path)) {
+          imageUrl = url;
+          break;
+        } else if (_isVideoExtension(uri.path)) {
+          videoUrl = url;
+        } else {
+          firstUrl ??= url;
+        }
+      }
+    }
+
+    bool isOnlyUrl = text.trim() == urls.first;
+
+    String cleanedText = text;
+    for (var url in urls) {
+      cleanedText = cleanedText.replaceAll(url, "").trim();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!isOnlyUrl && cleanedText.isNotEmpty)
+          SizedBox(
+            width: 200,
+            child: Text(
+              cleanedText,
+              style: GoogleFonts.cabin(fontSize: 16, color: Colors.black),
+              softWrap: true,
+            ),
+          ),
+        const SizedBox(height: 8),
+        if (imageUrl != null)
+          GestureDetector(
+            onTap: () => showImageDialog(context, imageUrl!),
+
+            child: Image.network(
+              imageUrl,
+              width: 200,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder:
+                  (context, error, stackTrace) =>
+                      Icon(Icons.error, color: Colors.black),
+            ),
+          ),
+        if (videoUrl != null) VideoPlayerWidget(videoUrl: Uri.parse(videoUrl)),
+        if (firstUrl != null)
+          InkWell(
+            onTap: () async {
+              String urlWithPrefix =
+                  firstUrl!.startsWith('http') ? firstUrl : 'http://$firstUrl';
+              Uri url = Uri.parse(urlWithPrefix);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              } else {
+                debugPrint("Could not launch $firstUrl");
+              }
+            },
+            child: SizedBox(
+              width: 200,
+              child: Linkify(
+                onOpen: (link) async {
+                  Uri url = Uri.parse(link.url);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    debugPrint("Could not launch ${link.url}");
+                  }
+                },
+                text: firstUrl,
+                style: GoogleFonts.cabin(fontSize: 16, color: Colors.blue),
+                softWrap: true,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget displayContent(String text) {
+    if (isUrl(text)) {
+      return displayMessageWithMedia(context, text);
+    }
+
+    return SizedBox(
+      width: 200,
+      child: Text(
+        text,
+        style: GoogleFonts.cabin(fontSize: 16, color: Colors.black),
+        softWrap: true,
+      ),
+    );
+  }
+
+  void showImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: InteractiveViewer(
+            panEnabled: true,
+            boundaryMargin: EdgeInsets.all(20),
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: Image.network(imageUrl, fit: BoxFit.contain),
+          ),
+        );
+      },
+    );
+  }
+
+  bool isUrl(String message) {
+    final urlPattern =
+        r'(\b(?:https?://)?[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+(?:/[\S]*)?\b)';
+    final regExp = RegExp(urlPattern, caseSensitive: false);
+
+    return regExp.hasMatch(message);
+  }
+
+  bool isImage(String message) {
+    final urlPattern =
+        r'(?:(?:https?|ftp):\/\/)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/?[^\s]*';
+    final regExp = RegExp(urlPattern, caseSensitive: false);
+
+    Iterable<Match> matches = regExp.allMatches(message);
+
+    for (var match in matches) {
+      Uri? uri = Uri.tryParse(match.group(0)!);
+      if (uri != null && _isImageExtension(uri.path)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool isVideo(String message) {
+    final urlPattern =
+        r'(?:(?:https?|ftp):\/\/)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/?[^\s]*';
+    final regExp = RegExp(urlPattern, caseSensitive: false);
+
+    Iterable<Match> matches = regExp.allMatches(message);
+
+    for (var match in matches) {
+      Uri? uri = Uri.tryParse(match.group(0)!);
+      if (uri != null && _isVideoExtension(uri.path)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _isImageExtension(String path) {
+    return path.toLowerCase().endsWith('.jpg') ||
+        path.toLowerCase().endsWith('.jpeg') ||
+        path.toLowerCase().endsWith('.png') ||
+        path.toLowerCase().endsWith('.gif');
+  }
+
+  bool _isVideoExtension(String path) {
+    return path.toLowerCase().endsWith('.mp4') ||
+        path.toLowerCase().endsWith('.mov') ||
+        path.toLowerCase().endsWith('.avi') ||
+        path.toLowerCase().endsWith('.mkv');
+  }
+
+  void updateMedia(int index, String key, dynamic value) {
+    setState(() {
+      media[index][key] = value;
+    });
+  }
+
+  Future<void> pickFile(int index) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      withData: true,
+    );
+
+    if (result != null) {
+      PlatformFile doc = result.files.first;
+      final file = File(doc.path!);
+      updateMedia(index, 'file', file);
+      setState(() {});
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('File uploaded: ${doc.name}')));
+      }
+    } else if (media[index]['file'] == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('No file selected')));
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final width = widget.width;
     final height = widget.height;
+    final User? user = auth.currentUser;
     return Scaffold(
       backgroundColor: Colors.black,
 
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _messageProvider.getMessages(),
+        stream: _chatService.getMessages(tourID: widget.tourId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
 
+         
+
           List<Map<String, dynamic>> messages = snapshot.data ?? [];
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToBottom();
-          });
 
           Map<String, List<Map<String, dynamic>>> groupedMessages =
               _groupMessagesByDate(messages);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              final maxScroll = _scrollController.position.maxScrollExtent;
+              final currentScroll = _scrollController.position.pixels;
 
+              if (currentScroll != maxScroll) {
+                _scrollToBottom();
+              }
+            }
+          });
           return SafeArea(
             child: Padding(
               padding: EdgeInsets.symmetric(
@@ -181,7 +432,7 @@ class _ChatPageState extends State<ChatPage> {
                                   ),
                                 ),
                                 ...messageGroup.map((message) {
-                                  final bool isMe = message['isMe'];
+                                  final bool isMe = message['UID'] == user!.uid;
                                   final isAdmin =
                                       message['position'] == 'Admin';
                                   final isRead = message['isRead'];
@@ -282,12 +533,8 @@ class _ChatPageState extends State<ChatPage> {
                                                   ),
                                                 ),
                                               ),
-                                              child: Text(
+                                              child: displayContent(
                                                 message['message'],
-                                                style: GoogleFonts.cabin(
-                                                  fontSize: 16,
-                                                  color: Colors.black,
-                                                ),
                                               ),
                                             ),
                                           ],
@@ -350,12 +597,171 @@ class _ChatPageState extends State<ChatPage> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
 
         children: [
-          IconButton(
+          PopupMenuButton(
             icon: Transform.rotate(
               angle: 25 * (pi / 180),
               child: Icon(Icons.attach_file, color: Colors.grey[600]),
             ),
-            onPressed: () {},
+            color: Colors.white,
+            itemBuilder: (context) {
+              return [
+                PopupMenuItem(
+                  child: Row(
+                    children: [
+                      Icon(Icons.image, color: Colors.grey[600]),
+                      SizedBox(width: 10),
+                      Text(
+                        'Media',
+                        style: GoogleFonts.cabin(
+                          fontWeight: FontWeight.normal,
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                  onTap: () async {
+                    var resultList = await mediaFilePicker();
+                    try {
+                      if (resultList != null && resultList.isNotEmpty) {
+                        showDialog(
+                          context: context,
+                          builder:
+                              (context) => AlertDialog(
+                                backgroundColor: Colors.white,
+
+                                actions: [
+                                  GestureDetector(
+                                    onTap: () => Navigator.pop(context),
+                                    child: Text(
+                                      'Cancel',
+                                      style: GoogleFonts.cabin(
+                                        fontWeight: FontWeight.normal,
+                                        fontSize: 16,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final uid =
+                                          FirebaseAuth
+                                              .instance
+                                              .currentUser!
+                                              .uid;
+                                      for (
+                                        int i = 0;
+                                        i <= resultList.length;
+                                        i++
+                                      ) {
+                                        String uploadedUrl =
+                                            await uploadMediaFile(
+                                              storageRef: storageRef,
+                                              userID: uid,
+                                              file: resultList[i],
+                                              folderName: 'Chat',
+                                              tourId: widget.tourId,
+                                            );
+
+                                        _messageController.text = uploadedUrl;
+                                        _sendMessage();
+
+                                        await Future.delayed(
+                                          Duration(milliseconds: 100),
+                                        );
+                                        if (context.mounted) {
+                                          Navigator.pop(context);
+                                        }
+                                      }
+                                    },
+                                    child: Text(
+                                      'Send',
+                                      style: GoogleFonts.cabin(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.blueAccent,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                contentPadding: EdgeInsets.all(10),
+
+                                content: SizedBox(
+                                  width: 100,
+                                  height: resultList.length < 2 ? 132 : 270,
+                                  child: GridView.count(
+                                    crossAxisCount:
+                                        resultList.length < 2
+                                            ? resultList.length
+                                            : 2,
+                                    mainAxisSpacing: 5,
+                                    crossAxisSpacing: 5,
+                                    children: List.generate(resultList.length, (
+                                      index,
+                                    ) {
+                                      File asset = resultList[index];
+                                      if (asset.path.endsWith('.mp4')) {
+                                        return Container(
+                                          width: 3,
+                                          height: 3,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: VideoWidget(file: asset),
+                                        );
+                                      } else {
+                                        return Container(
+                                          width: 3,
+                                          height: 3,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                            child: SizedBox(
+                                              width: 3,
+                                              height: 3,
+                                              child: Image.file(asset),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }),
+                                  ),
+                                ),
+                              ),
+                        );
+                      }
+                    } catch (e) {
+                      logger.e(e);
+                    }
+                  },
+                ),
+                PopupMenuItem(
+                  child: Row(
+                    children: [
+                      Icon(Icons.file_copy_rounded, color: Colors.grey[600]),
+                      SizedBox(width: 10),
+                      Text(
+                        'file',
+                        style: GoogleFonts.cabin(
+                          fontWeight: FontWeight.normal,
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                  onTap: () {},
+                ),
+              ];
+            },
           ),
           Expanded(
             child: Padding(

@@ -157,8 +157,10 @@ exports.sendNewMessageNotification =
         const latestMessage = newMessages[newMessages.length - 1];
 
         try {
-          const userDoc = await admin.firestore().
-              collection("Users").doc(userId).get();
+          const userDoc = await admin.firestore()
+              .collection("Users")
+              .doc(userId)
+              .get();
           if (!userDoc.exists) {
             return null;
           }
@@ -167,21 +169,64 @@ exports.sendNewMessageNotification =
           if (!fcmToken) {
             return null;
           }
-          const message = {
-            notification: {
-              title: latestMessage.name || "New Message",
-              body: latestMessage.message || "You have a new message",
-            },
-            data: {
-              userId: userId,
-              tourId: tourId,
-              position: latestMessage.position || "",
-            },
-            token: fcmToken,
-          };
 
-          const response = await admin.messaging().send(message);
-          console.log("Notification sent successfully!", response);
+          if (userDoc.data().role == "Guide") {
+            const tourDoc = await admin.firestore()
+                .collection("Guide")
+                .doc(tourId)
+                .get();
+            if (!tourDoc.exists) {
+              return null;
+            }
+            const tourName = tourDoc.data().tourName;
+
+
+            const message = {
+              notification: {
+                title: "New Message",
+                body: `${latestMessage.name}
+                 just sent you a message for tour ${tourName}`,
+              },
+              data: {
+                userId: userId,
+                tourId: tourId,
+                route: "chat",
+                name: latestMessage.name,
+              },
+              token: fcmToken,
+            };
+
+            const response = await admin.messaging().send(message);
+            console.log("Notification sent successfully!", response);
+          } else {
+            const tourDoc = await admin.firestore()
+                .collection("Cars")
+                .doc(tourId)
+                .get();
+            if (!tourDoc.exists) {
+              return null;
+            }
+            const tourName = tourDoc.data().tourName;
+
+
+            const message = {
+              notification: {
+                title: "New Message",
+                body: `${latestMessage.name}
+               just sent you a message for tour ${tourName}`,
+              },
+              data: {
+                userId: userId,
+                tourId: tourId,
+                route: "chat",
+                name: latestMessage.name,
+              },
+              token: fcmToken,
+            };
+
+            const response = await admin.messaging().send(message);
+            console.log("Notification sent successfully!", response);
+          }
         } catch (error) {
           console.error("Error sending notification:", error);
         }

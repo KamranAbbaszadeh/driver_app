@@ -68,9 +68,9 @@ Future<List<Asset>> loadAssets({
         settings: iosSettings,
       ),
       androidOptions: AndroidOptions(
-        actionBarTitle: 'Select Photo',
-        allViewTitle: 'All Photos',
-        useDetailsView: false, // Whether to use the details view
+        actionBarTitle: 'Select File',
+        allViewTitle: 'All files',
+        useDetailsView: true,
         maxImages: maxNumOfPhotos,
         hasCameraInPickerPage: true,
         textOnNothingSelected:

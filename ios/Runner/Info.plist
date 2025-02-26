@@ -53,7 +53,10 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
-		
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>location</string>
+		</array>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>We need your location while the app is in use.</string>
 		<key>NSLocationAlwaysUsageDescription</key>

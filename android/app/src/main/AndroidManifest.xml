@@ -1,7 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
  package="onemoretour.com">
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
@@ -20,7 +21,7 @@
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
-    <application
+   <application
         android:label="OMT"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
@@ -64,6 +65,10 @@
             android:name="com.google.android.gms.location.fusedlocationprovider"
             android:value="true"/>
 
+        <service
+            android:name="com.transistorsoft.flutter.backgroundgeolocation.HeadlessTask"
+            android:permission="android.permission.BLUETOOTH_ADMIN"
+            android:exported="false"/>
 
     </application>
     <!-- Required to query activities that can process text, see:
