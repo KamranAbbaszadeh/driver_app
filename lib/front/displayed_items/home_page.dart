@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'package:driver_app/back/map_and_location/get_functions.dart';
 import 'package:driver_app/front/displayed_items/ride_page.dart';
 import 'package:driver_app/front/tools/app_bar.dart';
@@ -22,28 +23,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   Position? currentPosition;
   double? currentSpeed;
 
+  static const String _isolateName = "LocatorIsolate";
+  ReceivePort port = ReceivePort();
+
   @override
   void initState() {
     super.initState();
-
-    getLocationUpdates(
-      onLocationUpdate: (position) {
-        if (mounted) {
-          setState(() {
-            currentPosition = position;
-            if (currentPosition != null) {
-              currentLocation = LatLng(
-                currentPosition!.latitude,
-                currentPosition!.longitude,
-              );
-              currentSpeed = position.speed * 3.6;
-            }
-          });
-        }
-      },
-      context: context,
-    );
+    
   }
+
+
 
   @override
   Widget build(BuildContext context) {

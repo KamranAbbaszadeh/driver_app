@@ -114,21 +114,21 @@ class _RideRoutesState extends State<RideRoutes> {
 
           initialCameraPosition = CameraPosition(target: midpoint, zoom: 7.0);
         });
-        getPolyLinePoints(
-          googleApiKey: GOOGLE_MAPS_API_KEY,
-          source: startLatLngObj!,
-          destination: endLatLngObj!,
-        ).then(
-          (coordinates) => generatePolyLineFromPoints(
-            polylineCoordinates: coordinates,
-            polylines: polylines,
-            updatePolylines: (updatedPolylines) {
-              setState(() {
-                polylines = updatedPolylines;
-              });
-            },
-          ),
-        );
+        // getPolyLinePoints(
+        //   googleApiKey: GOOGLE_MAPS_API_KEY,
+        //   source: startLatLngObj!,
+        //   destination: endLatLngObj!,
+        // ).then(
+        //   (coordinates) => generatePolyLineFromPoints(
+        //     polylineCoordinates: coordinates,
+        //     polylines: polylines,
+        //     updatePolylines: (updatedPolylines) {
+        //       setState(() {
+        //         polylines = updatedPolylines;
+        //       });
+        //     },
+        //   ),
+        // );
       }
     } catch (e) {
       setState(() {

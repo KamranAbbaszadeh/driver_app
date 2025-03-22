@@ -1,139 +1,61 @@
 import 'dart:async';
-import 'dart:io';
-
-import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:location/location.dart' hide LocationAccuracy;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:workmanager/workmanager.dart';
 
-Future<void> getLocationUpdates({
-  required Function(Position) onLocationUpdate,
-  required BuildContext context,
-}) async {
-  await requestLocationPermission(context: context);
+// void startLocationService() {
+//   BackgroundLocator.registerLocationUpdate(LocationCallbackHandler.callback);
+// }
 
-  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    await Geolocator.openAppSettings();
-    return Future.error('Location services are disabled.');
-  }
+// Future<void> requestLocationPermission({required context}) async {
+//   LocationPermission permission = await Geolocator.checkPermission();
+//   if (permission == LocationPermission.denied) {
+//     permission = await Geolocator.requestPermission();
+//     if (permission == LocationPermission.denied) {
+//       return Future.error('Location permissions are denied');
+//     }
+//   }
 
-  LocationPermission permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      return Future.error('Location permissions are denied');
-    }
-  }
+//   if (permission == LocationPermission.deniedForever) {
+//     return Future.error(
+//       'Location permissions are permanently denied, we cannot request permissions.',
+//     );
+//   }
+//   var status = await Permission.location.status;
+//   if (status.isDenied) { 
+//     await Permission.location.request();
+//   }
+//   if (await Permission.locationAlways.isDenied) {
+//     showDialog(
+//       context: context,
+//       builder:
+//           (context) => AlertDialog(
+//             title: Text('Location Permission'),
+//             content: Text(
+//               'Please allow All The Time location permission to use this app.',
+//             ),
+//             actions: [
+//               TextButton(
+//                 onPressed: () async {
+//                   await Permission.locationAlways.request();
+//                   if (context.mounted) {
+//                     Navigator.pop(context);
+//                   }
+//                 },
+//                 child: Text('OK'),
+//               ),
+//             ],
+//           ),
+//     );
+//   }
 
-  if (permission == LocationPermission.deniedForever) {
-    return Future.error(
-      'Location permissions are permanently denied, we cannot request permissions.',
-    );
-  }
-
-  void updateSpeed() {
-    Geolocator.getPositionStream(
-      locationSettings: LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 2,
-      ),
-    ).listen((Position position) {
-      onLocationUpdate(position);
-    });
-  }
-
-  await FlutterForegroundTask.startService(
-    notificationTitle: "Tracking Speed",
-    notificationText: "App is running in the background",
-    callback: updateSpeed,
-  );
-
-  void backgroundSpeedTracking() {
-    Geolocator.getCurrentPosition(
-          locationSettings: LocationSettings(
-            accuracy: LocationAccuracy.bestForNavigation,
-            distanceFilter: 1,
-          ),
-        )
-        .then((Position position) {
-          onLocationUpdate(position);
-        })
-        .catchError((e) {
-          logger.e("Error getting location: $e");
-        });
-  }
-
-  @pragma('vm:entry-point')
-  void callbackDispatcher() {
-    Workmanager().executeTask((task, inputData) {
-      backgroundSpeedTracking();
-      return Future.value(true);
-    });
-  }
-
-  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
-
-  Platform.isIOS
-      ? Workmanager().registerOneOffTask(
-        'speed_tracking_task',
-        'tracking_speed',
-        initialDelay: Duration(minutes: 30),
-        constraints: Constraints(
-          networkType: NetworkType.connected,
-
-          requiresCharging: true,
-        ),
-        inputData: <String, dynamic>{},
-      )
-      : null;
-
-  Workmanager().registerPeriodicTask(
-    'speed_tracking_task',
-    'tracking_speed',
-    inputData: <String, dynamic>{},
-    frequency: Duration(seconds: 10),
-  );
-}
-
-Future<void> requestLocationPermission({required context}) async {
-  var status = await Permission.location.status;
-  if (status.isDenied) {
-    await Permission.location.request();
-  }
-  if (await Permission.locationAlways.isDenied) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Location Permission'),
-            content: Text(
-              'Please allow All The Time location permission to use this app.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await Permission.locationAlways.request();
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-                },
-                child: Text('OK'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  if (status.isPermanentlyDenied) {
-    await openAppSettings();
-  }
-}
+//   if (status.isPermanentlyDenied) {
+//     await openAppSettings();
+//   }
+// }
 
 Future<List<LatLng>> getPolyLinePoints({
   required String googleApiKey,
