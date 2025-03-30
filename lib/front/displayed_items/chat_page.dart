@@ -364,8 +364,6 @@ class _ChatPageState extends State<ChatPage> {
             return Center(child: CircularProgressIndicator());
           }
 
-         
-
           List<Map<String, dynamic>> messages = snapshot.data ?? [];
 
           Map<String, List<Map<String, dynamic>>> groupedMessages =
@@ -624,119 +622,119 @@ class _ChatPageState extends State<ChatPage> {
                     var resultList = await mediaFilePicker();
                     try {
                       if (resultList != null && resultList.isNotEmpty) {
-                        showDialog(
-                          context: context,
-                          builder:
-                              (context) => AlertDialog(
-                                backgroundColor: Colors.white,
+                        if (context.mounted) {
+                          showDialog(
+                            context: context,
+                            builder:
+                                (context) => AlertDialog(
+                                  backgroundColor: Colors.white,
 
-                                actions: [
-                                  GestureDetector(
-                                    onTap: () => Navigator.pop(context),
-                                    child: Text(
-                                      'Cancel',
-                                      style: GoogleFonts.cabin(
-                                        fontWeight: FontWeight.normal,
-                                        fontSize: 16,
-                                        color: Colors.black,
+                                  actions: [
+                                    GestureDetector(
+                                      onTap: () => Navigator.pop(context),
+                                      child: Text(
+                                        'Cancel',
+                                        style: GoogleFonts.cabin(
+                                          fontWeight: FontWeight.normal,
+                                          fontSize: 16,
+                                          color: Colors.black,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () async {
-                                      final uid =
-                                          FirebaseAuth
-                                              .instance
-                                              .currentUser!
-                                              .uid;
-                                      for (
-                                        int i = 0;
-                                        i <= resultList.length;
-                                        i++
-                                      ) {
-                                        String uploadedUrl =
-                                            await uploadMediaFile(
-                                              storageRef: storageRef,
-                                              userID: uid,
-                                              file: resultList[i],
-                                              folderName: 'Chat',
-                                              tourId: widget.tourId,
-                                            );
+                                    GestureDetector(
+                                      onTap: () async {
+                                        final uid =
+                                            FirebaseAuth
+                                                .instance
+                                                .currentUser!
+                                                .uid;
+                                        for (
+                                          int i = 0;
+                                          i <= resultList.length;
+                                          i++
+                                        ) {
+                                          String uploadedUrl =
+                                              await uploadMediaFile(
+                                                storageRef: storageRef,
+                                                userID: uid,
+                                                file: resultList[i],
+                                                folderName: 'Chat',
+                                                tourId: widget.tourId,
+                                              );
 
-                                        _messageController.text = uploadedUrl;
-                                        _sendMessage();
+                                          _messageController.text = uploadedUrl;
+                                          _sendMessage();
 
-                                        await Future.delayed(
-                                          Duration(milliseconds: 100),
-                                        );
-                                        if (context.mounted) {
-                                          Navigator.pop(context);
+                                          await Future.delayed(
+                                            Duration(milliseconds: 100),
+                                          );
+                                          if (context.mounted) {
+                                            Navigator.pop(context);
+                                          }
                                         }
-                                      }
-                                    },
-                                    child: Text(
-                                      'Send',
-                                      style: GoogleFonts.cabin(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Colors.blueAccent,
+                                      },
+                                      child: Text(
+                                        'Send',
+                                        style: GoogleFonts.cabin(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.blueAccent,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                                contentPadding: EdgeInsets.all(10),
+                                  ],
+                                  contentPadding: EdgeInsets.all(10),
 
-                                content: SizedBox(
-                                  width: 100,
-                                  height: resultList.length < 2 ? 132 : 270,
-                                  child: GridView.count(
-                                    crossAxisCount:
-                                        resultList.length < 2
-                                            ? resultList.length
-                                            : 2,
-                                    mainAxisSpacing: 5,
-                                    crossAxisSpacing: 5,
-                                    children: List.generate(resultList.length, (
-                                      index,
-                                    ) {
-                                      File asset = resultList[index];
-                                      if (asset.path.endsWith('.mp4')) {
-                                        return Container(
-                                          width: 3,
-                                          height: 3,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
-                                          ),
-                                          child: VideoWidget(file: asset),
-                                        );
-                                      } else {
-                                        return Container(
-                                          width: 3,
-                                          height: 3,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
-                                          ),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              14,
-                                            ),
-                                            child: SizedBox(
+                                  content: SizedBox(
+                                    width: 100,
+                                    height: resultList.length < 2 ? 132 : 270,
+                                    child: GridView.count(
+                                      crossAxisCount:
+                                          resultList.length < 2
+                                              ? resultList.length
+                                              : 2,
+                                      mainAxisSpacing: 5,
+                                      crossAxisSpacing: 5,
+                                      children: List.generate(
+                                        resultList.length,
+                                        (index) {
+                                          File asset = resultList[index];
+                                          if (asset.path.endsWith('.mp4')) {
+                                            return Container(
                                               width: 3,
                                               height: 3,
-                                              child: Image.file(asset),
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    }),
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: VideoWidget(file: asset),
+                                            );
+                                          } else {
+                                            return Container(
+                                              width: 3,
+                                              height: 3,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                child: SizedBox(
+                                                  width: 3,
+                                                  height: 3,
+                                                  child: Image.file(asset),
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                        );
+                          );
+                        }
                       }
                     } catch (e) {
                       logger.e(e);

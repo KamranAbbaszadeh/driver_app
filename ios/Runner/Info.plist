@@ -63,5 +63,28 @@
 	<string>We need your location all the time to provide accurate services.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location even when the app is in the background.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+		<string>baidumap</string>
+		<string>iosamap</string>
+		<string>waze</string>
+		<string>yandexmaps</string>
+		<string>yandexnavi</string>
+		<string>citymapper</string>
+		<string>mapswithme</string>
+		<string>osmandmaps</string>
+		<string>dgis</string>
+		<string>qqmap</string>
+		<string>here-location</string>
+		<string>tomtomgo</string>
+		<string>copilot</string>
+		<string>com.sygic.aura</string>
+		<string>nmap</string>
+		<string>kakaomap</string>
+		<string>tmap</string>
+		<string>szn-mapy</string>
+		<string>mappls</string>
+	</array>
 </dict>
 </plist>

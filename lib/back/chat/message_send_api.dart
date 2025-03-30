@@ -18,7 +18,6 @@ class MessageSendApi {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        print("YEAH");
         return true;
       } else {
         return false;

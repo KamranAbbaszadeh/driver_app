@@ -366,43 +366,52 @@ class _AuthState extends ConsumerState<AuthEmail> {
             ),
             GestureDetector(
               onTap: () async {
-                ref.read(loadingProvider.notifier).startLoading();
-                await FirebaseAuth.instance.signInWithEmailAndPassword(
-                  email: _emailController.text.trim(),
-                  password: _passwordController.text.trim(),
-                );
-                final userId = FirebaseAuth.instance.currentUser?.uid;
-                if (userId != null) {
-                  FirebaseApi.instance.saveFCMToken(userId);
-                }
-                ref.read(loadingProvider.notifier).stopLoading();
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => WaitingPage()),
-                    (route) => false,
+                try {
+                  ref.read(loadingProvider.notifier).startLoading();
+                  await FirebaseAuth.instance.signInWithEmailAndPassword(
+                    email: _emailController.text.trim(),
+                    password: _passwordController.text.trim(),
                   );
+                  final userId = FirebaseAuth.instance.currentUser?.uid;
+                  if (userId != null) {
+                    FirebaseApi.instance.saveFCMToken(userId);
+                  }
+                  ref.read(loadingProvider.notifier).stopLoading();
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => WaitingPage()),
+                      (route) => false,
+                    );
+                  }
+                } catch (_) {
+                  ref.read(loadingProvider.notifier).stopLoading();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Email or password is incorrect")),
+                    );
+                  }
                 }
               },
-              child:
-                  isLoading
-                      ? Center(
-                        child: SpinKitThreeBounce(
-                          color: const Color.fromRGBO(231, 231, 231, 1),
-                          size: width * 0.061,
-                        ),
-                      )
-                      : Container(
-                        width: width * 0.923,
-                        height: height * 0.058,
-                        decoration: BoxDecoration(
-                          color:
-                              darkMode
-                                  ? Color.fromARGB(255, 52, 168, 235)
-                                  : Color.fromARGB(177, 0, 134, 179),
-                          borderRadius: BorderRadius.circular(7.5),
-                        ),
-                        child: Center(
+              child: Container(
+                width: width * 0.923,
+                height: height * 0.058,
+                decoration: BoxDecoration(
+                  color:
+                      darkMode
+                          ? Color.fromARGB(255, 52, 168, 235)
+                          : Color.fromARGB(177, 0, 134, 179),
+                  borderRadius: BorderRadius.circular(7.5),
+                ),
+                child:
+                    isLoading
+                        ? Center(
+                          child: SpinKitThreeBounce(
+                            color: const Color.fromRGBO(231, 231, 231, 1),
+                            size: width * 0.061,
+                          ),
+                        )
+                        : Center(
                           child: Text(
                             'Sign In',
                             style: TextStyle(
@@ -420,7 +429,7 @@ class _AuthState extends ConsumerState<AuthEmail> {
                             ),
                           ),
                         ),
-                      ),
+              ),
             ),
           ],
         ),

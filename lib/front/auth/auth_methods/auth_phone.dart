@@ -1,6 +1,6 @@
 import 'package:country_picker/country_picker.dart';
 import 'package:driver_app/front/auth/auth_methods/auth_phone_alternative.dart';
-import 'package:driver_app/back/tools/remove_emojis.dart';
+// import 'package:driver_app/back/tools/remove_emojis.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -471,9 +471,7 @@ class _AuthState extends State<AuthPhone> {
             onTap: () {
               if (_phoneNumberController.text.isNotEmpty &&
                   _characterCount >= 7) {
-                final countryCode = removeEmojis(_countryCodeController.text);
-
-                print(countryCode + _phoneNumberController.text);
+                // final countryCode = removeEmojis(_countryCodeController.text);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

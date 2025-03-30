@@ -1,69 +1,55 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/api/firebase_api.dart';
+import 'package:driver_app/back/map_and_location/location_provider.dart';
+import 'package:driver_app/back/map_and_location/ride_flow_provider.dart';
 import 'package:driver_app/front/displayed_items/chat_page.dart';
-import 'package:driver_app/front/tools/get_location_name.dart';
-import 'package:driver_app/front/tools/ride_model.dart';
+import 'package:driver_app/front/displayed_items/intermediate_page.dart';
 import 'package:driver_app/main.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_animations/flutter_map_animations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sliding_panel/flutter_sliding_panel.dart';
-// import 'package:flutter_swipe_button/flutter_swipe_button.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:location/location.dart';
+import 'package:driver_app/back/ride/ride_state.dart';
+import 'package:map_launcher/map_launcher.dart';
+import 'package:page_transition/page_transition.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swipeable_button_view/swipeable_button_view.dart';
 
-class RidePage extends StatefulWidget {
-  final LatLng? currentLocation;
-  final double? currentSpeed;
-  const RidePage({
-    super.key,
-    required this.currentLocation,
-    required this.currentSpeed,
-  });
+class RidePage extends ConsumerStatefulWidget {
+  const RidePage({super.key});
 
   @override
-  State<RidePage> createState() => _RidePageState();
+  ConsumerState<RidePage> createState() => _RidePageState();
 }
 
-class _RidePageState extends State<RidePage> {
-  StreamSubscription<QuerySnapshot>? carsSubscription;
-  Map<String, dynamic>? userData;
-  List<Ride> filteredRides = [];
-  List<Map<String, dynamic>> currentRides = [];
-  Map<String, dynamic>? nextRoute;
-  ValueNotifier<bool> isAnimatingCamera = ValueNotifier<bool>(false);
-  String? docId;
-  String? routeKey;
-  String tourName = '';
-
-  String? startLocationName;
-  String? endLocationName;
-
-  LocationData? startLatLngObj;
-  LatLng? endLatLng;
-  LatLng? startLatLng;
-  double? speedMps;
-
+class _RidePageState extends ConsumerState<RidePage>
+    with TickerProviderStateMixin {
   final SlidingPanelController _panelController = SlidingPanelController();
-  bool isStarted = false;
-  bool isUserInteracting = false;
-  bool? swipeButtonEnable;
-  bool toComplete = false;
+  StreamSubscription? _locationSubscription;
+  late final AnimatedMapController _animatedMapController;
+  bool _userInteractingWithMap = false;
+  Timer? _interactionDebounce;
 
-  bool? startArrived;
-  bool? endArrived;
-
-  Position? currentPosition;
-  double currentSpeed = 0.0;
+  bool isFinished = false;
 
   @override
   void initState() {
     super.initState();
-    fetchUserData();
+
+    _animatedMapController = AnimatedMapController(vsync: this);
+    _locationSubscription = FlutterBackgroundService()
+        .on('LocationUpdates')
+        .listen((event) {
+          if (event != null) {
+            ref.read(locationProvider.notifier).state = event;
+          }
+        });
   }
 
   LatLng getMidpoint(LatLng? start, LatLng? end, LatLng? current) {
@@ -74,125 +60,6 @@ class _RidePageState extends State<RidePage> {
     double midLng = (start.longitude + end.longitude + current.longitude) / 3;
 
     return LatLng(midLat, midLng);
-  }
-
-  Future<void> fetchUserData() async {
-    try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId != null) {
-        final docSnapshot =
-            await FirebaseFirestore.instance
-                .collection('Users')
-                .doc(userId)
-                .get();
-        if (docSnapshot.exists) {
-          setState(() {
-            userData = docSnapshot.data();
-          });
-          fetchAndFilterRides(userData: userData!);
-        }
-      }
-    } catch (e) {
-      logger.e('Error fetching user\'s data: $e');
-    }
-  }
-
-  Future<void> fetchAndFilterRides({
-    required Map<String, dynamic> userData,
-  }) async {
-    carsSubscription = FirebaseFirestore.instance
-        .collection('Cars')
-        .snapshots()
-        .listen((querySnapshot) {
-          final allRides =
-              querySnapshot.docs.map((doc) {
-                return Ride.fromFirestore(data: doc.data(), id: doc.id);
-              }).toList();
-          final userId = FirebaseAuth.instance.currentUser?.uid;
-          final filtered =
-              allRides.where((ride) {
-                return ride.driver == userId;
-              }).toList();
-
-          setState(() {
-            filteredRides = filtered;
-          });
-          getCurrentDateRides();
-        });
-  }
-
-  void getCurrentDateRides() {
-    final List<Map<String, dynamic>> updatedRides = [];
-    for (int i = 0; i < filteredRides.length; i++) {
-      filteredRides[i].routes.forEach((key, route) {
-        final Timestamp fetchedStartDate = route['StartDate'];
-        final tourStartDate = fetchedStartDate.toDate();
-        final startDate = DateTime(
-          tourStartDate.year,
-          tourStartDate.month,
-          tourStartDate.day,
-        );
-        final currentDateTime = DateTime(2025, 02, 16);
-        final currentDate = DateTime(
-          currentDateTime.year,
-          currentDateTime.month,
-          currentDateTime.day,
-        );
-
-        if (startDate.isAtSameMomentAs(currentDate)) {
-          updatedRides.add(route);
-        }
-      });
-      setState(() {
-        currentRides = updatedRides;
-        updateNextRoute();
-      });
-    }
-  }
-
-  void updateNextRoute() async {
-    if (currentRides.isEmpty) {
-      setState(() {
-        nextRoute = null;
-      });
-      return;
-    }
-
-    nextRoute = currentRides.firstWhere((routeData) {
-      return !(routeData["Start Arrived"] as bool) ||
-          !(routeData["End Arrived"] as bool);
-    }, orElse: () => {});
-    if (nextRoute != null) {
-      int routeIndex = currentRides.indexOf(nextRoute!);
-      routeKey = "Route${routeIndex + 1}";
-      docId = nextRoute!['ID'];
-
-      String startLocation = nextRoute!['Start'];
-      List<String> startLatLngString = startLocation.split(",");
-      double startLat = double.parse(startLatLngString[0]);
-      double startLng = double.parse(startLatLngString[1]);
-
-      String startLocationDraft = await getLocationName(startLat, startLng);
-      String endLocation = nextRoute!['End'];
-      List<String> endLocationLatLng = endLocation.split(",");
-      double endLocationLat = double.parse(endLocationLatLng[0]);
-      double endLocationLng = double.parse(endLocationLatLng[1]);
-      String endLocationDraft = await getLocationName(
-        endLocationLat,
-        endLocationLng,
-      );
-      startArrived = nextRoute!['Start Arrived'];
-      endArrived = nextRoute!['End Arrived'];
-
-      if (mounted) {
-        setState(() {
-          endLatLng = LatLng(endLocationLat, endLocationLng);
-          startLatLng = LatLng(startLat, startLng);
-          startLocationName = startLocationDraft;
-          endLocationName = endLocationDraft;
-        });
-      }
-    }
   }
 
   double getZoomLevel(double distanceInMeters) {
@@ -211,61 +78,92 @@ class _RidePageState extends State<RidePage> {
     return zoomLevel;
   }
 
-  // Future<void> _moveCameraToCurrentLocation() async {
-  //   if (_mapController.isCompleted) {
-  //     setState(() {
-  //       isUserInteracting = false;
-  //     });
-  //   }
-  // }
-
   @override
   void dispose() {
-    carsSubscription?.cancel();
-    // if (mapController != null) {
-    //   mapController!.dispose();
-    // }
-    // if (_mapController.isCompleted) {
-    //   _mapController.future.then((controller) {
-    //     controller.dispose();
-    //   });
-    // }
-    isAnimatingCamera.dispose();
+    _locationSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final rideState = ref.watch(rideProvider);
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
-    // final darkMode =
-    //     MediaQuery.of(context).platformBrightness == Brightness.dark;
-    final startArrivedBool = startArrived;
+    final darkMode =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final startLatLng = rideState.startLatLng;
+    final endLatLng = rideState.endLatLng;
+    final nextRoute = rideState.nextRoute;
+    final docId = rideState.docId;
+    final startLocationName = rideState.startLocationName;
+    final endLocationName = rideState.endLocationName;
+    final position = ref.watch(locationProvider);
 
-    if (startLatLngObj == null) {
-      return Scaffold(
-        body: const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
+    if (startLatLng == null || endLatLng == null || position == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
 
-    final midPoint = getMidpoint(
-      startLatLng,
-      endLatLng,
-      widget.currentLocation,
+    LatLng currentLocation = LatLng(
+      position['latitude'],
+      position['longitude'],
     );
-    final distance =
-        endLatLng != null && widget.currentLocation != null
-            ? Geolocator.distanceBetween(
-              widget.currentLocation!.latitude,
-              widget.currentLocation!.longitude,
-              endLatLng!.latitude,
-              endLatLng!.longitude,
-            )
-            : 0.0;
-    setState(() {});
+
+    dynamic currentHeading = position['heading'];
+
+    final midPoint = getMidpoint(startLatLng, endLatLng, currentLocation);
+    final distance = Geolocator.distanceBetween(
+      currentLocation.latitude,
+      currentLocation.longitude,
+      endLatLng.latitude,
+      endLatLng.longitude,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!_userInteractingWithMap) {
+        final currentCenter =
+            _animatedMapController.mapController.camera.center;
+        if (currentCenter != currentLocation) {
+          _animatedMapController.animateTo(
+            dest: currentLocation,
+            zoom: width * 0.034,
+            curve: Curves.easeInOut,
+            duration: Duration(milliseconds: 500),
+          );
+        }
+      }
+    });
     final zoomLvl = getZoomLevel(distance);
+    final startArrivedBool = rideState.startArrived;
+    final routeKey = rideState.routeKey;
+    final rideFlow = ref.watch(rideFlowProvider);
+    final rideFlowNotifier = ref.read(rideFlowProvider.notifier);
+    final swipeButtonText =
+        rideFlow.startRide
+            ? startArrivedBool!
+                ? "Complete the ride"
+                : "In place"
+            : "Start the ride";
+    final double distanceToTarget = Geolocator.distanceBetween(
+      currentLocation.latitude,
+      currentLocation.longitude,
+      (rideFlow.startRide && startArrivedBool == true)
+          ? endLatLng.latitude
+          : startLatLng.latitude,
+      (rideFlow.startRide && startArrivedBool == true)
+          ? endLatLng.longitude
+          : startLatLng.longitude,
+    );
+
+    final bool isWithinRange = distanceToTarget <= 50;
+    final navigateLat =
+        rideFlow.startRide && startArrivedBool == true
+            ? endLatLng.latitude
+            : startLatLng.latitude;
+    final navigateLong =
+        rideFlow.startRide && startArrivedBool == true
+            ? endLatLng.longitude
+            : startLatLng.longitude;
 
     return Scaffold(
       body: Center(
@@ -275,33 +173,51 @@ class _RidePageState extends State<RidePage> {
                   children: [
                     SizedBox(
                       child: FlutterMap(
+                        mapController: _animatedMapController.mapController,
                         options: MapOptions(
                           initialCenter: LatLng(
                             midPoint.latitude,
                             midPoint.longitude,
                           ),
                           initialZoom: zoomLvl,
+                          onMapEvent: (event) {
+                            if (event is MapEventWithMove) {
+                              _userInteractingWithMap = true;
+                              _interactionDebounce?.cancel();
+                              _interactionDebounce = Timer(
+                                const Duration(seconds: 2),
+                                () {
+                                  _userInteractingWithMap = false;
+                                },
+                              );
+                            }
+                          },
                         ),
                         children: [
                           TileLayer(
-                            // Display map tiles from any source
                             urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                             userAgentPackageName: 'com.example.app',
-                            // And many more recommended properties!
                           ),
                           MarkerLayer(
                             markers: [
                               Marker(
-                                point: widget.currentLocation!,
-                                child: Image.asset(
-                                  'assets/Car.png',
-                                  width: width * 0.1,
-                                  height: height * 0.1,
+                                point: currentLocation,
+                                rotate: true,
+                                alignment: Alignment.center,
+                                width: width * 0.1,
+                                height: height * 0.1,
+                                child: Transform.rotate(
+                                  angle: currentHeading * (pi / 180),
+                                  child: Image.asset(
+                                    'assets/Car.png',
+                                    width: width * 0.1,
+                                    height: height * 0.1,
+                                  ),
                                 ),
                               ),
                               Marker(
-                                point: startLatLng ?? LatLng(0.0, 0.0),
+                                point: startLatLng,
                                 width: width * 0.1,
                                 height: height * 0.065,
                                 child: Column(
@@ -312,7 +228,17 @@ class _RidePageState extends State<RidePage> {
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(color: Colors.white),
-                                        color: Colors.black,
+                                        color:
+                                            startArrivedBool != null
+                                                ? startArrivedBool
+                                                    ? const Color.fromARGB(
+                                                      255,
+                                                      103,
+                                                      168,
+                                                      120,
+                                                    )
+                                                    : Colors.black
+                                                : Colors.black,
                                       ),
 
                                       child: Center(
@@ -338,7 +264,7 @@ class _RidePageState extends State<RidePage> {
                                 ),
                               ),
                               Marker(
-                                point: endLatLng ?? LatLng(0.0, 0.0),
+                                point: endLatLng,
                                 width: width * 0.1,
                                 height: height * 0.065,
                                 child: Column(
@@ -393,27 +319,19 @@ class _RidePageState extends State<RidePage> {
                         ),
                       ),
                     ),
-
-                    Positioned(
-                      child: Text(
-                        widget.currentSpeed.toString(),
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-
                     SlidingPanel(
                       controller: _panelController,
 
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(width * 0.05),
+                          topRight: Radius.circular(width * 0.05),
                         ),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
-                            blurRadius: 5,
-                            spreadRadius: 2,
+                            blurRadius: width * 0.012,
+                            spreadRadius: width * 0.005,
                             color: Color(0x11000000),
                           ),
                         ],
@@ -439,7 +357,7 @@ class _RidePageState extends State<RidePage> {
                                   color: Colors.black,
                                 ),
                               ),
-                              SizedBox(width: 80),
+                              SizedBox(width: width * 0.203),
                               FloatingActionButton(
                                 backgroundColor: const Color.fromARGB(
                                   255,
@@ -451,7 +369,9 @@ class _RidePageState extends State<RidePage> {
 
                                 mini: true,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(
+                                    width * 0.05,
+                                  ),
                                 ),
                                 child:
                                     ValueListenableBuilder<SlidingPanelDetail>(
@@ -484,7 +404,7 @@ class _RidePageState extends State<RidePage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  spacing: 20,
+                                  spacing: width * 0.05,
                                   children: [
                                     Container(
                                       width: width * 0.1,
@@ -531,7 +451,7 @@ class _RidePageState extends State<RidePage> {
                                 ),
                                 SizedBox(height: height * 0.01),
                                 Row(
-                                  spacing: 20,
+                                  spacing: width * 0.05,
                                   children: [
                                     Container(
                                       width: width * 0.1,
@@ -569,18 +489,18 @@ class _RidePageState extends State<RidePage> {
                               ],
                             ),
                           ),
-                          SizedBox(height: 10),
+                          SizedBox(height: height * 0.011),
                           Divider(
                             color: const Color.fromARGB(180, 183, 182, 182),
-                            thickness: 2,
+                            thickness: width * 0.005,
                           ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            spacing: 10,
+                            spacing: width * 0.025,
                             children: [
                               Container(
-                                width: 80,
-                                height: 80,
+                                width: width * 0.203,
+                                height: height * 0.093,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(
                                     width * 0.019,
@@ -615,10 +535,10 @@ class _RidePageState extends State<RidePage> {
                                       ),
                                     ),
                                     Positioned(
-                                      top: 23.5,
-                                      left: 44,
-                                      height: 13,
-                                      width: 13,
+                                      top: height * 0.027,
+                                      left: width * 0.111,
+                                      height: height * 0.015,
+                                      width: width * 0.033,
                                       child: Container(
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
@@ -630,8 +550,8 @@ class _RidePageState extends State<RidePage> {
                                 ),
                               ),
                               Container(
-                                width: 80,
-                                height: 80,
+                                width: width * 0.203,
+                                height: height * 0.093,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(
                                     width * 0.019,
@@ -644,116 +564,428 @@ class _RidePageState extends State<RidePage> {
                                   ),
                                 ),
                                 child: IconButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (context) => ChatPage(
-                                              tourId: docId!,
-                                              width: width,
-                                              height: height,
-                                            ),
-                                      ),
+                                  onPressed: () async {
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+                                    final savedMapType = prefs.getString(
+                                      'preferred_map',
                                     );
+                                    final availableMaps =
+                                        await MapLauncher.installedMaps;
+
+                                    AvailableMap? preferredMap;
+                                    try {
+                                      preferredMap = availableMaps.firstWhere(
+                                        (map) =>
+                                            map.mapType.toString() ==
+                                            savedMapType,
+                                      );
+                                    } catch (_) {
+                                      preferredMap = null;
+                                    }
+
+                                    if (preferredMap != null &&
+                                        context.mounted) {
+                                      await preferredMap.showDirections(
+                                        destination: Coords(
+                                          navigateLat,
+                                          navigateLong,
+                                        ),
+                                        destinationTitle: "Destination",
+                                      );
+                                      return;
+                                    }
+
+                                    if (availableMaps.isEmpty) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              "No map apps installed",
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return;
+                                    }
+
+                                    if (context.mounted) {
+                                      AvailableMap draftMap =
+                                          availableMaps.first;
+                                      showModalBottomSheet(
+                                        backgroundColor:
+                                            darkMode
+                                                ? const Color.fromARGB(
+                                                  255,
+                                                  41,
+                                                  41,
+                                                  41,
+                                                )
+                                                : Colors.white,
+                                        context: context,
+                                        builder: (context) {
+                                          return StatefulBuilder(
+                                            builder: (context, setModalState) {
+                                              return SafeArea(
+                                                child: SizedBox(
+                                                  width: width,
+                                                  child: Padding(
+                                                    padding: EdgeInsets.all(
+                                                      width * 0.05,
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      spacing: height * 0.01,
+                                                      children: [
+                                                        Text(
+                                                          'Open with',
+                                                          style:
+                                                              GoogleFonts.notoSans(
+                                                                fontSize:
+                                                                    width *
+                                                                    0.05,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w800,
+                                                              ),
+                                                        ),
+
+                                                        SingleChildScrollView(
+                                                          scrollDirection:
+                                                              Axis.horizontal,
+                                                          padding:
+                                                              EdgeInsets.symmetric(
+                                                                horizontal:
+                                                                    width *
+                                                                    0.03,
+                                                                vertical:
+                                                                    width *
+                                                                    0.02,
+                                                              ),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children:
+                                                                availableMaps.map((
+                                                                  map,
+                                                                ) {
+                                                                  final isSelected =
+                                                                      draftMap
+                                                                          .mapType ==
+                                                                      map.mapType;
+                                                                  return GestureDetector(
+                                                                    onTap: () {
+                                                                      setModalState(() {
+                                                                        draftMap =
+                                                                            map;
+                                                                      });
+                                                                    },
+                                                                    onDoubleTap: () {
+                                                                      map.showDirections(
+                                                                        destination: Coords(
+                                                                          navigateLat,
+                                                                          navigateLong,
+                                                                        ),
+                                                                        destinationTitle:
+                                                                            "Destination",
+                                                                      );
+                                                                      Navigator.pop(
+                                                                        context,
+                                                                      );
+                                                                    },
+                                                                    child: Container(
+                                                                      width:
+                                                                          width *
+                                                                          0.203,
+                                                                      height:
+                                                                          height *
+                                                                          0.093,
+                                                                      margin: EdgeInsets.symmetric(
+                                                                        horizontal:
+                                                                            width *
+                                                                            0.02,
+                                                                      ),
+                                                                      decoration: BoxDecoration(
+                                                                        color:
+                                                                            isSelected
+                                                                                ? const Color.fromARGB(
+                                                                                  134,
+                                                                                  156,
+                                                                                  155,
+                                                                                  155,
+                                                                                )
+                                                                                : Colors.transparent,
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(
+                                                                              12,
+                                                                            ),
+                                                                      ),
+
+                                                                      child: Column(
+                                                                        mainAxisAlignment:
+                                                                            MainAxisAlignment.center,
+                                                                        children: [
+                                                                          ClipRRect(
+                                                                            borderRadius: BorderRadius.circular(
+                                                                              width *
+                                                                                  0.019,
+                                                                            ),
+                                                                            child: SvgPicture.asset(
+                                                                              map.icon,
+                                                                              height:
+                                                                                  height *
+                                                                                  0.046,
+                                                                              width:
+                                                                                  width *
+                                                                                  0.101,
+                                                                            ),
+                                                                          ),
+                                                                          SizedBox(
+                                                                            height:
+                                                                                height *
+                                                                                0.009,
+                                                                          ),
+                                                                          Text(
+                                                                            map.mapName,
+                                                                            textAlign:
+                                                                                TextAlign.center,
+                                                                            style: GoogleFonts.notoSans(
+                                                                              fontSize:
+                                                                                  width *
+                                                                                  0.025,
+                                                                              fontWeight:
+                                                                                  FontWeight.w600,
+                                                                            ),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  );
+                                                                }).toList(),
+                                                          ),
+                                                        ),
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          spacing: width * 0.05,
+
+                                                          children: [
+                                                            TextButton(
+                                                              onPressed: () {
+                                                                draftMap.showDirections(
+                                                                  destination: Coords(
+                                                                    navigateLat,
+                                                                    navigateLong,
+                                                                  ),
+                                                                  destinationTitle:
+                                                                      "Destination",
+                                                                );
+                                                                Navigator.pop(
+                                                                  context,
+                                                                );
+                                                              },
+                                                              child: Text(
+                                                                "Just Once",
+                                                                style: GoogleFonts.notoSans(
+                                                                  fontSize:
+                                                                      width *
+                                                                      0.045,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  color:
+                                                                      darkMode
+                                                                          ? Colors
+                                                                              .white
+                                                                          : Colors
+                                                                              .black,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Container(
+                                                              width:
+                                                                  width * 0.005,
+                                                              height:
+                                                                  height * 0.02,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                    color:
+                                                                        const Color.fromARGB(
+                                                                          134,
+                                                                          156,
+                                                                          155,
+                                                                          155,
+                                                                        ),
+                                                                  ),
+                                                            ),
+                                                            TextButton(
+                                                              onPressed: () async {
+                                                                await prefs.setString(
+                                                                  'preferred_map',
+                                                                  draftMap
+                                                                      .mapType
+                                                                      .toString(),
+                                                                );
+                                                                await draftMap.showDirections(
+                                                                  destination: Coords(
+                                                                    navigateLat,
+                                                                    navigateLong,
+                                                                  ),
+                                                                  destinationTitle:
+                                                                      "Destination",
+                                                                );
+                                                                if (context
+                                                                    .mounted) {
+                                                                  Navigator.pop(
+                                                                    context,
+                                                                  );
+                                                                }
+                                                              },
+                                                              child: Text(
+                                                                "Always",
+                                                                style: GoogleFonts.notoSans(
+                                                                  fontSize:
+                                                                      width *
+                                                                      0.045,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  color:
+                                                                      darkMode
+                                                                          ? Colors
+                                                                              .white
+                                                                          : Colors
+                                                                              .black,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                      );
+                                    }
                                   },
                                   icon: Transform.rotate(
-                                    angle: 90 * (pi / 180),
+                                    angle: 50 * (pi / 180),
                                     child: Icon(
                                       Icons.navigation_sharp,
                                       color: Colors.black,
-                                      size: 40,
+                                      size: width * 0.101,
                                     ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
+                          SizedBox(height: height * 0.01),
+                          Padding(
+                            padding: EdgeInsets.all(width * 0.0203),
+                            child: SwipeableButtonView(
+                              onFinish: () async {
+                                if (rideFlow.startRide &&
+                                    startArrivedBool! &&
+                                    rideFlow.finishRide &&
+                                    isWithinRange) {
+                                  await Navigator.push(
+                                    context,
+                                    PageTransition(
+                                      type: PageTransitionType.fade,
+                                      child: IntermediatePage(),
+                                    ),
+                                  );
+                                  rideFlowNotifier.resetAll();
+                                  setState(() {
+                                    isFinished = false;
+                                  });
+                                } else if (rideFlow.startRide &&
+                                    startArrivedBool! &&
+                                    isWithinRange) {
+                                  setState(() {
+                                    isFinished = false;
+                                  });
+                                } else if (rideFlow.startRide) {
+                                  setState(() {
+                                    isFinished = false;
+                                  });
+                                }
+                              },
+                              isActive:
+                                  rideFlow.startRide ? isWithinRange : true,
+                              isFinished: isFinished,
+                              onWaitingProcess: () async {
+                                if (!rideFlow.startRide) {
+                                  rideFlowNotifier.setStartRide(true);
+                                  setState(() {
+                                    isFinished = true;
+                                  });
+                                } else if (rideFlow.startRide &&
+                                    !startArrivedBool! &&
+                                    isWithinRange) {
+                                  await FirebaseFirestore.instance
+                                      .collection('Cars')
+                                      .doc(docId)
+                                      .set({
+                                        'Routes': {
+                                          routeKey!: {'Start Arrived': true},
+                                        },
+                                        'updatedAt':
+                                            FieldValue.serverTimestamp(),
+                                      }, SetOptions(merge: true));
+                                  setState(() {
+                                    isFinished = true;
+                                  });
+                                } else if (rideFlow.startRide &&
+                                    startArrivedBool! &&
+                                    isWithinRange &&
+                                    !rideFlow.finishRide) {
+                                  await FirebaseFirestore.instance
+                                      .collection('Cars')
+                                      .doc(docId)
+                                      .set({
+                                        'Routes': {
+                                          routeKey!: {'End Arrived': true},
+                                        },
+                                        'updatedAt':
+                                            FieldValue.serverTimestamp(),
+                                      }, SetOptions(merge: true));
+                                  rideFlowNotifier.setFinishRide(true);
+                                  setState(() {
+                                    isFinished = true;
+                                  });
+                                }
+                              },
+                              activeColor:
+                                  darkMode
+                                      ? Color(0xFF0169AA)
+                                      : Color(0xFF34A8EB),
 
-                          //
-                          // SwipeButton(
-                          //   thumb: Padding(
-                          //     padding: EdgeInsets.all(width * 0.02),
-
-                          //     child: Image.asset(
-                          //       'assets/start_icon.png',
-                          //       color:
-                          //           isStarted
-                          //               ? swipeButtonEnable!
-                          //                   ? Colors.black
-                          //                   : Colors.white
-                          //               : Colors.black,
-                          //     ),
-                          //   ),
-
-                          //   width: width * 0.95,
-                          //   borderRadius: BorderRadius.circular(
-                          //     width * 0.019,
-                          //   ),
-                          //   activeThumbColor: Colors.white,
-                          //   inactiveTrackColor: Colors.white,
-                          //   activeTrackColor: Colors.black38,
-                          //   inactiveThumbColor: Colors.white,
-                          //   enabled: isStarted ? swipeButtonEnable! : true,
-                          //   onSwipe:
-                          //       isStarted
-                          //           ? startArrived!
-                          //               ? () async {
-                          //                 setState(() {
-                          //                   isStarted = !isStarted;
-                          //                   isUserInteracting = false;
-                          //                   toComplete = !toComplete;
-                          //                 });
-                          //                 await FirebaseFirestore.instance
-                          //                     .collection('Cars')
-                          //                     .doc(docId)
-                          //                     .set({
-                          //                       'Routes': {
-                          //                         routeKey!: {
-                          //                           'End Arrived': true,
-                          //                         },
-                          //                       },
-                          //                     }, SetOptions(merge: true));
-                          //                 _panelController.close();
-                          //                 navigatorKey.currentState?.pop();
-                          //               }
-                          //               : () async {
-                          //                 setState(() {
-                          //                   isStarted = !isStarted;
-                          //                   isUserInteracting = false;
-                          //                   toComplete = !toComplete;
-                          //                 });
-                          //                 await FirebaseFirestore.instance
-                          //                     .collection('Cars')
-                          //                     .doc(docId)
-                          //                     .set({
-                          //                       'Routes': {
-                          //                         routeKey!: {
-                          //                           'Start Arrived': true,
-                          //                         },
-                          //                       },
-                          //                     }, SetOptions(merge: true));
-                          //                 _panelController.close();
-                          //               }
-                          //           : () {
-                          //             setState(() {
-                          //               isStarted = !isStarted;
-                          //               isUserInteracting = false;
-                          //               toComplete = !toComplete;
-                          //             });
-                          //             _panelController.close();
-                          //           },
-                          //   child: Text(
-                          //     toComplete
-                          //         ? 'Complete the ride'
-                          //         : 'Start the ride',
-                          //     style: GoogleFonts.notoSans(
-                          //       color: Colors.white54,
-                          //       fontWeight: FontWeight.w600,
-                          //       fontSize: width * 0.045,
-                          //     ),
-                          //   ),
-                          // ),
+                              buttonWidget: Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: Colors.grey,
+                              ),
+                              buttonText: swipeButtonText,
+                              buttontextstyle: GoogleFonts.notoSans(
+                                color: Colors.white54,
+                                fontWeight: FontWeight.w600,
+                                fontSize: width * 0.045,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

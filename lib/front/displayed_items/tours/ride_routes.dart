@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/map_and_location/get_functions.dart';
+import 'package:driver_app/back/map_and_location/google_map_controllers.dart';
 import 'package:driver_app/front/tools/consts.dart';
 import 'package:driver_app/front/tools/get_location_name.dart';
 import 'package:flutter/foundation.dart';
@@ -114,21 +114,21 @@ class _RideRoutesState extends State<RideRoutes> {
 
           initialCameraPosition = CameraPosition(target: midpoint, zoom: 7.0);
         });
-        // getPolyLinePoints(
-        //   googleApiKey: GOOGLE_MAPS_API_KEY,
-        //   source: startLatLngObj!,
-        //   destination: endLatLngObj!,
-        // ).then(
-        //   (coordinates) => generatePolyLineFromPoints(
-        //     polylineCoordinates: coordinates,
-        //     polylines: polylines,
-        //     updatePolylines: (updatedPolylines) {
-        //       setState(() {
-        //         polylines = updatedPolylines;
-        //       });
-        //     },
-        //   ),
-        // );
+        getPolyLinePoints(
+          googleApiKey: GOOGLE_MAPS_API_KEY,
+          source: startLatLngObj!,
+          destination: endLatLngObj!,
+        ).then(
+          (coordinates) => generatePolyLineFromPoints(
+            polylineCoordinates: coordinates,
+            polylines: polylines,
+            updatePolylines: (updatedPolylines) {
+              setState(() {
+                polylines = updatedPolylines;
+              });
+            },
+          ),
+        );
       }
     } catch (e) {
       setState(() {

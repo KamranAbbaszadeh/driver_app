@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
- package="onemoretour.com">
+          xmlns:tools="http://schemas.android.com/tools"
+          package="onemoretour.com">
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -18,10 +19,9 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
-    </uses-permission android:name="android.permission.WAKE_LOCK"/>
    <application
         android:label="OMT"
         android:name="${applicationName}"
@@ -65,6 +65,14 @@
         <meta-data
             android:name="com.google.android.gms.location.fusedlocationprovider"
             android:value="true"/>
+
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="location"
+            android:exported="false"
+            android:permission="android.permission.FOREGROUND_SERVICE"
+            tools:replace="android:exported">
+        </service>
 
     </application>
     <!-- Required to query activities that can process text, see:

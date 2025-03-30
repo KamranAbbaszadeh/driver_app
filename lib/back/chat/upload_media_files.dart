@@ -1,5 +1,5 @@
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:mime/mime.dart'; // To check MIME type
+import 'package:mime/mime.dart';
 
 Future<String> uploadMediaFile({
   required Reference storageRef,

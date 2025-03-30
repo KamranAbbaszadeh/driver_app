@@ -15,10 +15,12 @@ class ProfilePage extends StatelessWidget {
       child: TextButton(
         onPressed: () async {
           await FirebaseAuth.instance.signOut();
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => WaitingPage()),
-            (route) => false,
-          );
+          if (context.mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => WaitingPage()),
+              (route) => false,
+            );
+          }
         },
         child: Text('Sign out'),
       ),
