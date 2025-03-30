@@ -46,7 +46,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
               setState(() {
                 userData = docSnapshot.data();
               });
-              listenToRidesUpdates(); // Reinitialize ride listener if user data changes
+              listenToRidesUpdates();
             }
           });
     }
@@ -55,8 +55,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
   void listenToRidesUpdates() {
     if (userData == null) return;
 
-    carsSubscription
-        ?.cancel(); // Cancel the previous subscription to avoid duplicates
+    carsSubscription?.cancel();
     carsSubscription = FirebaseFirestore.instance
         .collection('Cars')
         .snapshots()
@@ -124,7 +123,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                 ),
               ),
               SizedBox(height: height * 0.011),
-              MyRides(filteredRides: filteredRides, height: height * 0.77),
+              MyRides(filteredRides: filteredRides, height: height * 0.76),
             ],
           ),
         ),

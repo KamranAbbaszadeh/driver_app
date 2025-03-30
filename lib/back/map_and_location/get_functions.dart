@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -110,9 +109,6 @@ void onStart(ServiceInstance service) async {
         'speed': currentSpeed,
         'heading': position.heading,
       });
-      logger.d(
-        'Location: ${position.latitude}, ${position.longitude}, Speed: $currentSpeed',
-      );
     });
   }
 }

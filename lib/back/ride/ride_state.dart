@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/back/map_and_location/get_functions.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -97,7 +96,7 @@ class RideNotifier extends StateNotifier<RideState> {
             ride.routes.forEach((key, route) {
               final routeDate = (route['StartDate'] as Timestamp).toDate();
               final routeEndDate = (route['EndDate'] as Timestamp).toDate();
-              final now = DateTime(2025, 02, 17, 15, 27);
+              final now = DateTime.now();
               final startArrived = route["Start Arrived"] as bool;
               final endArrived = route["End Arrived"] as bool;
               if (now.isAfter(routeDate.subtract(Duration(hours: 1))) &&
@@ -108,7 +107,6 @@ class RideNotifier extends StateNotifier<RideState> {
                 updatedRides.add(routeWithKey);
               }
             });
-            logger.d(updatedRides);
           }
 
           state = state.copyWith(
@@ -193,7 +191,7 @@ class RideNotifier extends StateNotifier<RideState> {
       final next = state.nextRoute;
       if (next == null) return;
       final startDate = (next['StartDate'] as Timestamp).toDate();
-      final now = DateTime(2025, 02, 17, 15, 36);
+      final now = DateTime.now();
       if (now.isAfter(startDate.subtract(Duration(hours: 1)))) {
         final startArrived = next['Start Arrived'] as bool;
         final endArrived = next['End Arrived'] as bool;

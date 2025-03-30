@@ -61,7 +61,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final startArrived = rideState.nextRoute?["Start Arrived"] as bool;
     final endArrived = rideState.nextRoute?["End Arrived"] as bool;
 
-    final currentDate = DateTime(2025, 02, 17, 15, 36);
+    final currentDate = DateTime.now();
     final isTourStarted =
         currentDate.isAfter(tourStartDate.subtract(const Duration(hours: 1))) &&
         currentDate.isBefore(tourEndDate.add(const Duration(hours: 1))) &&
