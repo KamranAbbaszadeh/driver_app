@@ -383,6 +383,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                               ? Icons.keyboard_arrow_up_rounded
                                               : Icons
                                                   .keyboard_arrow_down_rounded,
+                                          color: Colors.black,
                                         );
                                       },
                                     ),

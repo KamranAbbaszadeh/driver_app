@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/map_and_location/get_functions.dart';
 import 'package:driver_app/back/map_and_location/location_provider.dart';
 import 'package:driver_app/back/ride/ride_state.dart';
@@ -25,6 +26,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     requestLocationPermissions(context);
     _locationSubscription = FlutterBackgroundService()
         .on('LocationUpdates')
@@ -50,23 +56,25 @@ class _HomePageState extends ConsumerState<HomePage> {
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final index = ref.watch(selectedIndexProvider);
-    final tourStartDateTimeStamp = (rideState.nextRoute?['StartDate']);
-    final tourEndDateTimeStamp = (rideState.nextRoute?['EndDate']);
-    if (tourStartDateTimeStamp == null || tourEndDateTimeStamp == null) {
-      return const Center(child: CircularProgressIndicator());
+    DateTime parseDate(dynamic value) {
+      if (value is DateTime) return value;
+      if (value is Timestamp) return value.toDate();
+      if (value is String) return DateTime.parse(value);
+      return DateTime.now();
     }
-    final tourStartDate = tourStartDateTimeStamp.toDate();
-    final tourEndDate = tourEndDateTimeStamp.toDate();
 
-    final startArrived = rideState.nextRoute?["Start Arrived"] as bool;
-    final endArrived = rideState.nextRoute?["End Arrived"] as bool;
+    final tourStartDate = parseDate(rideState.nextRoute?['StartDate']);
+    final tourEndDate = parseDate(rideState.nextRoute?['EndDate']);
+
+    final startArrived = rideState.nextRoute?["Start Arrived"] ?? true;
+    final endArrived = rideState.nextRoute?["End Arrived"] ?? true;
 
     final currentDate = DateTime.now();
+    //bollean not swap value after route completion & need restart the app to switch value
     final isTourStarted =
         currentDate.isAfter(tourStartDate.subtract(const Duration(hours: 1))) &&
         currentDate.isBefore(tourEndDate.add(const Duration(hours: 1))) &&
-        !startArrived &&
-        !endArrived;
+        (!startArrived || !endArrived);
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(height * 0.075),
@@ -80,7 +88,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ? Padding(
                     padding: EdgeInsets.symmetric(horizontal: width * 0.04),
                     child: GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => RidePage()),

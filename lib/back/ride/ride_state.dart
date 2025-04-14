@@ -66,8 +66,13 @@ class RideState {
 }
 
 class RideNotifier extends StateNotifier<RideState> {
+  Timer? _refreshTimer;
+
   RideNotifier() : super(RideState()) {
     fetchRides();
+    _refreshTimer = Timer.periodic(Duration(seconds: 30), (_) {
+      fetchRides();
+    });
   }
 
   StreamSubscription<QuerySnapshot>? carsSubscription;
@@ -180,7 +185,8 @@ class RideNotifier extends StateNotifier<RideState> {
         startArrived: newNext["Start Arrived"],
         endArrived: newNext["End Arrived"],
       );
-
+    }
+    if (newNext.isNotEmpty) {
       startLocationTrackingLoop();
     }
   }
@@ -192,18 +198,24 @@ class RideNotifier extends StateNotifier<RideState> {
       if (next == null) return;
       final startDate = (next['StartDate'] as Timestamp).toDate();
       final now = DateTime.now();
-      if (now.isAfter(startDate.subtract(Duration(hours: 1)))) {
+      await fetchRides();
+      if (now.isAfter(startDate.subtract(Duration(hours: 1))) &&
+          now.isBefore(startDate.add(Duration(hours: 5)))) {
         final startArrived = next['Start Arrived'] as bool;
         final endArrived = next['End Arrived'] as bool;
-        if (!startArrived && !endArrived) {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser != null && (!startArrived || !endArrived)) {
           await initializeService();
-        } else if (startArrived && endArrived) {
-          await fetchRides();
         } else {
+          await fetchRides();
           locationTrackingTImer?.cancel();
           final service = FlutterBackgroundService();
           service.invoke("stopService");
         }
+      } else {
+        locationTrackingTImer?.cancel();
+        final service = FlutterBackgroundService();
+        service.invoke("stopService");
       }
     });
   }
@@ -212,6 +224,7 @@ class RideNotifier extends StateNotifier<RideState> {
   void dispose() {
     carsSubscription?.cancel();
     locationTrackingTImer?.cancel();
+    _refreshTimer?.cancel();
     FlutterBackgroundService().invoke("stopService");
     super.dispose();
   }

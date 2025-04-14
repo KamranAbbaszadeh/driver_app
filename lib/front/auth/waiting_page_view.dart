@@ -624,7 +624,9 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       thickness: height * 0.0005,
                     ),
                     SizedBox(height: height * 0.025),
-                    applicationFormVerified && !personalFormVerified
+                    applicationFormVerified &&
+                            !personalFormVerified &&
+                            userData['Personal & Car Details Form'] == "PENDING"
                         ? GestureDetector(
                           onTap: () {
                             navigatorKey.currentState?.pushNamed(
@@ -662,7 +664,9 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                             ),
                           ),
                         )
-                        : personalFormVerified && applicationFormVerified
+                        : personalFormVerified &&
+                            applicationFormVerified &&
+                            userData['Contract Signing'] == "PENDING"
                         ? GestureDetector(
                           onTap: () {
                             navigatorKey.currentState?.pushNamed(

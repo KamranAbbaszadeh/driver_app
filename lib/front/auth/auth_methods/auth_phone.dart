@@ -68,7 +68,6 @@ class _AuthState extends State<AuthPhone> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           SizedBox(
-            height: height * 0.762,
             child: Column(
               children: [
                 Padding(

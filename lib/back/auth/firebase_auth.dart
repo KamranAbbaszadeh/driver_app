@@ -48,7 +48,6 @@ Future<void> signUp({
 
     FirebaseApi.instance.saveFCMToken(userCredential.user!.uid);
 
-
     DateTime parsedDate = DateFormat(
       'dd/MM/yyyy',
     ).parse(birthDayController.text);

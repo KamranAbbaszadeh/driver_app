@@ -4,13 +4,13 @@ import 'package:driver_app/back/upload_files/personal_data/photo_post_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
+import 'package:image_picker/image_picker.dart';
 
 Future<void> uploadPhotosAndSaveData({
   required String userId,
   required dynamic personalPhoto,
-  required List<Asset> driverLicensePhotos,
-  required List<Asset> idPhotos,
+  required List<XFile> driverLicensePhotos,
+  required List<XFile> idPhotos,
   required dynamic context,
 }) async {
   final storageRef = FirebaseStorage.instance.ref();
@@ -104,7 +104,7 @@ Future<String> uploadSinglePhoto({
   final fileRef = storageRef.child(filePath);
 
   UploadTask uploadTask = fileRef.putData(
-    await file.getByteData().then((data) => data.buffer.asUint8List()),
+    await await file.readAsBytes().then((data) => data.buffer.asUint8List()),
   );
   TaskSnapshot taskSnapshot = await uploadTask;
   return await taskSnapshot.ref.getDownloadURL();

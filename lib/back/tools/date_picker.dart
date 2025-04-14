@@ -17,6 +17,7 @@ Future<void> selectDate({
     looping: true,
     titleText: 'Select your date of birth',
     confirmText: 'Done',
+    reverse: true,
     textColor: darkMode ? Colors.white : const Color.fromARGB(255, 30, 29, 29),
   );
 

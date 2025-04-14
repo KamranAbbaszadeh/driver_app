@@ -51,6 +51,7 @@ class _DatePickerState extends State<DatePicker> {
         calendarFormat: CalendarFormat.week,
         rangeStartDay: ride.startDate.toDate(),
         rangeEndDay: ride.endDate.toDate(),
+        
 
         onDaySelected: (selectedDay, focusedDay) {
           setState(() {

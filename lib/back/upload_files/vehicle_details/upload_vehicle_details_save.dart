@@ -3,14 +3,14 @@ import 'package:driver_app/back/upload_files/vehicle_details/vehicle_details_pos
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
+import 'package:image_picker/image_picker.dart';
 
 Future<void> uploadVehicleDetailsAndSave({
   required String userId,
   required String carName,
-  required List<Asset> vehiclePhoto,
+  required List<XFile> vehiclePhoto,
   required String technicalPassportNumber,
-  required List<Asset> technicalPassport,
+  required List<XFile> technicalPassport,
   required String chassisNumber,
   required dynamic chassisPhoto,
   required String vehicleRegistrationNumber,
@@ -111,7 +111,7 @@ Future<String> uploadSinglePhoto({
   final fileRef = storageRef.child(filePath);
 
   UploadTask uploadTask = fileRef.putData(
-    await file.getByteData().then((data) => data.buffer.asUint8List()),
+    await await file.readAsBytes().then((data) => data.buffer.asUint8List()),
   );
   TaskSnapshot taskSnapshot = await uploadTask;
   return await taskSnapshot.ref.getDownloadURL();

@@ -8,8 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:image_picker/image_picker.dart';
 
 class PersonalDataForm extends ConsumerStatefulWidget {
   const PersonalDataForm({super.key});
@@ -22,8 +21,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
   final ScrollController _scrollController = ScrollController();
   bool _showTitle = false;
   dynamic personalPhoto;
-  List<Asset> driverLicensePhoto = <Asset>[];
-  List<Asset> iDPhoto = <Asset>[];
+  List<XFile> driverLicensePhoto = <XFile>[];
+  List<XFile> iDPhoto = <XFile>[];
   String error = "No Error Detected";
 
   bool _allFilledOut(String role) {
@@ -136,26 +135,13 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                     Spacer(),
                     IconButton(
                       onPressed: () async {
-                        if (await Permission.photos.request().isGranted) {
-                          var resultList = await loadAssets(
-                            error: error,
-                            maxNumOfPhotos: 1,
-                            minNumOfPhotos: 1,
-                          );
-                          setState(() {
-                            personalPhoto = resultList.first;
-                          });
-                        } else {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Permission to access photos is required.',
-                                ),
-                              ),
+                        final selected =
+                            await ImagePickerHelper.selectSinglePhoto(
+                              context: context,
                             );
-                          }
-                        }
+                        if (selected == null) return;
+
+                        setState(() => personalPhoto = selected);
                       },
                       icon: Icon(Icons.add),
                     ),
@@ -171,14 +157,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: FittedBox(
-                        fit: BoxFit.contain,
-                        child: AssetThumb(
-                          asset: personalPhoto,
-                          width: (width * 0.254).toInt(),
-                          height: (height * 0.117).toInt(),
-                        ),
-                      ),
+                      child: ImageGrid(images: [personalPhoto]),
                     ),
                 SizedBox(height: height * 0.015),
                 Row(
@@ -187,14 +166,13 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                     Spacer(),
                     IconButton(
                       onPressed: () async {
-                        var resultList = await loadAssets(
-                          error: error,
-                          maxNumOfPhotos: 2,
-                          minNumOfPhotos: 2,
-                        );
-                        setState(() {
-                          iDPhoto = resultList;
-                        });
+                        final images =
+                            await ImagePickerHelper.selectMultiplePhotos(
+                              context: context,
+                            );
+                        if (images != null) {
+                          setState(() => iDPhoto.addAll(images));
+                        }
                       },
                       icon: Icon(Icons.add),
                     ),
@@ -210,11 +188,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: buildGridView(
-                        images: iDPhoto,
-                        height: height,
-                        width: width,
-                      ),
+                      child: ImageGrid(images: iDPhoto),
                     ),
                 SizedBox(height: height * 0.025),
                 role == 'Guide'
@@ -225,14 +199,13 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         Spacer(),
                         IconButton(
                           onPressed: () async {
-                            var resultList = await loadAssets(
-                              error: error,
-                              maxNumOfPhotos: 2,
-                              minNumOfPhotos: 2,
-                            );
-                            setState(() {
-                              driverLicensePhoto = resultList;
-                            });
+                            final images =
+                                await ImagePickerHelper.selectMultiplePhotos(
+                                  context: context,
+                                );
+                            if (images != null) {
+                              setState(() => driverLicensePhoto.addAll(images));
+                            }
                           },
                           icon: Icon(Icons.add),
                         ),
@@ -248,11 +221,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: buildGridView(
-                        images: driverLicensePhoto,
-                        height: height,
-                        width: width,
-                      ),
+                      child: ImageGrid(images: driverLicensePhoto),
                     ),
                 SizedBox(height: height * 0.025),
                 GestureDetector(
@@ -270,14 +239,15 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         );
                       }
                       ref.read(loadingProvider.notifier).stopLoading();
-                    if (context.mounted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CertificatesDetails(role: role),
-                        ),
-                      );
-                    }
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => CertificatesDetails(role: role),
+                          ),
+                        );
+                      }
                     }
                   },
                   child: Container(

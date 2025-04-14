@@ -13,32 +13,34 @@ class BottomNavBar extends ConsumerWidget {
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
-    return BottomBarDoubleBullet(
-      selectedIndex: selectedIndex,
-      backgroundColor: darkMode ? Colors.black : Colors.white,
-      circle1Color: Color.fromARGB(255, 1, 105, 170),
-      circle2Color: Color.fromARGB(255, 52, 168, 235),
-      height: height * 0.07,
-      color: darkMode ? Colors.white : Colors.black,
-      onSelect:
-          (value) => ref.read(selectedIndexProvider.notifier).state = value,
-      items: [
-        BottomBarItem(
-          iconData: Icons.home,
-          label: 'Home',
-          labelTextStyle: GoogleFonts.daysOne(),
-        ),
-        BottomBarItem(
-          iconData: Icons.search,
-          label: 'Rides',
-          labelTextStyle: GoogleFonts.daysOne(),
-        ),
-        BottomBarItem(
-          iconData: Icons.person,
-          label: 'Profile',
-          labelTextStyle: GoogleFonts.daysOne(),
-        ),
-      ],
+    return SafeArea(
+      child: BottomBarDoubleBullet(
+        selectedIndex: selectedIndex,
+        backgroundColor: darkMode ? Colors.black : Colors.white,
+        circle1Color: Color.fromARGB(255, 1, 105, 170),
+        circle2Color: Color.fromARGB(255, 52, 168, 235),
+        height: height * 0.07,
+        color: darkMode ? Colors.white : Colors.black,
+        onSelect:
+            (value) => ref.read(selectedIndexProvider.notifier).state = value,
+        items: [
+          BottomBarItem(
+            iconData: Icons.home,
+            label: 'Home',
+            labelTextStyle: GoogleFonts.daysOne(),
+          ),
+          BottomBarItem(
+            iconData: Icons.search,
+            label: 'Rides',
+            labelTextStyle: GoogleFonts.daysOne(),
+          ),
+          BottomBarItem(
+            iconData: Icons.person,
+            label: 'Profile',
+            labelTextStyle: GoogleFonts.daysOne(),
+          ),
+        ],
+      ),
     );
   }
 }

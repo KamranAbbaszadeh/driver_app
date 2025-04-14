@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
+import 'package:image_picker/image_picker.dart';
 
 class CarDetailsForm extends ConsumerStatefulWidget {
   const CarDetailsForm({super.key});
@@ -30,7 +30,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
   final TextEditingController technicalPassportNumberController =
       TextEditingController();
   late FocusNode technicalPassportNumberFocusNode;
-  List<Asset> technicalPassportNumberPhoto = <Asset>[];
+  List<XFile> technicalPassportNumberPhoto = <XFile>[];
   bool isTechnicalPassportNumberEmpty = false;
 
   final TextEditingController chassisNumberController = TextEditingController();
@@ -57,7 +57,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
   late FocusNode vehicleRegistrationNumberFocusNode;
   bool isVehicleRegistrationNumberEmpty = false;
 
-  List<Asset> carsPhoto = <Asset>[];
+  List<XFile> carsPhoto = <XFile>[];
 
   void _isEmpty(TextEditingController controller, String fieldName) {
     setState(() {
@@ -398,19 +398,12 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     Spacer(),
                     IconButton(
                       onPressed: () async {
-                        var resultList = await loadAssets(
-                          error: error,
-                          maxNumOfPhotos: 12,
-                          minNumOfPhotos: 4,
-                        );
-
-                        setState(() {
-                          carsPhoto = resultList;
-                        });
-                        if (context.mounted) {
-                          FocusScope.of(
-                            context,
-                          ).requestFocus(technicalPassportNumberFocusNode);
+                        final images =
+                            await ImagePickerHelper.selectMultiplePhotos(
+                              context: context,
+                            );
+                        if (images != null) {
+                          setState(() => carsPhoto.addAll(images));
                         }
                       },
                       icon: Icon(Icons.add),
@@ -428,11 +421,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: buildGridView(
-                        images: carsPhoto,
-                        height: height,
-                        width: width,
-                      ),
+                      child: ImageGrid(images: carsPhoto),
                     ),
                 SizedBox(height: height * 0.015),
                 //Technical Passport Number
@@ -553,19 +542,14 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     Spacer(),
                     IconButton(
                       onPressed: () async {
-                        var resultList = await loadAssets(
-                          error: error,
-                          maxNumOfPhotos: 2,
-                          minNumOfPhotos: 2,
-                        );
-                        setState(() {
-                          technicalPassportNumberPhoto = resultList;
-                        });
-
-                        if (context.mounted) {
-                          FocusScope.of(
-                            context,
-                          ).requestFocus(chassisNumberFocusNode);
+                        final images =
+                            await ImagePickerHelper.selectMultiplePhotos(
+                              context: context,
+                            );
+                        if (images != null) {
+                          setState(
+                            () => technicalPassportNumberPhoto.addAll(images),
+                          );
                         }
                       },
                       icon: Icon(Icons.add),
@@ -583,11 +567,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: buildGridView(
-                        images: technicalPassportNumberPhoto,
-                        height: height,
-                        width: width,
-                      ),
+                      child: ImageGrid(images: technicalPassportNumberPhoto),
                     ),
                 SizedBox(height: height * 0.015),
                 //Chassis Number
@@ -701,19 +681,13 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     Spacer(),
                     IconButton(
                       onPressed: () async {
-                        var resultList = await loadAssets(
-                          error: error,
-                          maxNumOfPhotos: 1,
-                          minNumOfPhotos: 1,
-                        );
-                        setState(() {
-                          chassisNumberPhoto = resultList.first;
-                        });
-                        if (context.mounted) {
-                          FocusScope.of(
-                            context,
-                          ).requestFocus(vehicleRegistrationNumberFocusNode);
-                        }
+                        final selected =
+                            await ImagePickerHelper.selectSinglePhoto(
+                              context: context,
+                            );
+                        if (selected == null) return;
+
+                        setState(() => chassisNumberPhoto = selected);
                       },
                       icon: Icon(Icons.add),
                     ),
@@ -730,14 +704,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: FittedBox(
-                        fit: BoxFit.contain,
-                        child: AssetThumb(
-                          asset: chassisNumberPhoto,
-                          width: (width * 0.254).toInt(),
-                          height: (height * 0.117).toInt(),
-                        ),
-                      ),
+                      child: ImageGrid(images: [chassisNumberPhoto]),
                     ),
                 SizedBox(height: height * 0.015),
                 //Vehicle Registration Number

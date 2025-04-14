@@ -1,109 +1,169 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-Future<List<Asset>> loadAssets({
-  required String error,
-  required int maxNumOfPhotos,
-  required int minNumOfPhotos,
-}) async {
-  List<Asset> resultList = <Asset>[];
+class ImagePickerHelper {
+  static final ImagePicker _picker = ImagePicker();
 
-  const AlbumSetting albumSetting = AlbumSetting(
-    fetchResults: {
-      PHFetchResult(
-        type: PHAssetCollectionType.smartAlbum,
-        subtype: PHAssetCollectionSubtype.smartAlbumUserLibrary,
-      ),
-      PHFetchResult(
-        type: PHAssetCollectionType.smartAlbum,
-        subtype: PHAssetCollectionSubtype.smartAlbumFavorites,
-      ),
-      PHFetchResult(
-        type: PHAssetCollectionType.album,
-        subtype: PHAssetCollectionSubtype.albumRegular,
-      ),
-      PHFetchResult(
-        type: PHAssetCollectionType.smartAlbum,
-        subtype: PHAssetCollectionSubtype.smartAlbumSelfPortraits,
-      ),
-      PHFetchResult(
-        type: PHAssetCollectionType.smartAlbum,
-        subtype: PHAssetCollectionSubtype.smartAlbumPanoramas,
-      ),
-      PHFetchResult(
-        type: PHAssetCollectionType.smartAlbum,
-        subtype: PHAssetCollectionSubtype.smartAlbumVideos,
-      ),
-    },
-  );
-
-  SelectionSetting selectionSetting = SelectionSetting(
-    min: minNumOfPhotos,
-    max: maxNumOfPhotos,
-    unselectOnReachingMax: true,
-  );
-
-  const DismissSetting dismissSetting = DismissSetting(
-    enabled: true,
-    allowSwipe: true,
-  );
-  const ListSetting listSetting = ListSetting(spacing: 5, cellsPerRow: 4);
-
-  const AssetsSetting assetsSetting = AssetsSetting(
-    supportedMediaTypes: {MediaTypes.video, MediaTypes.image},
-  );
-
-  final CupertinoSettings iosSettings = CupertinoSettings(
-    fetch: const FetchSetting(album: albumSetting, assets: assetsSetting),
-    selection: selectionSetting,
-    dismiss: dismissSetting,
-    list: listSetting,
-  );
-  try {
-    resultList = await MultiImagePicker.pickImages(
-      selectedAssets: resultList,
-      iosOptions: IOSOptions(
-        doneButton: UIBarButtonItem(title: 'Confirm'),
-        cancelButton: UIBarButtonItem(title: 'Cancel'),
-        settings: iosSettings,
-      ),
-      androidOptions: AndroidOptions(
-        actionBarTitle: 'Select File',
-        allViewTitle: 'All files',
-        useDetailsView: true,
-        maxImages: maxNumOfPhotos,
-        hasCameraInPickerPage: true,
-        textOnNothingSelected:
-            'Please make selection of minimum $minNumOfPhotos files',
-      ),
-    );
-  } on Exception catch (e) {
-    error = e.toString();
+  static Future<void> pickImage({
+    required BuildContext context,
+    required Function(List<XFile>) onPicked,
+    bool allowCamera = true,
+    bool allowGallery = true,
+  }) async {
+    final granted = await _requestPermissions(camera: allowCamera);
+    if (!granted) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permissions are required to access images'),
+          ),
+        );
+      }
+      return;
+    }
+    if (context.mounted) {
+      final width = MediaQuery.of(context).size.width;
+      final height = MediaQuery.of(context).size.height;
+      final darkMode =
+          MediaQuery.of(context).platformBrightness == Brightness.dark;
+      await showModalBottomSheet(
+        context: context,
+        backgroundColor:
+            darkMode
+                ? const Color.fromARGB(255, 61, 61, 61)
+                : const Color.fromARGB(255, 224, 221, 221),
+        constraints: BoxConstraints(minWidth: width),
+        builder:
+            (ctx) => SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(width * 0.04),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: height * 0.01,
+                  children: [
+                    if (allowGallery)
+                      GestureDetector(
+                        onTap: () async {
+                          Navigator.pop(ctx);
+                          List<XFile> images = await _picker
+                              .pickImage(source: ImageSource.gallery)
+                              .then((img) => img != null ? [img] : []);
+                          if (images.isNotEmpty) onPicked(images);
+                        },
+                        child: Row(
+                          spacing: width * 0.02,
+                          children: [
+                            Icon(
+                              Icons.photo_library_outlined,
+                              color: darkMode ? Colors.white : Colors.black,
+                            ),
+                            Text(
+                              'Pick from Gallery',
+                              style: GoogleFonts.cabin(
+                                color: darkMode ? Colors.white : Colors.black,
+                                fontSize: width * 0.045,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (allowCamera)
+                      GestureDetector(
+                        onTap: () async {
+                          Navigator.pop(ctx);
+                          final image = await _picker.pickImage(
+                            source: ImageSource.camera,
+                          );
+                          if (image != null) onPicked([image]);
+                        },
+                        child: Row(
+                          spacing: width * 0.02,
+                          children: [
+                            Icon(
+                              Icons.camera_alt,
+                              color: darkMode ? Colors.white : Colors.black,
+                            ),
+                            Text(
+                              'Take Photo',
+                              style: GoogleFonts.cabin(
+                                color: darkMode ? Colors.white : Colors.black,
+                                fontSize: width * 0.045,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+      );
+    }
   }
 
-  return resultList;
+  static Future<XFile?> selectSinglePhoto({
+    required BuildContext context,
+  }) async {
+    final selected = await _picker.pickImage(source: ImageSource.gallery);
+    if (selected == null) return null;
+    return selected;
+  }
+
+  static Future<List<XFile>?> selectMultiplePhotos({
+    required BuildContext context,
+  }) async {
+    final status = await Permission.photos.request();
+    if (!status.isGranted) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Photo permission denied')),
+        );
+      }
+      return null;
+    }
+
+    final images = await _picker.pickMultiImage();
+    if (images.isEmpty) return null;
+    return images;
+  }
+
+  static Future<bool> _requestPermissions({required bool camera}) async {
+    final galleryStatus = await Permission.photos.request();
+    final cameraStatus =
+        camera ? await Permission.camera.request() : PermissionStatus.granted;
+    return galleryStatus.isGranted && cameraStatus.isGranted;
+  }
 }
 
-Widget buildGridView({
-  required List<Asset> images,
-  required double width,
-  required double height,
-}) {
-  return GridView.count(
-    crossAxisCount: images.length < 3 ? images.length : 3,
-    mainAxisSpacing: height * 0.011,
-    crossAxisSpacing: width * 0.025,
-    children: List.generate(images.length, (index) {
-      Asset asset = images[index];
-      return FittedBox(
-        fit: BoxFit.contain,
-        alignment: Alignment.topCenter,
-        child: AssetThumb(
-          asset: asset,
-          width: (width * 0.763).toInt(),
-          height: (height * 0.352).toInt(),
-        ),
-      );
-    }),
-  );
+class ImageGrid extends StatelessWidget {
+  final List<XFile> images;
+
+  const ImageGrid({super.key, required this.images});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      itemCount: images.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemBuilder: (_, index) {
+        final image = images[index];
+        return Image.file(File(image.path), fit: BoxFit.cover);
+      },
+    );
+  }
 }

@@ -8,7 +8,6 @@ Future<List<File>?> mediaFilePicker() async {
     allowMultiple: true,
     allowedExtensions: ['jpg', 'jpeg', 'png', 'mp4', 'mov'],
     type: FileType.custom,
-    allowCompression: true,
   );
   if (result != null) {
     PlatformFile doc = result.files.first;
