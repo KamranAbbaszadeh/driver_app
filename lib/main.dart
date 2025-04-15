@@ -4,7 +4,7 @@ import 'package:driver_app/back/bloc/notification_bloc.dart';
 import 'package:driver_app/back/bloc/notification_event.dart';
 import 'package:driver_app/front/auth/forms/application_forms/application_form.dart';
 import 'package:driver_app/front/auth/auth_methods/auth_email.dart';
-import 'package:driver_app/front/auth/forms/application_forms/car_details_form.dart';
+import 'package:driver_app/front/auth/forms/application_forms/car_details_switcher.dart';
 import 'package:driver_app/front/auth/forms/contracts/contract_sign_form.dart';
 import 'package:driver_app/front/auth/forms/application_forms/personal_data_form.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
@@ -100,7 +100,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/no_internet_screen': (context) => NoInternetPage(),
         '/application_form': (context) => ApplicationForm(),
         '/personal_data_form': (context) => PersonalDataForm(),
-        '/car_details': (context) => CarDetailsForm(),
+        '/car_details': (context) => CarDetailsSwitcher(),
         '/auth_email': (context) => AuthEmail(),
         '/notification_screen':
             (context) => BlocProvider(

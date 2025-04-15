@@ -1847,6 +1847,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                                   await showVehicleTypePicker(
                                     context,
                                     selectedVehicleType,
+                                    singleSelection: false,
                                   );
                                   _vehicleTypeController
                                       .text = selectedVehicleType.join(', ');

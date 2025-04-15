@@ -3,12 +3,15 @@ import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 Future<void> showVehicleTypePicker(
   BuildContext context,
-  Set<String> selectedLanguages,
-) async {
+
+  Set<String> selectedVehicles, {
+  bool singleSelection = false,
+  String vehicleType = "",
+}) async {
   final darkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
   final width = MediaQuery.of(context).size.width;
 
-  final vehicleType = ['Sedan', 'Minivan', 'SUV', 'Premium SUV', 'Bus'];
+  final vehicleTypes = ['Sedan', 'Minivan', 'SUV', 'Premium SUV', 'Bus'];
 
   await WoltModalSheet.show(
     context: context,
@@ -42,13 +45,16 @@ Future<void> showVehicleTypePicker(
             ),
             mainContentSliversBuilder:
                 (context) => [
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final vehicle = vehicleType[index];
-
-                      return StatefulBuilder(
-                        builder: (context, setState) {
-                          final isChecked = selectedLanguages.contains(vehicle);
+                  StatefulBuilder(
+                    builder: (context, setState) {
+                      return SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final vehicle = vehicleTypes[index];
+                          final isChecked =
+                              singleSelection
+                                  ? selectedVehicles.length == 1 &&
+                                      selectedVehicles.contains(vehicle)
+                                  : selectedVehicles.contains(vehicle);
 
                           return ListTile(
                             splashColor: Colors.transparent,
@@ -77,9 +83,15 @@ Future<void> showVehicleTypePicker(
                                 onChanged: (value) {
                                   setState(() {
                                     if (value == true) {
-                                      selectedLanguages.add(vehicle);
+                                      if (singleSelection) {
+                                        selectedVehicles
+                                          ..clear()
+                                          ..add(vehicle);
+                                      } else {
+                                        selectedVehicles.add(vehicle);
+                                      }
                                     } else {
-                                      selectedLanguages.remove(vehicle);
+                                      selectedVehicles.remove(vehicle);
                                     }
                                   });
                                 },
@@ -92,16 +104,22 @@ Future<void> showVehicleTypePicker(
                             onTap: () {
                               setState(() {
                                 if (isChecked) {
-                                  selectedLanguages.remove(vehicle);
+                                  selectedVehicles.remove(vehicle);
                                 } else {
-                                  selectedLanguages.add(vehicle);
+                                  if (singleSelection) {
+                                    selectedVehicles
+                                      ..clear()
+                                      ..add(vehicle);
+                                  } else {
+                                    selectedVehicles.add(vehicle);
+                                  }
                                 }
                               });
                             },
                           );
-                        },
+                        }, childCount: vehicleTypes.length),
                       );
-                    }, childCount: vehicleType.length),
+                    },
                   ),
                 ],
           ),

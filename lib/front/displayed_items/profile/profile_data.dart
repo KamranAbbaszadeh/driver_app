@@ -167,7 +167,6 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                                               setState(
                                                 () => profilePhoto = selected,
                                               );
-                                              print(selected);
                                               if (user.personalPhoto != null &&
                                                   user
                                                       .personalPhoto!

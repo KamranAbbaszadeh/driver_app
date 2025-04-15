@@ -210,7 +210,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                 child: Transform.rotate(
                                   angle: currentHeading * (pi / 180),
                                   child: Image.asset(
-                                    'assets/Car.png',
+                                    'assets/car_icons/Car.png',
                                     width: width * 0.1,
                                     height: height * 0.1,
                                   ),

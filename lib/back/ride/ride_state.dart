@@ -152,7 +152,26 @@ class RideNotifier extends StateNotifier<RideState> {
 
     if (isNewRoute || startArrivedChanged || endArrivedChanged) {
       final routeKey = newNext['routeKey'] as String;
-      final docId = newNext['ID'];
+      final docId =
+          state.filteredRides
+              .firstWhere(
+                (ride) => ride.routes.containsKey(newNext['routeKey']),
+                orElse:
+                    () => Ride(
+                      tourName: '',
+                      transfer: false,
+                      startDate: Timestamp.now(),
+                      endDate: Timestamp.now(),
+                      numOfGuests: 0,
+                      pickUpLocation: const GeoPoint(0, 0),
+                      price: 0,
+                      routes: {},
+                      vehicleType: '',
+                      driver: '',
+                      docId: '',
+                    ),
+              )
+              .docId;
 
       final startLatLngSplit = newNext['Start'].split(',');
       final startLatLng = LatLng(

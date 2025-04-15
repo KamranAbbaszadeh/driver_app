@@ -1,11 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/tools/image_picker.dart';
 import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:driver_app/back/tools/vehicle_type_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -13,7 +12,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 class CarDetailsForm extends ConsumerStatefulWidget {
-  const CarDetailsForm({super.key});
+  final String vehicleType;
+  final void Function(Map<String, dynamic>) onFormSubmit;
+  const CarDetailsForm({
+    super.key,
+    required this.onFormSubmit,
+    required this.vehicleType,
+  });
 
   @override
   ConsumerState<CarDetailsForm> createState() => _CarDetailsFormState();
@@ -961,6 +966,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         await showVehicleTypePicker(
                           context,
                           selectedVehicleCategory,
+                          singleSelection: true,
                         );
                         vehicleCategoryController.text = selectedVehicleCategory
                             .join(', ');
@@ -1133,42 +1139,56 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                 GestureDetector(
                   onTap: () async {
                     if (_allFilledOut()) {
+                      ref.read(loadingProvider.notifier).startLoading();
                       final userId = FirebaseAuth.instance.currentUser?.uid;
                       if (userId != null) {
-                        ref.read(loadingProvider.notifier).startLoading();
-                        await uploadVehicleDetailsAndSave(
-                          userId: userId,
-                          carName: nameOfTheCarController.text,
-                          vehiclePhoto: carsPhoto,
-                          technicalPassportNumber:
-                              technicalPassportNumberController.text,
-                          technicalPassport: technicalPassportNumberPhoto,
-                          chassisNumber: chassisNumberController.text,
-                          chassisPhoto: chassisNumberPhoto,
-                          vehicleRegistrationNumber:
-                              vehicleRegistrationNumberController.text,
-                          vehiclesYear: yearOfTheCarController.text,
-                          vehicleType: vehicleCategoryController.text,
-                          seatNumber: seatNumbersController.text,
-                          context: context,
+                        final storageRef = FirebaseStorage.instance.ref();
+                        List<String> vehiclePhotosUrls =
+                            await uploadMultiplePhotos(
+                              storageRef: storageRef,
+                              userId: userId,
+                              files: carsPhoto,
+                              folderName: 'Vehicle Photos',
+                            );
+                        List<String> technicalPassportUrls =
+                            await uploadMultiplePhotos(
+                              storageRef: storageRef,
+                              userId: userId,
+                              files: technicalPassportNumberPhoto,
+                              folderName: 'Technical Passport',
+                            );
+                        String chassisNumberUrl = await uploadSinglePhoto(
+                          storageRef: storageRef,
+                          userID: userId,
+                          file: chassisNumberPhoto,
+                          folderName: 'Chassis Number',
                         );
-                        await FirebaseFirestore.instance
-                            .collection('Users')
-                            .doc(userId)
-                            .update({
-                              'Personal & Car Details Form':
-                                  'APPLICATION RECEIVED',
-                            });
-                        ref.read(loadingProvider.notifier).stopLoading();
+
+                        int seatNumberNum = int.parse(
+                          seatNumbersController.text,
+                        );
+
+                        Map<String, dynamic> formData = {
+                          'Vehicle Name': nameOfTheCarController.text,
+                          'Vehicle Photos': vehiclePhotosUrls,
+                          'Technical Passport Number':
+                              technicalPassportNumberController.text,
+                          'Technical Passport Photos': technicalPassportUrls,
+                          'Chassis Number': chassisNumberController.text,
+                          'Chassis Number Photo': chassisNumberUrl,
+                          'Vehicle Registration Number':
+                              vehicleRegistrationNumberController.text,
+                          'Vehicle\'s Year': yearOfTheCarController.text,
+                          'Vehicle\'s Type': vehicleCategoryController.text,
+                          'Seat Number': seatNumberNum,
+                        };
+
+                        widget.onFormSubmit(formData);
                         if (context.mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => WaitingPage(),
-                            ),
-                          );
+                          Navigator.pop(context);
                         }
                       }
+                      ref.read(loadingProvider.notifier).stopLoading();
                     }
                   },
                   child: Container(

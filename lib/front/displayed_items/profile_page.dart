@@ -1,6 +1,8 @@
 import 'package:driver_app/back/rides_history/rides_provider.dart';
+import 'package:driver_app/front/auth/forms/application_forms/car_details_switcher.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:driver_app/front/displayed_items/profile/profile_data.dart';
+import 'package:driver_app/front/displayed_items/profile/rides_history.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -170,7 +172,12 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => RidesHistory()),
+                  );
+                },
                 child: Container(
                   width: width,
                   height: height * 0.065,
@@ -198,7 +205,12 @@ class ProfilePage extends ConsumerWidget {
               ),
 
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => CarDetailsSwitcher()),
+                  );
+                },
                 child: Container(
                   width: width,
                   height: height * 0.065,
@@ -211,7 +223,7 @@ class ProfilePage extends ConsumerWidget {
                     spacing: width * 0.03,
                     children: [
                       Image.asset(
-                        'assets/vehicle.png',
+                        'assets/car_icons/vehicle.png',
                         width: 24,
                         height: 24,
                         fit: BoxFit.fill,
@@ -233,11 +245,74 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () {
-                  FirebaseAuth.instance.signOut();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => WaitingPage()),
+                onTap: () async {
+                  await showDialog<bool>(
+                    context: context,
+                    builder:
+                        (context) => AlertDialog(
+                          title: Text(
+                            'Confirm Logout',
+                            style: GoogleFonts.cabin(
+                              fontWeight: FontWeight.bold,
+                              fontSize: width * 0.07,
+                            ),
+                          ),
+                          content: Text(
+                            'Are you sure you want to log out?',
+                            style: GoogleFonts.cabin(fontSize: width * 0.04),
+                          ),
+                          actions: [
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pop(context, false);
+                              },
+                              child: Text(
+                                'Cancel',
+                                style: GoogleFonts.cabin(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: width * 0.043,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: width * 0.01),
+                            GestureDetector(
+                              onTap: () async {
+                                await FirebaseAuth.instance.signOut();
+                                if (context.mounted) {
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const WaitingPage(),
+                                    ),
+                                    (route) => false,
+                                  );
+                                }
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color:
+                                      darkMode
+                                          ? Color.fromARGB(255, 52, 168, 235)
+                                          : Color.fromARGB(255, 1, 105, 170),
+                                  borderRadius: BorderRadius.circular(
+                                    width * 0.029,
+                                  ),
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: width * 0.02,
+                                  vertical: height * 0.005,
+                                ),
+                                child: Text(
+                                  'Log out',
+                                  style: GoogleFonts.cabin(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: width * 0.05,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                   );
                 },
                 child: Container(

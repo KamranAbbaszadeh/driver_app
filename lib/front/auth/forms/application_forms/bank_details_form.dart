@@ -1,7 +1,7 @@
 import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/bank_details/upload_bank_details.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/auth/forms/application_forms/car_details_form.dart';
+import 'package:driver_app/front/auth/forms/application_forms/car_details_switcher.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -1248,7 +1248,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                                 (context) =>
                                     role == 'Guide'
                                         ? WaitingPage()
-                                        : CarDetailsForm(),
+                                        : CarDetailsSwitcher(),
                           ),
                         );
                       }

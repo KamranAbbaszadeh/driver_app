@@ -142,7 +142,7 @@ flutter:
     - assets/welcome/Animation_Welcome.json
     - assets/welcome/smartphone.png
     - assets/splash/onemoretour.png
-    - assets/Car.png
+    - assets/car_icons/Car.png
     - assets/start_location.png
     - assets/end_location.png
     - assets/location.png
@@ -151,9 +151,13 @@ flutter:
     - assets/map_style_light.json
     - assets/check_dark.json
     - assets/check_light.json
-    - assets/vehicle.png
+    - assets/car_icons/vehicle.png
     - assets/logout.png
-    - assets/car_icon.png
+    - assets/car_icons/bus.png
+    - assets/car_icons/sedan.png
+    - assets/car_icons/mininvan.png
+    - assets/car_icons/SUV.png
+    - assets/car_icons/premium_SUV.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
