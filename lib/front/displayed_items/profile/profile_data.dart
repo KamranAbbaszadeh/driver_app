@@ -282,7 +282,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                                 spacing: height * 0.01,
                                 children: [
                                   Text(
-                                    'Completed Rires',
+                                    'Completed Rides',
                                     style: GoogleFonts.cabin(
                                       fontWeight: FontWeight.bold,
                                       fontSize: width * 0.037,

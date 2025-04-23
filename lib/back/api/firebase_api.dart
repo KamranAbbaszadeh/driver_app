@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/front/tools/bottom_bar_provider.dart';
 import 'package:driver_app/front/tools/notification_notifier.dart';
 import 'package:driver_app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,6 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
 
 final Logger logger = Logger();
+
+String? currentChatTourId;
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -53,7 +56,7 @@ class FirebaseApi {
     final userID = FirebaseAuth.instance.currentUser?.uid;
 
     await _requestNotificationPermissions();
-    await initializeNotifications();
+    await initializeNotifications(ref);
     if (userID != null) {
       await saveFCMToken(userID);
       setupTokenRefresh(userID);
@@ -99,7 +102,7 @@ class FirebaseApi {
     });
   }
 
-  Future<void> initializeNotifications() async {
+  Future<void> initializeNotifications(WidgetRef ref) async {
     if (isFlutterLocalNotificationsInitialized) return;
 
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -127,13 +130,19 @@ class FirebaseApi {
         if (details.payload != null) {
           final Map<String, dynamic> data = jsonDecode(details.payload!);
           final String? type = data['route'];
-          if (type == 'chat') {
-            navigatorKey.currentState?.pushNamed(
-              '/notification_page',
-              arguments: details,
-            );
+          if (type == '/chat_page') {
+            final String? tourId = data['tourId'];
+            final String? name = data['name'];
+            if (tourId != null && name != null) {
+              navigatorKey.currentState?.pushNamed('/notification_screen');
+            }
+          } else if (type == "/new_tours") {
+            ref.read(selectedIndexProvider.notifier).state = 1;
+            navigatorKey.currentState?.pushNamed("home_page");
           } else {
-            navigatorKey.currentState?.pushNamed(type!);
+            navigatorKey.currentState?.pushNamed(
+              type ?? '/notification_screen',
+            );
           }
         }
       },
@@ -143,6 +152,14 @@ class FirebaseApi {
   }
 
   Future<void> handleMessage(RemoteMessage message) async {
+    logger.i("🔔 handleMessage called with: ${message.notification?.title}");
+    RemoteNotification? notification = message.notification;
+    AndroidNotification? android = message.notification?.android;
+
+    if (notification == null) {
+      logger.w("⚠️ Foreground message has no notification payload.");
+    }
+
     try {
       String? messageId = message.messageId;
 
@@ -156,13 +173,30 @@ class FirebaseApi {
         return;
       }
 
-      RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
-
       if (notification != null && android != null) {
-        if (message.data['route'] == 'chat') {
-          String? tourId = message.data['body'];
+        if (message.data['route'] == '/chat_page') {
+          String? tourId = message.data['tourId'];
           if (tourId != null) {
+            if (currentChatTourId == tourId) {
+              messages.add({
+                'message': message.toMap(),
+                'isViewed': true,
+                'messageId': messageId,
+              });
+              await prefs.setString(
+                'notification_messages',
+                jsonEncode(messages),
+              );
+              return;
+            }
+
+            final lastTourId = prefs.getString('last_left_chat_tourId');
+            final lastLeft = prefs.getInt('last_left_chat_time') ?? 0;
+            final now = DateTime.now().millisecondsSinceEpoch;
+
+            if (lastTourId == tourId && (now - lastLeft) < 5000) {
+              return;
+            }
             String? tourName = await _fetchTourName(tourId);
             if (tourName != null) {
               String notificationTitle = 'Tour: $tourName';
@@ -228,7 +262,7 @@ class FirebaseApi {
     }
   }
 
-  void _handleNotificationTap(RemoteMessage message) async {
+  void _handleNotificationTap(RemoteMessage message, WidgetRef ref) async {
     try {
       String? messageId = message.messageId;
 
@@ -251,21 +285,21 @@ class FirebaseApi {
 
       final Map<String, dynamic> data = message.data;
 
-      final String? type = data['route'];
+      final String? route = data['route'];
 
-      if (type == 'chat') {
-        String? tourId = data['body'];
+      if (route == '/chat_page') {
+        String? tourId = data['tourId'];
         if (tourId != null) {
           String? tourName = await _fetchTourName(tourId);
           if (tourName != null) {
-            navigatorKey.currentState?.pushNamed(
-              '/chat_page',
-              arguments: {'tourName': tourName, 'latestMessage': data['name']},
-            );
+            navigatorKey.currentState?.pushNamed('/notification_screen');
           }
         }
+      } else if (route == "/new_tours") {
+        ref.read(selectedIndexProvider.notifier).state = 1;
+        navigatorKey.currentState?.pushNamed("home_page");
       } else {
-        navigatorKey.currentState?.pushNamed('/notification_screen');
+        navigatorKey.currentState?.pushNamed(route ?? '/notification_screen');
       }
     } catch (e) {
       logger.e("Error handling notification tap: $e");
@@ -281,7 +315,7 @@ class FirebaseApi {
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       try {
-        _handleNotificationTap(message);
+        _handleNotificationTap(message, ref);
       } catch (e) {
         logger.e("Error handling message opened app: $e");
       }
@@ -299,19 +333,62 @@ class FirebaseApi {
               .doc(userId)
               .get();
 
-      String? role = userDoc['role'];
-      String collectionName = role == 'Guide' ? 'Guide' : 'Cars';
+      String? role = userDoc['Role'];
+      if (role == "Driver Cum Guide") {
+        DocumentSnapshot? tourDoc;
 
-      DocumentSnapshot tourDoc =
-          await FirebaseFirestore.instance
-              .collection(collectionName)
-              .doc(tourId)
-              .get();
+        String collectionName = 'Guide';
+        final guideDoc =
+            await FirebaseFirestore.instance
+                .collection(collectionName)
+                .doc(tourId)
+                .get();
 
-      return tourDoc.exists ? tourDoc['tourName'] : null;
+        if (guideDoc.exists) {
+          tourDoc = guideDoc;
+        } else {
+          collectionName = 'Cars';
+          final carsDoc =
+              await FirebaseFirestore.instance
+                  .collection(collectionName)
+                  .doc(tourId)
+                  .get();
+          if (carsDoc.exists) {
+            tourDoc = carsDoc;
+          }
+        }
+
+        if (tourDoc == null) return null;
+        return tourDoc['TourName'];
+      } else if (role == "Driver") {
+        String collectionName = 'Cars';
+        final tourDoc =
+            await FirebaseFirestore.instance
+                .collection('Users')
+                .doc(userId)
+                .collection(collectionName)
+                .doc(tourId)
+                .get();
+
+        if (!tourDoc.exists) return null;
+        return tourDoc['tourName'];
+      } else if (role == "Guide") {
+        String collectionName = 'Guide';
+        final tourDoc =
+            await FirebaseFirestore.instance
+                .collection('Users')
+                .doc(userId)
+                .collection(collectionName)
+                .doc(tourId)
+                .get();
+
+        if (!tourDoc.exists) return null;
+        return tourDoc['tourName'];
+      }
     } catch (e) {
       logger.e("Error fetching tour name: $e");
       return null;
     }
+    return null;
   }
 }

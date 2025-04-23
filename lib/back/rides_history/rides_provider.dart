@@ -38,7 +38,9 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
     _fetchData();
   }
 
+  bool _mounted = true;
   StreamSubscription<QuerySnapshot>? carsSubscription;
+  StreamSubscription<QuerySnapshot>? guideSubscription;
 
   Future<void> _fetchData() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -47,19 +49,71 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
     carsSubscription = FirebaseFirestore.instance
         .collection('Cars')
         .snapshots()
-        .listen((snapshot) {
-          final allRides =
-              snapshot.docs
-                  .map((doc) => RideHistory.fromFirestore(data: doc.data()))
-                  .where((ride) => ride.driver == userId)
-                  .toList();
+        .listen(
+          (snapshot) {
+            final currentRides = {
+              for (var r in state.allRides.where((r) => r.driver == userId))
+                r.docId: r,
+            };
+            for (var doc in snapshot.docs) {
+              final ride = RideHistory.fromFirestore(
+                data: doc.data(),
+                id: doc.id,
+              );
+              if (ride.driver == userId) {
+                currentRides[ride.docId] = ride;
+              }
+            }
+            final allRides = currentRides.values.toList();
 
-          final filtered =
-              allRides.where((ride) => ride.isCompleted == true).toList()
-                ..sort((a, b) => b.startDate.compareTo(a.startDate));
+            final filtered =
+                allRides.where((ride) => ride.isCompleted == true).toList()
+                  ..sort((a, b) => b.startDate.compareTo(a.startDate));
 
-          state = state.copyWith(allRides: allRides, filteredRides: filtered);
-        });
+            if (_mounted) {
+              state = state.copyWith(
+                allRides: allRides,
+                filteredRides: filtered,
+              );
+            }
+          },
+          onError: (error) {
+            // Handle error if needed
+          },
+        );
+
+    guideSubscription = FirebaseFirestore.instance
+        .collection('Guide')
+        .snapshots()
+        .listen(
+          (snapshot) {
+            final currentRides = {for (var r in state.allRides) r.docId: r};
+            for (var doc in snapshot.docs) {
+              final ride = RideHistory.fromFirestore(
+                data: doc.data(),
+                id: doc.id,
+              );
+              if (ride.guide == userId) {
+                currentRides[ride.docId] = ride;
+              }
+            }
+            final allCombined = currentRides.values.toList();
+
+            final filtered =
+                allCombined.where((ride) => ride.isCompleted == true).toList()
+                  ..sort((a, b) => b.startDate.compareTo(a.startDate));
+
+            if (_mounted) {
+              state = state.copyWith(
+                allRides: allCombined,
+                filteredRides: filtered,
+              );
+            }
+          },
+          onError: (error) {
+            // Handle error if needed
+          },
+        );
   }
 
   int get nonCompletedRidesCount => state.allRides.length;
@@ -83,7 +137,9 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
 
   @override
   void dispose() {
+    _mounted = false;
     carsSubscription?.cancel();
+    guideSubscription?.cancel();
     super.dispose();
   }
 }

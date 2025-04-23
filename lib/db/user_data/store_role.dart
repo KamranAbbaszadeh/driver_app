@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class RoleDataProvider extends StateNotifier<String?> {
+class RoleDataProvider extends StateNotifier<Map<String, dynamic>?> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final User? _currentUser;
 
@@ -21,7 +21,10 @@ class RoleDataProvider extends StateNotifier<String?> {
           (snapshot) {
             final newData = snapshot.data();
             if (newData != null && newData.containsKey('Role')) {
-              state = newData['Role'] as String?;
+              state = {
+                "Role": newData['Role'],
+                "isRegistered": newData['Registration Completed'] ?? false,
+              };
             } else {
               state = null;
             }
@@ -33,7 +36,7 @@ class RoleDataProvider extends StateNotifier<String?> {
   }
 }
 
-final roleProvider = StateNotifierProvider<RoleDataProvider, String?>((ref) {
+final roleProvider = StateNotifierProvider<RoleDataProvider, Map<String, dynamic>?>((ref) {
   final currentUser = FirebaseAuth.instance.currentUser;
   return RoleDataProvider(currentUser);
 });

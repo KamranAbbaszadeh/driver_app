@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Ride {
   String tourName;
+  String category;
   bool transfer;
   Timestamp startDate;
   Timestamp endDate;
@@ -11,10 +12,14 @@ class Ride {
   Map<String, dynamic> routes;
   String vehicleType;
   String driver;
+  String? guide;
   String docId;
+  String language;
+  String? collectionSource;
 
   Ride({
     required this.tourName,
+    required this.category,
     required this.transfer,
     required this.startDate,
     required this.endDate,
@@ -24,7 +29,10 @@ class Ride {
     required this.routes,
     required this.vehicleType,
     required this.driver,
+    this.guide,
     required this.docId,
+    required this.language,
+    this.collectionSource,
   });
 
   factory Ride.fromFirestore({
@@ -33,6 +41,7 @@ class Ride {
   }) {
     return Ride(
       tourName: data['TourName'],
+      category: data['Category'] ?? '',
       transfer: data['Transfer?'],
       startDate: data['StartDate'],
       endDate: data['EndDate'],
@@ -40,9 +49,12 @@ class Ride {
       pickUpLocation: data['Pickuplocation'],
       price: data['Price'],
       routes: data['Routes'],
-      vehicleType: data['Category'],
-      driver: data['Driver'],
+      vehicleType: data['Vehicle'] ?? '',
+      driver: data['Driver'] ?? '',
+      guide: data['Guide'] ?? '',
       docId: id,
+      language: data['Languages'] ?? '',
+      collectionSource: data['collectionSource'],
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/front/displayed_items/tours/my_rides.dart';
@@ -7,6 +6,7 @@ import 'package:driver_app/front/tools/ride_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:rxdart/rxdart.dart';
 
 class NewOrdersPage extends StatefulWidget {
   const NewOrdersPage({super.key});
@@ -16,10 +16,11 @@ class NewOrdersPage extends StatefulWidget {
 }
 
 class _NewOrdersPageState extends State<NewOrdersPage> {
-  List<Ride> filteredRides = [];
+  List<Ride> filteredRidesFromCars = [];
+  List<Ride> filteredRidesFromGuide = [];
   Map<String, dynamic>? userData;
   StreamSubscription<DocumentSnapshot>? userSubscription;
-  StreamSubscription<QuerySnapshot>? carsSubscription;
+  StreamSubscription? carsSubscription;
 
   @override
   void initState() {
@@ -52,41 +53,140 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
     }
   }
 
-  void listenToRidesUpdates() {
-    if (userData == null) return;
+  void listenToRidesUpdates() async {
+    try {
+      if (userData == null) return;
+      final role = userData?['Role'];
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final activeVehicleId = userData?['Active Vehicle'] ?? 'Car1';
+      final category = userData?['Category'] ?? "";
 
-    carsSubscription?.cancel();
-    carsSubscription = FirebaseFirestore.instance
-        .collection('Cars')
-        .snapshots()
-        .listen((querySnapshot) {
-          final allRides =
-              querySnapshot.docs
-                  .map(
-                    (doc) => Ride.fromFirestore(data: doc.data(), id: doc.id),
-                  )
-                  .toList();
+      final vehicleDoc =
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(userId)
+              .collection('Vehicles')
+              .doc(activeVehicleId)
+              .get();
 
-          try {
-            final filtered =
-                allRides.where((ride) {
-                  final tourStartDate = ride.startDate.toDate();
-                  final userTourEndDate = userData!['Tour end Date'];
+      final seatNumber = vehicleDoc.data()?['Seat Number'];
+      final vehicleType = vehicleDoc.data()?['Vehicle\'s Type'];
+      if (seatNumber == null || vehicleType == null) return;
 
-                  return ride.vehicleType == userData!['Vehicle type'] &&
-                      ride.numOfGuests <=
-                          userData!['Vehicle Details']['Seat Number'] &&
-                      tourStartDate.isAfter(userTourEndDate.toDate()) &&
-                      ride.driver == '';
-                }).toList();
+      carsSubscription?.cancel();
 
-            setState(() {
-              filteredRides = filtered;
-            });
-          } catch (e) {
-            logger.e('Error fetching routes: $e');
+      final carStream =
+          FirebaseFirestore.instance.collection('Cars').snapshots();
+      final guideStream =
+          FirebaseFirestore.instance.collection('Guide').snapshots();
+
+      void handleRides(List<Ride> rides) {
+        try {
+          final fromCars = <Ride>[];
+          final fromGuide = <Ride>[];
+
+          for (var ride in rides) {
+            final tourStartDate = ride.startDate.toDate();
+            final Timestamp? userTourEndTimestamp = userData?['Tour end Date'];
+            if (userTourEndTimestamp == null) {
+              continue;
+            }
+
+            final userTourEndDate = userTourEndTimestamp.toDate();
+
+            final userLanguagesList =
+                userData!['Language spoken']
+                    .split(',')
+                    .map((e) => e.trim())
+                    .toList();
+
+            final isFromCars = ride.collectionSource == 'Cars';
+            final isFromGuide = ride.collectionSource == 'Guide';
+
+            final matchDriver =
+                isFromCars &&
+                ride.vehicleType == vehicleType &&
+                ride.numOfGuests <= seatNumber &&
+                tourStartDate.isAfter(userTourEndDate) &&
+                ride.driver == '';
+
+            final rideLanguagesList =
+                ride.language.split(',').map((e) => e.trim()).toList();
+            final hasMatchingLanguage = rideLanguagesList.any(
+              (lang) => userLanguagesList.contains(lang),
+            );
+            final matchGuide =
+                isFromGuide &&
+                hasMatchingLanguage &&
+                ride.category == category &&
+                tourStartDate.isAfter(userTourEndDate) &&
+                ride.guide == '';
+
+            if (matchDriver) fromCars.add(ride);
+            if (matchGuide) fromGuide.add(ride);
           }
+
+          if (!mounted) return;
+          setState(() {
+            filteredRidesFromCars = fromCars;
+            filteredRidesFromGuide = fromGuide;
+          });
+        } catch (e) {
+          logger.e('Error filtering routes: $e');
+        }
+      }
+
+      if (role == 'Driver') {
+        carsSubscription = carStream.listen((snapshot) async {
+          final rides =
+              snapshot.docs.map((doc) {
+                final data = doc.data();
+                data['collectionSource'] = 'Cars';
+                return Ride.fromFirestore(
+                  data: {...data, 'Driver': data['Driver'] ?? ''},
+                  id: doc.id,
+                );
+              }).toList();
+          handleRides(rides);
         });
+      } else if (role == 'Guide') {
+        carsSubscription = guideStream.listen((snapshot) async {
+          final rides =
+              snapshot.docs.map((doc) {
+                final data = doc.data();
+                data['collectionSource'] = 'Guide';
+                return Ride.fromFirestore(data: data, id: doc.id);
+              }).toList();
+          handleRides(rides);
+        });
+      } else if (role == 'Driver Cum Guide') {
+        carsSubscription = Rx.combineLatest2(carStream, guideStream, (
+          QuerySnapshot carSnap,
+          QuerySnapshot guideSnap,
+        ) {
+          final carRides =
+              carSnap.docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                data['collectionSource'] = 'Cars';
+                return Ride.fromFirestore(
+                  data: {...data, 'Driver': data['Driver'] ?? ''},
+                  id: doc.id,
+                );
+              }).toList();
+          final guideRides =
+              guideSnap.docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                data['collectionSource'] = 'Guide';
+                return Ride.fromFirestore(data: data, id: doc.id);
+              }).toList();
+          return [...carRides, ...guideRides];
+        }).listen((combinedRides) {
+          handleRides(combinedRides);
+        });
+      }
+    } catch (e) {
+      logger.e('Error listening to rides updates: $e');
+    }
   }
 
   @override
@@ -123,7 +223,46 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                 ),
               ),
               SizedBox(height: height * 0.011),
-              MyRides(filteredRides: filteredRides, height: height * 0.76),
+              if (userData == null)
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: height * 0.15),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (filteredRidesFromCars.isEmpty &&
+                  filteredRidesFromGuide.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: height * 0.15),
+                    child: Text(
+                      'There are no rides available',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.ptSans(fontSize: width * 0.04),
+                    ),
+                  ),
+                ),
+              if (filteredRidesFromCars.isNotEmpty) ...[
+                Text(
+                  userData?['Role'] != "Guide" ? 'Ride Tours' : '',
+                  style: GoogleFonts.notoSans(
+                    fontSize: width * 0.045,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                MyRides(filteredRides: filteredRidesFromCars),
+                SizedBox(height: height * 0.011),
+              ],
+              if (filteredRidesFromGuide.isNotEmpty) ...[
+                Text(
+                  userData?['Role'] != "Driver" ? 'Guide Tours' : '',
+                  style: GoogleFonts.notoSans(
+                    fontSize: width * 0.045,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                MyRides(filteredRides: filteredRidesFromGuide),
+              ],
             ],
           ),
         ),

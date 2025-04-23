@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CertificatesDetails extends ConsumerStatefulWidget {
   final String role;
@@ -50,6 +51,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     setState(() {
       certificates[index][key] = value;
     });
+    _saveTempCertificates();
   }
 
   Future<void> pickFile(int index) async {
@@ -268,6 +270,50 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
       'file': null,
       'file name': null,
     });
+
+    _loadTempCertificates();
+  }
+
+  Future<void> _saveTempCertificates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final certList =
+        certificates.map((cert) {
+          return {'name': cert['name'], 'type': cert['type']};
+        }).toList();
+
+    await prefs.setString('certificates', certList.toString());
+  }
+
+  Future<void> _loadTempCertificates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('certificates');
+    if (raw != null) {
+      final matches = RegExp(r'\{.*?\}').allMatches(raw);
+      final restored =
+          matches.map((m) {
+            final item = m.group(0)!;
+            final name =
+                RegExp(r'name: (.*?),').firstMatch(item)?.group(1)?.trim() ??
+                '';
+            final type =
+                RegExp(r'type: (.*?)\}').firstMatch(item)?.group(1)?.trim();
+            return {
+              'name': name,
+              'type': type == 'null' ? null : type,
+              'file': null,
+              'file name': null,
+            };
+          }).toList();
+
+      setState(() {
+        certificates = restored;
+      });
+    }
+  }
+
+  Future<void> _clearTempCertificates() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('certificates');
   }
 
   @override
@@ -417,6 +463,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                           certificates: certificates,
                           context: context,
                         );
+                        await _clearTempCertificates();
                         ref.read(loadingProvider.notifier).stopLoading();
                         if (context.mounted) {
                           Navigator.push(
@@ -494,13 +541,16 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
 
                 Center(
                   child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BankDetailsForm(),
-                        ),
-                      );
+                    onPressed: () async {
+                      await _clearTempCertificates();
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BankDetailsForm(),
+                          ),
+                        );
+                      }
                     },
                     child: Text(
                       'Skip this step',

@@ -7,8 +7,7 @@ import 'package:intl/intl.dart';
 
 class MyRides extends StatefulWidget {
   final List<Ride> filteredRides;
-  final double height;
-  const MyRides({super.key, required this.filteredRides, required this.height});
+  const MyRides({super.key, required this.filteredRides});
 
   @override
   State<MyRides> createState() => _MyRidesState();
@@ -28,20 +27,17 @@ class _MyRidesState extends State<MyRides> {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     return widget.filteredRides.isNotEmpty
-        ? SizedBox(
-          width: width,
-          height: widget.height,
-          child: ListView.builder(
-            itemCount: widget.filteredRides.length,
-            itemBuilder:
-                (context, index) => _buildRide(
-                  context: context,
-                  darkMode: darkMode,
-                  height: height,
-                  width: width,
-                  ride: widget.filteredRides[index],
-                  index: index,
-                ),
+        ? Column(
+          children: List.generate(
+            widget.filteredRides.length,
+            (index) => _buildRide(
+              context: context,
+              darkMode: darkMode,
+              height: height,
+              width: width,
+              ride: widget.filteredRides[index],
+              index: index,
+            ),
           ),
         )
         : Center(

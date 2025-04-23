@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:driver_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,8 +8,28 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
+bool _isLocationListening = false;
+bool _isServiceStarted = false;
+StreamSubscription<Position>? _positionStream;
+Completer<void>? stopCompleter;
+
 Future<void> initializeService() async {
+  await requestLocationPermissions(navigatorKey.currentContext!);
+  if (_isServiceStarted || _isLocationListening) {
+    debugPrint('Skipping service start — already running');
+    return;
+  }
+  _isServiceStarted = true;
   final service = FlutterBackgroundService();
+  final isRunning = await service.isRunning();
+  if (isRunning) {
+    service.invoke('stopService');
+    if (stopCompleter != null) {
+      await stopCompleter!.future;
+    } else {
+      await Future.delayed(const Duration(seconds: 3));
+    }
+  }
 
   await service.configure(
     androidConfiguration: AndroidConfiguration(
@@ -26,22 +47,30 @@ Future<void> initializeService() async {
     ),
   );
 
-  final isRunning = await service.isRunning();
-  if (!isRunning) {
-    await service.startService();
-  }
+  await service.startService();
+  await service.isRunning();
 }
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
+  if (_isLocationListening) return;
+  _isLocationListening = true;
+
   if (service is AndroidServiceInstance) {
+    stopCompleter = Completer<void>();
     service.setForegroundNotificationInfo(
       title: "Location Tracking",
       content: "Tracking your location in background",
     );
-    service.on('stopService').listen((event) {
+    service.on('stopService').listen((event) async {
+      await _positionStream?.cancel();
+      _isLocationListening = false;
+      _isServiceStarted = false;
+      _positionStream = null;
+      stopCompleter?.complete();
+      stopCompleter = null;
       service.stopSelf();
     });
   }
@@ -63,10 +92,10 @@ void onStart(ServiceInstance service) async {
     LatLng? previousLocation;
     DateTime? previousTimestamp;
 
-    Geolocator.getPositionStream(
+    _positionStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 10,
+        distanceFilter: 3,
       ),
     ).listen((Position position) {
       String currentSpeed = "0";

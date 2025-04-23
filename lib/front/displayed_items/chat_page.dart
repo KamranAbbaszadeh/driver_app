@@ -3,21 +3,26 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/api/firebase_api.dart';
+import 'package:driver_app/back/bloc/notification_bloc.dart';
+import 'package:driver_app/back/bloc/notification_event.dart';
 import 'package:driver_app/back/chat/chat_service.dart';
 import 'package:driver_app/back/chat/media_files_picker.dart';
 import 'package:driver_app/back/chat/upload_media_files.dart';
 import 'package:driver_app/back/chat/video_widget.dart';
 import 'package:driver_app/back/tools/video_player_widget.dart';
+import 'package:driver_app/front/tools/notification_notifier.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ChatPage extends StatefulWidget {
+class ChatPage extends ConsumerStatefulWidget {
   final String tourId;
   final double width;
   final double height;
@@ -29,10 +34,11 @@ class ChatPage extends StatefulWidget {
   });
 
   @override
-  State<ChatPage> createState() => _ChatPageState();
+  ConsumerState<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends ConsumerState<ChatPage> {
+  final FocusNode _focusNode = FocusNode();
   final TextEditingController _messageController = TextEditingController();
   late ScrollController _scrollController;
   String tourName = '';
@@ -47,6 +53,7 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
     getTourName();
     _scrollController = ScrollController();
+    currentChatTourId = widget.tourId;
   }
 
   void _sendMessage() {
@@ -70,23 +77,42 @@ class _ChatPageState extends State<ChatPage> {
             await FirebaseFirestore.instance.collection('Users').doc(uid).get();
 
         String role = doc['Role'];
-        String collection = role == 'Guide' ? 'Guide' : 'Cars';
-
-        final ref = FirebaseFirestore.instance
-            .collection(collection)
-            .doc(widget.tourId);
-        String tourNameRaw = await ref.get().then((DocumentSnapshot doc) {
-          return doc['TourName'];
-        });
+        String? collection;
+        String tourNameRaw = '';
+        if (role == 'Guide') {
+          collection = 'Guide';
+          final ref = FirebaseFirestore.instance
+              .collection(collection)
+              .doc(widget.tourId);
+          tourNameRaw = await ref.get().then((doc) => doc['TourName']);
+        } else if (role == 'Driver') {
+          collection = 'Cars';
+          final ref = FirebaseFirestore.instance
+              .collection(collection)
+              .doc(widget.tourId);
+          tourNameRaw = await ref.get().then((doc) => doc['TourName']);
+        } else if (role == 'Driver Cum Guide') {
+          final refCars = FirebaseFirestore.instance
+              .collection('Cars')
+              .doc(widget.tourId);
+          final refGuide = FirebaseFirestore.instance
+              .collection('Guide')
+              .doc(widget.tourId);
+          final docCars = await refCars.get();
+          final docGuide = await refGuide.get();
+          if (docCars.exists) {
+            tourNameRaw = docCars['TourName'];
+          } else if (docGuide.exists) {
+            tourNameRaw = docGuide['TourName'];
+          }
+        }
 
         setState(() {
           tourName = tourNameRaw;
         });
       }
     } catch (e) {
-      setState(() {
-        error = "Error fetching tour name: $e";
-      });
+      error = "Error fetching tour name: $e";
       logger.e('Error: $e');
     }
   }
@@ -129,7 +155,12 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Widget displayMessageWithMedia(BuildContext context, String text) {
+  Widget displayMessageWithMedia(
+    BuildContext context,
+    String text,
+    double width,
+    double height,
+  ) {
     final urlPattern =
         r'(?:(?:https?|ftp):\/\/)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/?[^\s]*';
     final regExp = RegExp(urlPattern, caseSensitive: false);
@@ -170,22 +201,25 @@ class _ChatPageState extends State<ChatPage> {
       children: [
         if (!isOnlyUrl && cleanedText.isNotEmpty)
           SizedBox(
-            width: 200,
+            width: width * 0.508,
             child: Text(
               cleanedText,
-              style: GoogleFonts.cabin(fontSize: 16, color: Colors.black),
+              style: GoogleFonts.cabin(
+                fontSize: width * 0.04,
+                color: Colors.black,
+              ),
               softWrap: true,
             ),
           ),
-        const SizedBox(height: 8),
+        SizedBox(height: height * 0.009),
         if (imageUrl != null)
           GestureDetector(
-            onTap: () => showImageDialog(context, imageUrl!),
+            onTap: () => showImageDialog(context, imageUrl!, width),
 
             child: Image.network(
               imageUrl,
-              width: 200,
-              height: 200,
+              width: width * 0.508,
+              height: height * 0.242,
               fit: BoxFit.cover,
               errorBuilder:
                   (context, error, stackTrace) =>
@@ -206,7 +240,7 @@ class _ChatPageState extends State<ChatPage> {
               }
             },
             child: SizedBox(
-              width: 200,
+              width: width * 0.508,
               child: Linkify(
                 onOpen: (link) async {
                   Uri url = Uri.parse(link.url);
@@ -217,7 +251,10 @@ class _ChatPageState extends State<ChatPage> {
                   }
                 },
                 text: firstUrl,
-                style: GoogleFonts.cabin(fontSize: 16, color: Colors.blue),
+                style: GoogleFonts.cabin(
+                  fontSize: width * 0.04,
+                  color: Colors.blue,
+                ),
                 softWrap: true,
               ),
             ),
@@ -226,22 +263,22 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Widget displayContent(String text) {
+  Widget displayContent(String text, double width, double height) {
     if (isUrl(text)) {
-      return displayMessageWithMedia(context, text);
+      return displayMessageWithMedia(context, text, width, height);
     }
 
     return SizedBox(
-      width: 200,
+      width: width * 0.508,
       child: Text(
         text,
-        style: GoogleFonts.cabin(fontSize: 16, color: Colors.black),
+        style: GoogleFonts.cabin(fontSize: width * 0.04, color: Colors.black),
         softWrap: true,
       ),
     );
   }
 
-  void showImageDialog(BuildContext context, String imageUrl) {
+  void showImageDialog(BuildContext context, String imageUrl, double width) {
     showDialog(
       context: context,
       builder: (context) {
@@ -249,7 +286,7 @@ class _ChatPageState extends State<ChatPage> {
           backgroundColor: Colors.transparent,
           child: InteractiveViewer(
             panEnabled: true,
-            boundaryMargin: EdgeInsets.all(20),
+            boundaryMargin: EdgeInsets.all(width * 0.05),
             minScale: 0.5,
             maxScale: 4.0,
             child: Image.network(imageUrl, fit: BoxFit.contain),
@@ -346,6 +383,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    currentChatTourId = null;
     super.dispose();
   }
 
@@ -354,222 +392,246 @@ class _ChatPageState extends State<ChatPage> {
     final width = widget.width;
     final height = widget.height;
     final User? user = auth.currentUser;
-    return Scaffold(
-      backgroundColor: Colors.black,
-
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _chatService.getMessages(tourID: widget.tourId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          List<Map<String, dynamic>> messages = snapshot.data ?? [];
-
-          Map<String, List<Map<String, dynamic>>> groupedMessages =
-              _groupMessagesByDate(messages);
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scrollController.hasClients) {
-              final maxScroll = _scrollController.position.maxScrollExtent;
-              final currentScroll = _scrollController.position.pixels;
-
-              if (currentScroll != maxScroll) {
-                _scrollToBottom();
-              }
-            }
-          });
-          return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                vertical: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Column(
-                children: [
-                  _buildAppBar(
-                    context: context,
-                    width: width,
-                    height: height,
-                    tourName: tourName,
+    return Builder(
+      builder: (context) {
+        context.read<NotificationBloc>().add(MarkAllAsViewed());
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.watch(notificationsProvider.notifier).refresh();
+        });
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _chatService.getMessages(tourID: widget.tourId),
+            builder: (context, snapshot) {
+              List<Map<String, dynamic>> messages = snapshot.data ?? [];
+              Map<String, List<Map<String, dynamic>>> groupedMessages =
+                  _groupMessagesByDate(messages);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_scrollController.hasClients) {
+                  final maxScroll = _scrollController.position.maxScrollExtent;
+                  final currentScroll = _scrollController.position.pixels;
+                  if (currentScroll != maxScroll) {
+                    _scrollToBottom();
+                  }
+                }
+              });
+              return SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    vertical: MediaQuery.of(context).viewInsets.bottom,
                   ),
-                  SizedBox(height: 30),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                        ),
+                  child: Column(
+                    children: [
+                      _buildAppBar(
+                        context: context,
+                        width: width,
+                        height: height,
+                        tourName: tourName,
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: ListView.builder(
-                          itemCount: groupedMessages.length,
-                          controller: _scrollController,
-                          itemBuilder: (context, index) {
-                            String dateKey = groupedMessages.keys.elementAt(
-                              index,
-                            );
-                            List<Map<String, dynamic>> messageGroup =
-                                groupedMessages[dateKey]!;
-
-                            return Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0,
-                                    vertical: 8.0,
-                                  ),
-                                  child: Text(
-                                    dateKey,
-                                    style: GoogleFonts.cabin(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey,
+                      SizedBox(height: height * 0.035),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(width * 0.05),
+                              topRight: Radius.circular(width * 0.05),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.only(top: width * 0.020),
+                            child: ListView.builder(
+                              itemCount: groupedMessages.length,
+                              controller: _scrollController,
+                              itemBuilder: (context, index) {
+                                String dateKey = groupedMessages.keys.elementAt(
+                                  index,
+                                );
+                                List<Map<String, dynamic>> messageGroup =
+                                    groupedMessages[dateKey]!;
+                                return Column(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: width * 0.04,
+                                        vertical: height * 0.009,
+                                      ),
+                                      child: Text(
+                                        dateKey,
+                                        style: GoogleFonts.cabin(
+                                          fontSize: width * 0.035,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                ...messageGroup.map((message) {
-                                  final bool isMe = message['UID'] == user!.uid;
-                                  final isAdmin =
-                                      message['position'] == 'Admin';
-                                  final isRead = message['isRead'];
-                                  return Align(
-                                    alignment:
-                                        isMe
-                                            ? Alignment.centerRight
-                                            : Alignment.centerLeft,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        if (isMe)
-                                          Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Text(
-                                              _formatTimestamp(
-                                                message['createdAt'],
-                                              ),
-                                              style: GoogleFonts.cabin(
-                                                fontSize: 12,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                          ),
-                                        Column(
+                                    ...messageGroup.map((message) {
+                                      final bool isMe =
+                                          message['UID'] == user!.uid;
+                                      final isAdmin =
+                                          message['position'] == 'Admin';
+                                      final isRead = message['isRead'];
+                                      return Align(
+                                        alignment:
+                                            isMe
+                                                ? Alignment.centerRight
+                                                : Alignment.centerLeft,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           crossAxisAlignment:
-                                              isMe
-                                                  ? CrossAxisAlignment.end
-                                                  : CrossAxisAlignment.start,
+                                              CrossAxisAlignment.end,
                                           children: [
-                                            if (!isMe)
+                                            if (isMe)
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 12.0,
-                                                    ),
+                                                padding: EdgeInsets.all(
+                                                  width * 0.02,
+                                                ),
                                                 child: Text(
-                                                  "${message['name']} (${message['position']})",
+                                                  _formatTimestamp(
+                                                    message['createdAt'],
+                                                  ),
                                                   style: GoogleFonts.cabin(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        isAdmin
-                                                            ? const Color.fromARGB(
-                                                              180,
-                                                              129,
-                                                              199,
-                                                              132,
-                                                            )
-                                                            : const Color.fromARGB(
-                                                              180,
-                                                              158,
-                                                              158,
-                                                              158,
-                                                            ),
+                                                    fontSize: width * 0.03,
+                                                    color: Colors.grey,
                                                   ),
                                                 ),
                                               ),
-
-                                            Container(
-                                              margin: EdgeInsets.symmetric(
-                                                vertical: 4,
-                                                horizontal: 8,
-                                              ),
-                                              padding: EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    isMe
-                                                        ? isRead
-                                                            ? Color.fromARGB(
-                                                              200,
-                                                              52,
-                                                              168,
-                                                              235,
-                                                            )
+                                            Column(
+                                              crossAxisAlignment:
+                                                  isMe
+                                                      ? CrossAxisAlignment.end
+                                                      : CrossAxisAlignment
+                                                          .start,
+                                              children: [
+                                                if (!isMe)
+                                                  Padding(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal:
+                                                              width * 0.03,
+                                                        ),
+                                                    child: Text(
+                                                      "${message['name']} (${message['position']})",
+                                                      style: GoogleFonts.cabin(
+                                                        fontSize: width * 0.03,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            isAdmin
+                                                                ? const Color.fromARGB(
+                                                                  180,
+                                                                  129,
+                                                                  199,
+                                                                  132,
+                                                                )
+                                                                : const Color.fromARGB(
+                                                                  180,
+                                                                  158,
+                                                                  158,
+                                                                  158,
+                                                                ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                Container(
+                                                  margin: EdgeInsets.symmetric(
+                                                    vertical: height * 0.004,
+                                                    horizontal: width * 0.02,
+                                                  ),
+                                                  padding: EdgeInsets.all(10),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        isMe
+                                                            ? isRead
+                                                                ? Color.fromARGB(
+                                                                  200,
+                                                                  52,
+                                                                  168,
+                                                                  235,
+                                                                )
+                                                                : const Color.fromARGB(
+                                                                  255,
+                                                                  180,
+                                                                  180,
+                                                                  180,
+                                                                )
                                                             : const Color.fromARGB(
                                                               255,
-                                                              180,
-                                                              180,
-                                                              180,
-                                                            )
-                                                        : const Color.fromARGB(
-                                                          255,
-                                                          224,
-                                                          224,
-                                                          224,
+                                                              224,
+                                                              224,
+                                                              224,
+                                                            ),
+                                                    borderRadius:
+                                                        BorderRadius.only(
+                                                          topLeft:
+                                                              Radius.circular(
+                                                                width * 0.03,
+                                                              ),
+                                                          topRight:
+                                                              Radius.circular(
+                                                                width * 0.03,
+                                                              ),
+                                                          bottomLeft:
+                                                              Radius.circular(
+                                                                isMe
+                                                                    ? width *
+                                                                        0.03
+                                                                    : width *
+                                                                        0.002,
+                                                              ),
+                                                          bottomRight:
+                                                              Radius.circular(
+                                                                isMe
+                                                                    ? width *
+                                                                        0.002
+                                                                    : width *
+                                                                        0.03,
+                                                              ),
                                                         ),
-                                                borderRadius: BorderRadius.only(
-                                                  topLeft: Radius.circular(12),
-                                                  topRight: Radius.circular(12),
-                                                  bottomLeft: Radius.circular(
-                                                    isMe ? 12 : 2,
                                                   ),
-                                                  bottomRight: Radius.circular(
-                                                    isMe ? 2 : 12,
+                                                  child: displayContent(
+                                                    message['message'],
+                                                    width,
+                                                    height,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            if (!isMe)
+                                              Padding(
+                                                padding: EdgeInsets.only(
+                                                  right: width * 0.02,
+                                                ),
+                                                child: Text(
+                                                  _formatTimestamp(
+                                                    message['createdAt'],
+                                                  ),
+                                                  style: GoogleFonts.cabin(
+                                                    fontSize: width * 0.03,
+                                                    color: Colors.grey,
                                                   ),
                                                 ),
                                               ),
-                                              child: displayContent(
-                                                message['message'],
-                                              ),
-                                            ),
                                           ],
                                         ),
-                                        if (!isMe)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              right: 8,
-                                            ),
-                                            child: Text(
-                                              _formatTimestamp(
-                                                message['createdAt'],
-                                              ),
-                                              style: GoogleFonts.cabin(
-                                                fontSize: 12,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                }),
-                              ],
-                            );
-                          },
+                                      );
+                                    }),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      _buildMessageInput(height: height, width: width),
+                    ],
                   ),
-                  _buildMessageInput(),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -583,7 +645,7 @@ class _ChatPageState extends State<ChatPage> {
     return "$hour:$minute $period";
   }
 
-  Widget _buildMessageInput() {
+  Widget _buildMessageInput({required double height, required double width}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -607,12 +669,12 @@ class _ChatPageState extends State<ChatPage> {
                   child: Row(
                     children: [
                       Icon(Icons.image, color: Colors.grey[600]),
-                      SizedBox(width: 10),
+                      SizedBox(width: width * 0.025),
                       Text(
                         'Media',
                         style: GoogleFonts.cabin(
                           fontWeight: FontWeight.normal,
-                          fontSize: 16,
+                          fontSize: width * 0.04,
                           color: Colors.black,
                         ),
                       ),
@@ -636,7 +698,7 @@ class _ChatPageState extends State<ChatPage> {
                                         'Cancel',
                                         style: GoogleFonts.cabin(
                                           fontWeight: FontWeight.normal,
-                                          fontSize: 16,
+                                          fontSize: width * 0.04,
                                           color: Colors.black,
                                         ),
                                       ),
@@ -663,7 +725,7 @@ class _ChatPageState extends State<ChatPage> {
                                               );
 
                                           _messageController.text = uploadedUrl;
-                                          _sendMessage();
+                                          _sendMessage;
 
                                           await Future.delayed(
                                             Duration(milliseconds: 100),
@@ -677,7 +739,7 @@ class _ChatPageState extends State<ChatPage> {
                                         'Send',
                                         style: GoogleFonts.cabin(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                                          fontSize: width * 0.04,
                                           color: Colors.blueAccent,
                                         ),
                                       ),
@@ -686,8 +748,11 @@ class _ChatPageState extends State<ChatPage> {
                                   contentPadding: EdgeInsets.all(10),
 
                                   content: SizedBox(
-                                    width: 100,
-                                    height: resultList.length < 2 ? 132 : 270,
+                                    width: width * 0.254,
+                                    height:
+                                        resultList.length < 2
+                                            ? height * 0.154
+                                            : height * 0.316,
                                     child: GridView.count(
                                       crossAxisCount:
                                           resultList.length < 2
@@ -701,28 +766,34 @@ class _ChatPageState extends State<ChatPage> {
                                           File asset = resultList[index];
                                           if (asset.path.endsWith('.mp4')) {
                                             return Container(
-                                              width: 3,
-                                              height: 3,
+                                              width: width * 0.007,
+                                              height: height * 0.003,
                                               decoration: BoxDecoration(
                                                 borderRadius:
-                                                    BorderRadius.circular(4),
+                                                    BorderRadius.circular(
+                                                      width * 0.01,
+                                                    ),
                                               ),
                                               child: VideoWidget(file: asset),
                                             );
                                           } else {
                                             return Container(
-                                              width: 3,
-                                              height: 3,
+                                              width: width * 0.007,
+                                              height: height * 0.003,
                                               decoration: BoxDecoration(
                                                 borderRadius:
-                                                    BorderRadius.circular(4),
+                                                    BorderRadius.circular(
+                                                      width * 0.01,
+                                                    ),
                                               ),
                                               child: ClipRRect(
                                                 borderRadius:
-                                                    BorderRadius.circular(14),
+                                                    BorderRadius.circular(
+                                                      width * 0.035,
+                                                    ),
                                                 child: SizedBox(
-                                                  width: 3,
-                                                  height: 3,
+                                                  width: width * 0.007,
+                                                  height: height * 0.003,
                                                   child: Image.file(asset),
                                                 ),
                                               ),
@@ -745,12 +816,12 @@ class _ChatPageState extends State<ChatPage> {
                   child: Row(
                     children: [
                       Icon(Icons.file_copy_rounded, color: Colors.grey[600]),
-                      SizedBox(width: 10),
+                      SizedBox(width: width * 0.025),
                       Text(
                         'file',
                         style: GoogleFonts.cabin(
                           fontWeight: FontWeight.normal,
-                          fontSize: 16,
+                          fontSize: width * 0.04,
                           color: Colors.black,
                         ),
                       ),
@@ -763,20 +834,22 @@ class _ChatPageState extends State<ChatPage> {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: EdgeInsets.symmetric(horizontal: width * 0.02),
               child: TextFormField(
+                focusNode: _focusNode,
                 style: GoogleFonts.cabin(
                   fontWeight: FontWeight.normal,
-                  fontSize: 16,
+                  fontSize: width * 0.04,
                   color: Colors.black,
                 ),
                 onEditingComplete: _sendMessage,
+
                 controller: _messageController,
                 decoration: InputDecoration(
                   hintText: 'Write a message',
                   hintStyle: GoogleFonts.cabin(
                     fontWeight: FontWeight.normal,
-                    fontSize: 16,
+                    fontSize: width * 0.04,
                     color: Colors.grey[600],
                   ),
                   border: InputBorder.none,

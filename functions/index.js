@@ -1,11 +1,10 @@
 const {onDocumentUpdated} = require("firebase-functions/v2/firestore");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
-const {getFirestore} = require("firebase-admin/firestore");
+
 const admin = require("firebase-admin");
 const {initializeApp} = require("firebase-admin/app");
 
 initializeApp();
-
 
 exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
     async (event) => {
@@ -65,171 +64,173 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
     },
 );
 
-exports.notifyMatchingUsers = onDocumentCreated(
-    "Cars/{carId}",
+exports.sendNotificationOnNewChatMessage = onDocumentCreated(
+    "Chat/{userId}/{tourId}/{messageId}",
     async (event) => {
-      const newCar = event.data.data();
+      const {userId, tourId} = event.params;
+      const messageData = event.data && event.data.data();
+
+      if (!messageData) {
+        console.error("Message data is missing.");
+        return null;
+      }
+      const currentUserUid = messageData.UID;
+      if (currentUserUid === userId) {
+        return null;
+      }
 
       try {
-        const db = getFirestore();
-        const usersSnapshot = await db.collection("Users").get();
-        const tokensToNotify = [];
+        const userDoc = await admin.firestore()
+            .collection("Users").doc(userId).get();
+        if (!userDoc.exists) return null;
 
-        usersSnapshot.forEach((doc) => {
-          const user = doc.data();
-          const startDate = newCar["StartDate"];
-          const tourEndDate = user["Tour End Date"];
+        const fcmToken = userDoc.data().fcmToken;
+        if (!fcmToken) return null;
 
-          const isMatch =
-            user["Vehicle type"] === newCar["Vehicle type"] &&
-            user["Seat Number"] >= newCar["NumberofGuests"] &&
-            startDate && tourEndDate &&
-            (startDate.toDate() >
-                tourEndDate.toDate());
+        const role = userDoc.data().Role;
+        let tourDoc;
 
-          if (isMatch && user["fcmToken"]) {
-            tokensToNotify.push(user["fcmToken"]);
+        if (role === "Driver Cum Guide") {
+          const guideDoc = await admin.firestore().
+              collection("Guide").doc(tourId).get();
+          if (guideDoc.exists) {
+            tourDoc = guideDoc;
+          } else {
+            const carDoc = await admin.firestore().
+                collection("Cars").doc(tourId).get();
+            if (carDoc.exists) {
+              tourDoc = carDoc;
+            }
           }
-          console.log("Checking user:", user);
-          console.log("Is Match criteria:");
-          console.log(`Vehicle Type Match: ${user["Vehicle type"] ===
-            newCar["Vehicle type"]}  ${user["Vehicle type"]}
-             ${newCar["Vehicle type"]}`);
-          console.log(`Seat Number Match: ${user["Seat Number"] >=
-            newCar["NumberofGuests"]} ${user["Seat Number"]}
-              ${newCar["NumberofGuests"]}`);
-          console.log(`Tour End Date Valid: ${
-            startDate.toDate() >
-                tourEndDate.toDate()} 
-                ${startDate.toDate()}
-                  ${tourEndDate.toDate()}`);
-        });
+        } else {
+          const collection = role === "Guide" ? "Guide" : "Cars";
+          tourDoc = await admin.firestore().
+              collection(collection).doc(tourId).get();
+        }
 
-        if (tokensToNotify.length > 0) {
+        if (!tourDoc || !tourDoc.exists) return null;
+        const tourName = tourDoc.data().TourName;
+
+        const message = {
+          notification: {
+            title: `New Message for tour ${tourName}`,
+            body: `${messageData.name} sent a message`,
+          },
+          data: {
+            route: "/chat_page",
+            userId,
+            tourId,
+            name: messageData.name,
+            fullBody: `${messageData.name} sent a message`,
+          },
+          token: fcmToken,
+        };
+
+        try {
+          await admin.messaging().send(message);
+        } catch (error) {
+          console.error("🔥 Error while sending notification:", error);
+        }
+      } catch (error) {
+        console.error("Error sending chat notification:", error);
+      }
+
+      return null;
+    },
+);
+
+exports.notifyDriversOnNewCarTour = onDocumentCreated(
+    "Cars/{tourId}",
+    async (event) => {
+      const tourData = event.data && event.data.data();
+      if (!tourData) return;
+
+      const usersSnapshot = await admin.firestore().collection("Users").get();
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+        const role = userData.Role;
+        const fcmToken = userData.fcmToken;
+        const userId = userDoc.id;
+
+        if (!fcmToken || !(role === "Driver" ||
+            role === "Driver Cum Guide")) continue;
+
+        const activeVehicleId = userData["Active Vehicle"];
+        let activeVehicle;
+        if (activeVehicleId) {
+          const vehicleDoc = await admin.firestore()
+              .doc(`Users/${userId}/Vehicles/${activeVehicleId}`)
+              .get();
+          if (vehicleDoc.exists) activeVehicle = vehicleDoc.data();
+        }
+
+        const startDate = new Date(tourData.StartDate);
+        const endDate = new Date(tourData.EndDate);
+        if (endDate > startDate) continue;
+
+        const matches = activeVehicle &&
+          activeVehicle["Vehicle Type"] === tourData.VehicleType &&
+          activeVehicle["Seat Number"] === tourData.SeatNumber;
+
+        if (matches) {
           const message = {
             notification: {
               title: "New Tour Available",
-              body: `A new tour is waiting for you!`,
+              body: `A new Ride tour has been added.`,
             },
-            tokens: tokensToNotify,
             data: {
-              route: "/orders",
-              fullBody:
-                `A new tour ${newCar["TourName"]} matches your preferences!`,
+              route: "/new_tours",
+              fullBody: `A new Ride tour has been added.`,
             },
-
+            token: fcmToken,
           };
-
-          await admin.messaging().sendEachForMulticast(message);
-
-          console.log("Notifications sent to matching users.");
-        } else {
-          console.log("No matching users found.");
+          await admin.messaging().send(message);
         }
-      } catch (error) {
-        console.error("Error sending notifications:", error);
       }
     },
 );
 
-exports.sendNewMessageNotification =
-  onDocumentUpdated("Chat/{userId}/{tourId}/sender",
-      async (event) => {
-        if (!event || !event.params) {
-          console.error("Context or params is missing!");
-          return null;
+exports.notifyGuidesOnNewGuideTour = onDocumentCreated(
+    "Guide/{tourId}",
+    async (event) => {
+      const tourData = event.data && event.data.data();
+      if (!tourData) return;
+
+      const usersSnapshot = await admin.firestore().collection("Users").get();
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+        const role = userData.Role;
+        const fcmToken = userData.fcmToken;
+        if (!fcmToken || !(role === "Guide" ||
+            role === "Driver Cum Guide")) continue;
+
+        const startDate = new Date(tourData.StartDate);
+        const endDate = new Date(tourData.EndDate);
+        if (endDate > startDate) continue;
+
+        const requiredLanguages = tourData.Languages.
+            split(",").map((lang) => lang.trim().toLowerCase()) || [];
+        const spokenLanguages = userData["Language spoken"].
+            split(",").map((lang) => lang.trim().toLowerCase()) || [];
+        const languageMatch = requiredLanguages.
+            every((lang) => spokenLanguages.includes(lang));
+        const matches = userData.Category ===
+            tourData.Category && languageMatch;
+
+        if (matches) {
+          const message = {
+            notification: {
+              title: "New Tour Available",
+              body: `A new Guide tour has been added.`,
+            },
+            data: {
+              route: "/new_tours",
+              fullBody: `A new Guide tour has been added.`,
+            },
+            token: fcmToken,
+          };
+          await admin.messaging().send(message);
         }
-        const userId = event.params.userId;
-        const tourId = event.params.tourId;
-        const senderDoc = event.data.after.data();
-        const previousSenderDoc = event.data.before.data();
-        if (!senderDoc) {
-          return null;
-        }
-        const newMessages = Object.keys(senderDoc)
-            .filter((key) => key.startsWith("message") &&
-            (!previousSenderDoc || !previousSenderDoc[key]))
-            .map((key) => ({key, ...senderDoc[key]}));
-
-        if (newMessages.length === 0) {
-          return null;
-        }
-        const latestMessage = newMessages[newMessages.length - 1];
-
-        try {
-          const userDoc = await admin.firestore()
-              .collection("Users")
-              .doc(userId)
-              .get();
-          if (!userDoc.exists) {
-            return null;
-          }
-          const fcmToken = userDoc.data().fcmToken;
-
-          if (!fcmToken) {
-            return null;
-          }
-
-          if (userDoc.data().role == "Guide") {
-            const tourDoc = await admin.firestore()
-                .collection("Guide")
-                .doc(tourId)
-                .get();
-            if (!tourDoc.exists) {
-              return null;
-            }
-            const tourName = tourDoc.data().tourName;
-
-
-            const message = {
-              notification: {
-                title: "New Message",
-                body: `${latestMessage.name}
-                 just sent you a message for tour ${tourName}`,
-              },
-              data: {
-                userId: userId,
-                tourId: tourId,
-                route: "chat",
-                name: latestMessage.name,
-              },
-              token: fcmToken,
-            };
-
-            const response = await admin.messaging().send(message);
-            console.log("Notification sent successfully!", response);
-          } else {
-            const tourDoc = await admin.firestore()
-                .collection("Cars")
-                .doc(tourId)
-                .get();
-            if (!tourDoc.exists) {
-              return null;
-            }
-            const tourName = tourDoc.data().tourName;
-
-
-            const message = {
-              notification: {
-                title: "New Message",
-                body: `${latestMessage.name}
-               just sent you a message for tour ${tourName}`,
-              },
-              data: {
-                userId: userId,
-                tourId: tourId,
-                route: "chat",
-                name: latestMessage.name,
-              },
-              token: fcmToken,
-            };
-
-            const response = await admin.messaging().send(message);
-            console.log("Notification sent successfully!", response);
-          }
-        } catch (error) {
-          console.error("Error sending notification:", error);
-        }
-
-        return null;
-      });
+      }
+    },
+);

@@ -10,14 +10,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 
 class CarDetailsForm extends ConsumerStatefulWidget {
   final String vehicleType;
+  final bool multiSelection;
   final void Function(Map<String, dynamic>) onFormSubmit;
   const CarDetailsForm({
     super.key,
     required this.onFormSubmit,
     required this.vehicleType,
+    required this.multiSelection,
   });
 
   @override
@@ -106,6 +110,8 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
   @override
   void initState() {
     super.initState();
+    if (widget.multiSelection) return;
+
     _scrollController.addListener(() {
       if (_scrollController.offset > 5 && !_showTitle) {
         setState(() {
@@ -126,69 +132,122 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
     seatNumbersFocusNode = FocusNode();
     vehicleRegistrationNumberFocusNode = FocusNode();
 
-    nameOfTheCarFocusNode.addListener(() {
-      if (!nameOfTheCarFocusNode.hasFocus) {
-        _isEmpty(nameOfTheCarController, 'Name of the car');
-      }
-    });
-    technicalPassportNumberFocusNode.addListener(() {
-      if (!technicalPassportNumberFocusNode.hasFocus) {
-        _isEmpty(
-          technicalPassportNumberController,
-          'Technical Passport Number',
-        );
-      }
-    });
-    chassisNumberFocusNode.addListener(() {
-      if (!chassisNumberFocusNode.hasFocus) {
-        _isEmpty(chassisNumberController, 'Chassis Number');
-      }
-    });
-    yearOfTheCarFocusNode.addListener(() {
-      if (!yearOfTheCarFocusNode.hasFocus) {
-        _isEmpty(yearOfTheCarController, 'Year of the car');
-      }
-    });
-    vehicleCategoryFocusNode.addListener(() {
-      if (!vehicleCategoryFocusNode.hasFocus) {
-        _isEmpty(vehicleCategoryController, 'Vehicle Category');
-      }
-    });
-    seatNumbersFocusNode.addListener(() {
-      if (!seatNumbersFocusNode.hasFocus) {
-        _isEmpty(seatNumbersController, 'Seat Number');
-      }
-    });
-    vehicleRegistrationNumberFocusNode.addListener(() {
-      if (!vehicleRegistrationNumberFocusNode.hasFocus) {
-        _isEmpty(
-          vehicleRegistrationNumberController,
-          'Vehicle Registration Number',
-        );
-      }
-    });
+    if (!widget.multiSelection) {
+      nameOfTheCarFocusNode.addListener(() {
+        if (!nameOfTheCarFocusNode.hasFocus) {
+          _isEmpty(nameOfTheCarController, 'Name of the car');
+        }
+      });
+      technicalPassportNumberFocusNode.addListener(() {
+        if (!technicalPassportNumberFocusNode.hasFocus) {
+          _isEmpty(
+            technicalPassportNumberController,
+            'Technical Passport Number',
+          );
+        }
+      });
+      chassisNumberFocusNode.addListener(() {
+        if (!chassisNumberFocusNode.hasFocus) {
+          _isEmpty(chassisNumberController, 'Chassis Number');
+        }
+      });
+      yearOfTheCarFocusNode.addListener(() {
+        if (!yearOfTheCarFocusNode.hasFocus) {
+          _isEmpty(yearOfTheCarController, 'Year of the car');
+        }
+      });
+      vehicleCategoryFocusNode.addListener(() {
+        if (!vehicleCategoryFocusNode.hasFocus) {
+          _isEmpty(vehicleCategoryController, 'Vehicle Category');
+        }
+      });
+      seatNumbersFocusNode.addListener(() {
+        if (!seatNumbersFocusNode.hasFocus) {
+          _isEmpty(seatNumbersController, 'Seat Number');
+        }
+      });
+      vehicleRegistrationNumberFocusNode.addListener(() {
+        if (!vehicleRegistrationNumberFocusNode.hasFocus) {
+          _isEmpty(
+            vehicleRegistrationNumberController,
+            'Vehicle Registration Number',
+          );
+        }
+      });
 
-    nameOfTheCarController.addListener(() {
-      setState(() {});
+      nameOfTheCarController.addListener(() {
+        setState(() {});
+        _saveTempData();
+      });
+      technicalPassportNumberController.addListener(() {
+        setState(() {});
+        _saveTempData();
+      });
+      chassisNumberController.addListener(() {
+        setState(() {});
+        _saveTempData();
+      });
+      yearOfTheCarController.addListener(() {
+        setState(() {});
+        _saveTempData();
+      });
+      vehicleCategoryController.addListener(() {
+        setState(() {});
+        _saveTempData();
+      });
+      seatNumbersController.addListener(() {
+        setState(() {});
+        _saveTempData();
+      });
+      vehicleRegistrationNumberController.addListener(() {
+        setState(() {});
+        _saveTempData();
+      });
+
+      _loadTempData();
+      _loadTempPhotos();
+    }
+  }
+
+  Future<void> _saveTempPhotos() async {
+    if (widget.multiSelection) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      'carPhotos',
+      carsPhoto.map((x) => x.path).toList(),
+    );
+    await prefs.setStringList(
+      'techPassportPhotos',
+      technicalPassportNumberPhoto.map((x) => x.path).toList(),
+    );
+    if (chassisNumberPhoto != null) {
+      await prefs.setString('chassisPhoto', chassisNumberPhoto.path);
+    }
+  }
+
+  Future<void> _loadTempPhotos() async {
+    if (widget.multiSelection) return;
+    final prefs = await SharedPreferences.getInstance();
+    final carPaths = prefs.getStringList('carPhotos') ?? [];
+    final techPaths = prefs.getStringList('techPassportPhotos') ?? [];
+    final chassisPath = prefs.getString('chassisPhoto');
+
+    setState(() {
+      carsPhoto = carPaths.map((path) => XFile(path)).toList();
+      technicalPassportNumberPhoto =
+          techPaths.map((path) => XFile(path)).toList();
+      if (chassisPath != null) {
+        chassisNumberPhoto = XFile(chassisPath);
+      }
     });
-    technicalPassportNumberController.addListener(() {
-      setState(() {});
-    });
-    chassisNumberController.addListener(() {
-      setState(() {});
-    });
-    yearOfTheCarController.addListener(() {
-      setState(() {});
-    });
-    vehicleCategoryController.addListener(() {
-      setState(() {});
-    });
-    seatNumbersController.addListener(() {
-      setState(() {});
-    });
-    vehicleRegistrationNumberController.addListener(() {
-      setState(() {});
-    });
+  }
+
+  Future<void> _clearTempPhotos() async {
+    if (widget.multiSelection) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('carPhotos');
+    await prefs.remove('techPassportPhotos');
+    await prefs.remove('chassisPhoto');
   }
 
   bool _allFilledOut() {
@@ -205,6 +264,50 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
       return true;
     }
     return false;
+  }
+
+  Future<void> _saveTempData() async {
+    if (widget.multiSelection) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('carName', nameOfTheCarController.text);
+    await prefs.setString(
+      'techPassport',
+      technicalPassportNumberController.text,
+    );
+    await prefs.setString('chassisNumber', chassisNumberController.text);
+    await prefs.setString('year', yearOfTheCarController.text);
+    await prefs.setString('vehicleType', vehicleCategoryController.text);
+    await prefs.setString('seatNumber', seatNumbersController.text);
+    await prefs.setString(
+      'registrationNumber',
+      vehicleRegistrationNumberController.text,
+    );
+  }
+
+  Future<void> _loadTempData() async {
+    if (widget.multiSelection) return;
+    final prefs = await SharedPreferences.getInstance();
+    nameOfTheCarController.text = prefs.getString('carName') ?? '';
+    technicalPassportNumberController.text =
+        prefs.getString('techPassport') ?? '';
+    chassisNumberController.text = prefs.getString('chassisNumber') ?? '';
+    yearOfTheCarController.text = prefs.getString('year') ?? '';
+    vehicleCategoryController.text = prefs.getString('vehicleType') ?? '';
+    seatNumbersController.text = prefs.getString('seatNumber') ?? '';
+    vehicleRegistrationNumberController.text =
+        prefs.getString('registrationNumber') ?? '';
+  }
+
+  Future<void> _clearTempData() async {
+    if (widget.multiSelection) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('carName');
+    await prefs.remove('techPassport');
+    await prefs.remove('chassisNumber');
+    await prefs.remove('year');
+    await prefs.remove('vehicleType');
+    await prefs.remove('seatNumber');
+    await prefs.remove('registrationNumber');
   }
 
   @override
@@ -230,8 +333,9 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
 
   @override
   Widget build(BuildContext context) {
-    final role = ref.watch(roleProvider);
-    String numOfPages = role == 'Guide' ? '3/3' : '4/4';
+    final roleDetails = ref.watch(roleProvider);
+    final isRegistered = roleDetails?['isRegistered'] ?? false;
+    String numOfPages = isRegistered ? "" : '4/4 ';
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
@@ -259,7 +363,9 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
           opacity: _showTitle ? 1.0 : 0.0,
           duration: Duration(milliseconds: 300),
           child: Text(
-            '$numOfPages Your Vehicle, Your Partnership',
+            isRegistered
+                ? 'Add Another Vehicle to Expand Your Partnership'
+                : '${numOfPages}Your Vehicle, Your Partnership'.trimLeft(),
             overflow: TextOverflow.visible,
             softWrap: true,
             style: TextStyle(
@@ -278,7 +384,11 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$numOfPages Your Vehicle, Your Partnership',
+                  isRegistered
+                      ? 'Add Another Vehicle to Expand Your Partnership'
+                      : '${numOfPages}Your Vehicle, Your Partnership'
+                          .trimLeft(),
+                  textAlign: TextAlign.start,
                   style: GoogleFonts.daysOne(
                     textStyle: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -289,7 +399,9 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                 ),
                 SizedBox(height: height * 0.025),
                 Text(
-                  'Let\'s get to know your vehicle! Share the details to ensure you\'re fully equipped to provide reliable and safe service.',
+                  isRegistered
+                      ? 'You can register more vehicles to increase your service capacity and flexibility.'
+                      : 'Let\'s get to know your vehicle! Share the details to ensure you\'re fully equipped to provide reliable and safe service.',
                 ),
                 SizedBox(height: height * 0.015),
                 //Name of the car
@@ -409,6 +521,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                             );
                         if (images != null) {
                           setState(() => carsPhoto.addAll(images));
+                          await _saveTempPhotos();
                         }
                       },
                       icon: Icon(Icons.add),
@@ -555,6 +668,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           setState(
                             () => technicalPassportNumberPhoto.addAll(images),
                           );
+                          await _saveTempPhotos();
                         }
                       },
                       icon: Icon(Icons.add),
@@ -693,6 +807,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         if (selected == null) return;
 
                         setState(() => chassisNumberPhoto = selected);
+                        await _saveTempPhotos();
                       },
                       icon: Icon(Icons.add),
                     ),
@@ -851,6 +966,8 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                   ),
                   child: Center(
                     child: TextField(
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       onTap: () {
                         setState(() {
                           yearOfTheCarFocusNode.requestFocus();
@@ -1055,6 +1172,8 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                   ),
                   child: Center(
                     child: TextField(
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       onTap: () {
                         setState(() {
                           seatNumbersFocusNode.requestFocus();
@@ -1181,13 +1300,17 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           'Vehicle\'s Year': yearOfTheCarController.text,
                           'Vehicle\'s Type': vehicleCategoryController.text,
                           'Seat Number': seatNumberNum,
+                          "isApproved": false,
                         };
 
                         widget.onFormSubmit(formData);
+                        await _clearTempPhotos();
+                        await _clearTempData();
                         if (context.mounted) {
                           Navigator.pop(context);
                         }
                       }
+
                       ref.read(loadingProvider.notifier).stopLoading();
                     }
                   },
@@ -1215,7 +1338,7 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                             )
                             : Center(
                               child: Text(
-                                'Submit',
+                                widget.multiSelection ? 'Done' : 'Submit',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: width * 0.04,

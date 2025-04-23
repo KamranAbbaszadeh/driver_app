@@ -17,8 +17,11 @@ class MyRidesBody extends StatefulWidget {
 }
 
 class _MyRidesBodyState extends State<MyRidesBody> {
-  List<Ride> filteredRides = [];
+  List<Ride> carRides = [];
+  List<Ride> guideRides = [];
   List<Ride> filteredRidesbyDate = [];
+  List<Ride> filteredCarRidesByDate = [];
+  List<Ride> filteredGuideRidesByDate = [];
   Map<String, dynamic>? userData;
   Map<DateTime, int> datasets = {};
   bool showAllRides = true;
@@ -51,36 +54,63 @@ class _MyRidesBodyState extends State<MyRidesBody> {
   Future<void> fetchAndFilterRides({
     required Map<String, dynamic> userData,
   }) async {
-    carsSubscription = FirebaseFirestore.instance
-        .collection('Cars')
-        .snapshots()
-        .listen((querySnapshot) {
-          final allRides =
-              querySnapshot.docs.map((doc) {
-                return Ride.fromFirestore(data: doc.data(), id: doc.id);
-              }).toList();
-          final userId = FirebaseAuth.instance.currentUser?.uid;
-          final filtered =
-              allRides.where((ride) {
-                return ride.driver == userId;
-              }).toList();
+    if (userData['Role'] == 'Driver' ||
+        userData['Role'] == 'Driver Cum Guide') {
+      carsSubscription = FirebaseFirestore.instance
+          .collection('Cars')
+          .snapshots()
+          .listen((querySnapshot) {
+            final allRides =
+                querySnapshot.docs.map((doc) {
+                  return Ride.fromFirestore(data: doc.data(), id: doc.id);
+                }).toList();
+            final userId = FirebaseAuth.instance.currentUser?.uid;
+            final filtered =
+                allRides.where((ride) {
+                  return ride.driver == userId;
+                }).toList();
 
-          if (mounted) {
-            setState(() {
-              filteredRides = filtered;
-              populateDatasets(filtered);
-            });
-          }
-        });
+            if (mounted) {
+              setState(() {
+                carRides = filtered;
+                populateDatasets(carRides + guideRides);
+              });
+            }
+          });
+    }
+
+    if (userData['Role'] == 'Guide' || userData['Role'] == 'Driver Cum Guide') {
+      FirebaseFirestore.instance.collection('Guide').snapshots().listen((
+        querySnapshot,
+      ) {
+        final allRides =
+            querySnapshot.docs.map((doc) {
+              return Ride.fromFirestore(data: doc.data(), id: doc.id);
+            }).toList();
+        final userId = FirebaseAuth.instance.currentUser?.uid;
+        final filtered =
+            allRides.where((ride) {
+              return ride.driver == userId || ride.guide == userId;
+            }).toList();
+
+        if (mounted) {
+          setState(() {
+            guideRides = filtered;
+            populateDatasets(carRides + guideRides);
+          });
+        }
+      });
+    }
   }
 
   void populateDatasets(List<Ride> rides) {
     datasets.clear();
 
-    for (int i = 0; i < filteredRides.length; i++) {
-      filteredRides[i].routes.forEach((key, route) {
-        if (route['StartDate'] != null && route['StartDate'] is Timestamp) {
-          final startDate = (route['StartDate'] as Timestamp).toDate();
+    for (int i = 0; i < carRides.length + guideRides.length; i++) {
+      (carRides + guideRides)[i].routes.forEach((key, route) {
+        if (route['StartDate'] != null) {
+          final startDate = DateTime.parse(route['StartDate']);
+
           final dateKey = DateTime(
             startDate.year,
             startDate.month,
@@ -97,15 +127,12 @@ class _MyRidesBodyState extends State<MyRidesBody> {
     }
   }
 
-  Future<void> filterRidesbyDate({
-    required List<Ride> filteredRides,
-    required DateTime selectedDate,
-  }) async {
-    final filtered =
-        filteredRides.where((ride) {
+  Future<void> filterRidesbyDate({required DateTime selectedDate}) async {
+    filteredCarRidesByDate =
+        carRides.where((ride) {
           for (var route in ride.routes.values) {
             if (route is Map && route['StartDate'] != null) {
-              final rideDate = (route['StartDate'] as Timestamp).toDate();
+              final rideDate = DateTime.parse(route['StartDate']);
               if (rideDate.year == selectedDate.year &&
                   rideDate.month == selectedDate.month &&
                   rideDate.day == selectedDate.day) {
@@ -116,9 +143,22 @@ class _MyRidesBodyState extends State<MyRidesBody> {
           return false;
         }).toList();
 
-    setState(() {
-      filteredRidesbyDate = filtered;
-    });
+    filteredGuideRidesByDate =
+        guideRides.where((ride) {
+          for (var route in ride.routes.values) {
+            if (route is Map && route['StartDate'] != null) {
+              final rideDate = DateTime.parse(route['StartDate']);
+              if (rideDate.year == selectedDate.year &&
+                  rideDate.month == selectedDate.month &&
+                  rideDate.day == selectedDate.day) {
+                return true;
+              }
+            }
+          }
+          return false;
+        }).toList();
+
+    setState(() {});
   }
 
   @override
@@ -134,101 +174,139 @@ class _MyRidesBodyState extends State<MyRidesBody> {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     final today = DateTime.now();
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors:
-              darkMode
-                  ? [Color.fromARGB(255, 1, 105, 170), Colors.black]
-                  : [Color.fromARGB(255, 52, 168, 235), Colors.white],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+    return SingleChildScrollView(
+      child: Container(
+        width: width,
+        constraints: BoxConstraints(
+          minHeight: height * 0.823,
+          maxHeight: double.infinity,
         ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: width * 0.04),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HeatMapCalendar(
-                defaultColor: Colors.white,
-                size: width * 0.1,
-                flexible: true,
-                colorMode: ColorMode.color,
-                showColorTip: false,
-                monthFontSize: width * 0.05,
-                textColor: Colors.black,
-                initDate: today,
-                weekTextColor: Theme.of(context).textTheme.bodyMedium?.color,
-                datasets: datasets,
-                colorsets: {
-                  1: const Color.fromARGB(255, 231, 1, 55),
-                  2: const Color.fromARGB(255, 103, 168, 120),
-                },
-                onClick: (value) async {
-                  await filterRidesbyDate(
-                    filteredRides: filteredRides,
-                    selectedDate: value,
-                  );
-                  setState(() {
-                    showAllRides = false;
-                  });
-                },
-                fontSize: width * 0.035,
-              ),
-              SizedBox(height: height * 0.011),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'My Rides',
-                    style: GoogleFonts.daysOne(
-                      fontSize: width * 0.055,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        showAllRides = true;
-                      });
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color:
-                            darkMode
-                                ? Color.fromARGB(255, 52, 168, 235)
-                                : Color.fromARGB(255, 1, 105, 170),
-                        borderRadius: BorderRadius.circular(width * 0.01),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors:
+                darkMode
+                    ? [Color.fromARGB(255, 1, 105, 170), Colors.black]
+                    : [Color.fromARGB(255, 52, 168, 235), Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: width * 0.04),
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                HeatMapCalendar(
+                  defaultColor: Colors.white,
+                  size: width * 0.1,
+                  flexible: true,
+                  colorMode: ColorMode.color,
+                  showColorTip: false,
+                  monthFontSize: width * 0.05,
+                  textColor: Colors.black,
+                  initDate: today,
+                  weekTextColor: Theme.of(context).textTheme.bodyMedium?.color,
+                  datasets: datasets,
+                  colorsets: {
+                    1: const Color.fromARGB(255, 231, 1, 55),
+                    2: const Color.fromARGB(255, 103, 168, 120),
+                  },
+                  onClick: (value) async {
+                    await filterRidesbyDate(selectedDate: value);
+                    setState(() {
+                      showAllRides = false;
+                    });
+                  },
+                  fontSize: width * 0.035,
+                ),
+                SizedBox(height: height * 0.011),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'My Rides',
+                      style: GoogleFonts.daysOne(
+                        fontSize: width * 0.055,
+                        fontWeight: FontWeight.bold,
                       ),
-                      padding: EdgeInsets.all(width * 0.01),
-                      child: Text(
-                        'Show All Rides',
-                        style: GoogleFonts.lexend(
-                          fontWeight: FontWeight.w600,
-                          color: darkMode ? Colors.black : Colors.white,
+                    ),
+
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          showAllRides = true;
+                        });
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color:
+                              darkMode
+                                  ? Color.fromARGB(255, 52, 168, 235)
+                                  : Color.fromARGB(255, 1, 105, 170),
+                          borderRadius: BorderRadius.circular(width * 0.01),
+                        ),
+                        padding: EdgeInsets.all(width * 0.01),
+                        child: Text(
+                          'Show All Rides',
+                          style: GoogleFonts.lexend(
+                            fontWeight: FontWeight.w600,
+                            color: darkMode ? Colors.black : Colors.white,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              SizedBox(height: height * 0.011),
+                  ],
+                ),
+                SizedBox(height: height * 0.011),
 
-              MyRides(
-                filteredRides:
-                    showAllRides
-                        ? filteredRides
-                        : filteredRidesbyDate.isNotEmpty
-                        ? filteredRidesbyDate
-                        : [],
-                height: height * 0.31,
-              ),
-            ],
+                if (showAllRides) ...[
+                  if (carRides.isNotEmpty) ...[
+                    Text(
+                      'Ride Tours',
+                      style: GoogleFonts.lexend(
+                        fontSize: width * 0.045,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    MyRides(filteredRides: carRides),
+                    SizedBox(height: height * 0.02),
+                  ],
+                  if (guideRides.isNotEmpty) ...[
+                    Text(
+                      'Guide Tours',
+                      style: GoogleFonts.lexend(
+                        fontSize: width * 0.045,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    MyRides(filteredRides: guideRides),
+                  ],
+                ] else ...[
+                  if (filteredCarRidesByDate.isNotEmpty) ...[
+                    Text(
+                      'Ride Tours',
+                      style: GoogleFonts.lexend(
+                        fontSize: width * 0.045,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    MyRides(filteredRides: filteredCarRidesByDate),
+                    SizedBox(height: height * 0.02),
+                  ],
+                  if (filteredGuideRidesByDate.isNotEmpty) ...[
+                    Text(
+                      'Guide Tours',
+                      style: GoogleFonts.lexend(
+                        fontSize: width * 0.045,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    MyRides(filteredRides: filteredGuideRidesByDate),
+                  ],
+                ],
+              ],
+            ),
           ),
         ),
       ),

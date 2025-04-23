@@ -95,8 +95,23 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                     context.read<NotificationBloc>().add(
                       MarkMessageAsViewed(index),
                     );
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      ref.read(notificationsProvider.notifier).refresh();
+                    });
 
-                    navigatorKey.currentState?.pushNamed(route);
+                    if (route == "/chat_page") {
+                      final tourId = message['data']['tourId'];
+                      navigatorKey.currentState?.pushNamed(
+                        '/chat_page',
+                        arguments: {
+                          'tourId': tourId,
+                          'width': width,
+                          'height': height,
+                        },
+                      );
+                    } else {
+                      navigatorKey.currentState?.pushNamed(route);
+                    }
                   },
                   child: Container(
                     padding: EdgeInsets.all(width * 0.025),
@@ -114,6 +129,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                           children: [
                             Text(
                               title ?? '',
+                              softWrap: true,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: width * 0.045,
@@ -127,7 +143,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                             ),
                             SizedBox(height: height * 0.005),
                             SizedBox(
-                              width: width * 0.8,
+                              width: width * 0.885,
                               child: Text(
                                 fullBody ?? '',
                                 softWrap: true,

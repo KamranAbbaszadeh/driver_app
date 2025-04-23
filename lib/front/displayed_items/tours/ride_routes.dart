@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/map_and_location/google_map_controllers.dart';
 import 'package:driver_app/front/tools/consts.dart';
 import 'package:driver_app/front/tools/get_location_name.dart';
@@ -78,58 +77,63 @@ class _RideRoutesState extends State<RideRoutes> {
 
   Future<void> _fetchLocationNames() async {
     try {
-      if (widget.detail.isNotEmpty) {
-        String startCoordinates = widget.detail['Start'];
-        String endCoordinates = widget.detail['End'];
-
-        List<String> startLatLng = startCoordinates.split(",");
-        List<String> endLatLng = endCoordinates.split(",");
-
-        double startLat = double.parse(startLatLng[0]);
-        double startLng = double.parse(startLatLng[1]);
-
-        double endLat = double.parse(endLatLng[0]);
-        double endLng = double.parse(endLatLng[1]);
-
-        String startName = await getLocationName(startLat, startLng);
-        String endName = await getLocationName(endLat, endLng);
-
+      if (widget.detail.isEmpty) {
         setState(() {
-          startLocationName = startName;
-          endLocationName = endName;
           isLoading = false;
-          startLatLngObj = LatLng(startLat, startLng);
-          endLatLngObj = LatLng(endLat, endLng);
-
-          LatLng midpoint = getMidpoint(startLatLngObj!, endLatLngObj!);
-
-          if (mapController != null && startLatLngObj != null) {
-            mapController!.animateCamera(CameraUpdate.newLatLng(midpoint));
-          }
-
-          final Timestamp rawStartDate = widget.detail['StartDate'];
-          startDate = DateFormat(
-            'dd MMMM yyyy, HH:mm',
-          ).format(rawStartDate.toDate());
-
-          initialCameraPosition = CameraPosition(target: midpoint, zoom: 7.0);
         });
-        getPolyLinePoints(
-          googleApiKey: GOOGLE_MAPS_API_KEY,
-          source: startLatLngObj!,
-          destination: endLatLngObj!,
-        ).then(
-          (coordinates) => generatePolyLineFromPoints(
-            polylineCoordinates: coordinates,
-            polylines: polylines,
-            updatePolylines: (updatedPolylines) {
-              setState(() {
-                polylines = updatedPolylines;
-              });
-            },
-          ),
-        );
+        return;
       }
+      String startCoordinates = widget.detail['Start'];
+      String endCoordinates = widget.detail['End'];
+
+      List<String> startLatLng = startCoordinates.split(",");
+      List<String> endLatLng = endCoordinates.split(",");
+
+      double startLat = double.parse(startLatLng[0]);
+      double startLng = double.parse(startLatLng[1]);
+
+      double endLat = double.parse(endLatLng[0]);
+      double endLng = double.parse(endLatLng[1]);
+
+      String startName = await getLocationName(startLat, startLng);
+      String endName = await getLocationName(endLat, endLng);
+
+      setState(() {
+        startLocationName = startName;
+        endLocationName = endName;
+        isLoading = false;
+        startLatLngObj = LatLng(startLat, startLng);
+        endLatLngObj = LatLng(endLat, endLng);
+
+        LatLng midpoint = getMidpoint(startLatLngObj!, endLatLngObj!);
+
+        if (mapController != null && startLatLngObj != null) {
+          mapController!.animateCamera(CameraUpdate.newLatLng(midpoint));
+        }
+
+        final DateTime rawStartDate = DateTime.parse(
+          widget.detail['StartDate'],
+        );
+        startDate = DateFormat('dd MMMM yyyy, HH:mm').format(rawStartDate);
+
+        initialCameraPosition = CameraPosition(target: midpoint, zoom: 7.0);
+      });
+      getPolyLinePoints(
+        googleApiKey: GOOGLE_MAPS_API_KEY,
+        source: startLatLngObj!,
+        destination: endLatLngObj!,
+      ).then(
+        (coordinates) => generatePolyLineFromPoints(
+          polylineCoordinates: coordinates,
+          polylines: polylines,
+          updatePolylines: (updatedPolylines) {
+            if (!mounted) return;
+            setState(() {
+              polylines = updatedPolylines;
+            });
+          },
+        ),
+      );
     } catch (e) {
       setState(() {
         startLocationName = "Error fetching start location";

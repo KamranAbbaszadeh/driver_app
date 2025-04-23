@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PersonalDataForm extends ConsumerStatefulWidget {
   const PersonalDataForm({super.key});
@@ -24,6 +25,43 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
   List<XFile> driverLicensePhoto = <XFile>[];
   List<XFile> iDPhoto = <XFile>[];
   String error = "No Error Detected";
+
+  Future<void> _saveTempPersonalPhotos() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (personalPhoto != null) {
+      await prefs.setString('personalPhotoPath', personalPhoto.path);
+    }
+    await prefs.setStringList(
+      'driverLicensePhotoPaths',
+      driverLicensePhoto.map((x) => x.path).toList(),
+    );
+    await prefs.setStringList(
+      'idPhotoPaths',
+      iDPhoto.map((x) => x.path).toList(),
+    );
+  }
+
+  Future<void> _loadTempPersonalPhotos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final personalPhotoPath = prefs.getString('personalPhotoPath');
+    if (personalPhotoPath != null) {
+      personalPhoto = XFile(personalPhotoPath);
+    }
+
+    final driverPaths = prefs.getStringList('driverLicensePhotoPaths') ?? [];
+    final idPaths = prefs.getStringList('idPhotoPaths') ?? [];
+
+    driverLicensePhoto = driverPaths.map((path) => XFile(path)).toList();
+    iDPhoto = idPaths.map((path) => XFile(path)).toList();
+    setState(() {});
+  }
+
+  Future<void> _clearTempPersonalPhotos() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('personalPhotoPath');
+    await prefs.remove('driverLicensePhotoPaths');
+    await prefs.remove('idPhotoPaths');
+  }
 
   bool _allFilledOut(String role) {
     if (personalPhoto != null &&
@@ -54,6 +92,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
         });
       }
     });
+    _loadTempPersonalPhotos();
   }
 
   @override
@@ -67,7 +106,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
-    final role = ref.watch(roleProvider);
+    final roleDetails = ref.watch(roleProvider);
+    final role = roleDetails?['Role'];
     final isLoading = ref.watch(loadingProvider);
     String numOfPages = role == 'Guide' ? '1/3' : '1/4';
 
@@ -140,8 +180,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                               context: context,
                             );
                         if (selected == null) return;
-
                         setState(() => personalPhoto = selected);
+                        await _saveTempPersonalPhotos();
                       },
                       icon: Icon(Icons.add),
                     ),
@@ -172,6 +212,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                             );
                         if (images != null) {
                           setState(() => iDPhoto.addAll(images));
+                          await _saveTempPersonalPhotos();
                         }
                       },
                       icon: Icon(Icons.add),
@@ -205,6 +246,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                                 );
                             if (images != null) {
                               setState(() => driverLicensePhoto.addAll(images));
+                              await _saveTempPersonalPhotos();
                             }
                           },
                           icon: Icon(Icons.add),
@@ -237,6 +279,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                           idPhotos: iDPhoto,
                           context: context,
                         );
+                        await _clearTempPersonalPhotos();
                       }
                       ref.read(loadingProvider.notifier).stopLoading();
                       if (context.mounted) {

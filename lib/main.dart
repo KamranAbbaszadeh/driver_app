@@ -36,7 +36,12 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(
+    BlocProvider(
+      create: (context) => NotificationBloc()..add(FetchNotifications()),
+      child: const ProviderScope(child: MyApp()),
+    ),
+  );
 }
 
 class MyApp extends ConsumerStatefulWidget {
@@ -52,25 +57,32 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    _loadData();
-    _checkConnection();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+      _checkConnection();
+    });
   }
 
   Future<void> _loadData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    isViewed = prefs.getInt('IntroScreen');
-
-    if (mounted) {
-      await FirebaseApi.instance.initialize(ref);
-    }
-
-    await FirebaseMessaging.instance.setAutoInitEnabled(true);
+    final prefsFuture = SharedPreferences.getInstance();
+    final firebaseInitFuture = FirebaseApi.instance.initialize(ref);
+    final autoInitFuture = FirebaseMessaging.instance.setAutoInitEnabled(true);
     FirebaseAnalytics.instance;
 
-    await Future.delayed(const Duration(seconds: 3));
+    final prefs = await prefsFuture;
+    isViewed = prefs.getInt('IntroScreen');
+
+    await Future.wait([
+      firebaseInitFuture,
+      autoInitFuture,
+      Future.delayed(const Duration(seconds: 3)),
+    ]);
+
     FlutterNativeSplash.remove();
 
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _checkConnection() async {
@@ -110,8 +122,17 @@ class _MyAppState extends ConsumerState<MyApp> {
             ),
         '/contract_sign': (context) => ContractSignForm(),
         '/home_page': (context) => HomePage(),
-        '/chat_page':
-            (context) => ChatPage(tourId: 'tourId', width: 0, height: 0),
+        '/chat_page': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+
+          return ChatPage(
+            tourId: args['tourId'] ?? '',
+            width: args['width'] ?? 0.0,
+            height: args['height'] ?? 0.0,
+          );
+        },
       },
       navigatorKey: navigatorKey,
     );

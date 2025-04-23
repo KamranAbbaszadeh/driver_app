@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApplicationForm extends ConsumerStatefulWidget {
   const ApplicationForm({super.key});
@@ -346,45 +347,99 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
 
     _firstNameController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _lastNameController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _fathersNameController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _birthDayController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _genderController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _emailController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _passwordController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _confirmPasswordController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _phoneNumberController.addListener(() {
       setState(() {
         characterCount = _phoneNumberController.text.length;
       });
+      _saveFormData();
     });
     _roleController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _experienceController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _languageController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
     _vehicleTypeController.addListener(() {
       setState(() {});
+      _saveFormData();
     });
+
+    _loadFormData();
+  }
+
+  Future<void> _saveFormData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('firstName', _firstNameController.text);
+    await prefs.setString('lastName', _lastNameController.text);
+    await prefs.setString('email', _emailController.text);
+    await prefs.setString('phoneNumber', _phoneNumberController.text);
+    await prefs.setString('language', _languageController.text);
+    await prefs.setString('birthDay', _birthDayController.text);
+    await prefs.setString('experience', _experienceController.text);
+    await prefs.setString('vehicleType', _vehicleTypeController.text);
+    await prefs.setString('role', _roleController.text);
+    await prefs.setString('fathersName', _fathersNameController.text);
+    await prefs.setString('gender', _genderController.text);
+    await prefs.setString('password', _passwordController.text);
+    await prefs.setString('confirmPassword', _confirmPasswordController.text);
+  }
+
+  Future<void> _clearFormData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
+
+  Future<void> _loadFormData() async {
+    final prefs = await SharedPreferences.getInstance();
+    _firstNameController.text = prefs.getString('firstName') ?? '';
+    _lastNameController.text = prefs.getString('lastName') ?? '';
+    _emailController.text = prefs.getString('email') ?? '';
+    _phoneNumberController.text = prefs.getString('phoneNumber') ?? '';
+    _languageController.text = prefs.getString('language') ?? '';
+    _birthDayController.text = prefs.getString('birthDay') ?? '';
+    _experienceController.text = prefs.getString('experience') ?? '';
+    _vehicleTypeController.text = prefs.getString('vehicleType') ?? '';
+    _roleController.text = prefs.getString('role') ?? '';
+    _fathersNameController.text = prefs.getString('fathersName') ?? '';
+    _genderController.text = prefs.getString('gender') ?? '';
+    _passwordController.text = prefs.getString('password') ?? '';
+    _confirmPasswordController.text = prefs.getString('confirmPassword') ?? '';
   }
 
   @override
@@ -2004,6 +2059,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         genderController: _genderController,
                         context: context,
                       );
+                      _clearFormData();
                       ref.read(loadingProvider.notifier).stopLoading();
                     }
 

@@ -23,9 +23,21 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   StreamSubscription? _locationSubscription;
+  late final ProviderSubscription _rideSubscription;
   @override
   void initState() {
     super.initState();
+    _rideSubscription = ref.listenManual<RideState>(rideProvider, (
+      previous,
+      next,
+    ) {
+      final prevRoute = previous?.nextRoute;
+      final nextRoute = next.nextRoute;
+
+      if (prevRoute != nextRoute) {
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -43,6 +55,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   void dispose() {
+    _rideSubscription.close();
     _locationSubscription?.cancel();
     super.dispose();
   }
@@ -63,18 +76,17 @@ class _HomePageState extends ConsumerState<HomePage> {
       return DateTime.now();
     }
 
+    final currentDate = DateTime.now();
     final tourStartDate = parseDate(rideState.nextRoute?['StartDate']);
     final tourEndDate = parseDate(rideState.nextRoute?['EndDate']);
 
-    final startArrived = rideState.nextRoute?["Start Arrived"] ?? true;
-    final endArrived = rideState.nextRoute?["End Arrived"] ?? true;
+    final endArrived = rideState.nextRoute?["End Arrived"];
 
-    final currentDate = DateTime.now();
-    //bollean not swap value after route completion & need restart the app to switch value
-    final isTourStarted =
+    final bool isTourStarted =
+        endArrived == false &&
         currentDate.isAfter(tourStartDate.subtract(const Duration(hours: 1))) &&
-        currentDate.isBefore(tourEndDate.add(const Duration(hours: 1))) &&
-        (!startArrived || !endArrived);
+        currentDate.isBefore(tourEndDate.add(const Duration(hours: 1)));
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(height * 0.075),

@@ -13,6 +13,10 @@ class RideHistory {
   final int numOfGuests;
   final int numOfRoutes;
   final List<Map<String, dynamic>> routes;
+  final String vehicleType;
+  final String category;
+  final String guide;
+  final String docId;
 
   RideHistory({
     required this.price,
@@ -25,14 +29,22 @@ class RideHistory {
     required this.numOfGuests,
     required this.numOfRoutes,
     required this.routes,
+    required this.vehicleType,
+    required this.guide,
+    required this.category,
+    required this.docId
   });
 
-  factory RideHistory.fromFirestore({required Map<String, dynamic> data}) {
+  factory RideHistory.fromFirestore({required Map<String, dynamic> data, required String id}) {
     final routesMap = data['Routes'] as Map<String, dynamic>? ?? {};
-    final routesList = routesMap.values.map((e) => e as Map<String, dynamic>).toList();
+    final routesList =
+        routesMap.values.map((e) => e as Map<String, dynamic>).toList();
+
     return RideHistory(
+      docId: id, 
       price: data['Price'] ?? 0.0,
-      driver: data['Driver'],
+      driver: data['Driver'] ?? '',
+      guide: data['Guide'] ?? '',
       tourName: data['TourName'] ?? '',
       numOfGuests: data['NumberofGuests'] ?? 0,
       startDate: (data['StartDate'] as Timestamp).toDate(),
@@ -41,19 +53,31 @@ class RideHistory {
       isPaid: data['isPaid'] ?? false,
       isCompleted: data['isCompleted'] ?? false,
       routes: routesList,
+      vehicleType: data['Vehicle'] ?? '',
+      category: data['Category'] ?? '',
     );
   }
- double get totalDistanceKm {
+  double get totalDistanceKm {
     double total = 0.0;
 
     for (var route in routes) {
       try {
-        final startParts = (route['Start'] as String).split(',').map((s) => double.parse(s.trim())).toList();
-        final endParts = (route['End'] as String).split(',').map((s) => double.parse(s.trim())).toList();
+        final startParts =
+            (route['Start'] as String)
+                .split(',')
+                .map((s) => double.parse(s.trim()))
+                .toList();
+        final endParts =
+            (route['End'] as String)
+                .split(',')
+                .map((s) => double.parse(s.trim()))
+                .toList();
 
         total += calculateDistance(
-          startParts[0], startParts[1],
-          endParts[0], endParts[1],
+          startParts[0],
+          startParts[1],
+          endParts[0],
+          endParts[1],
         );
       } catch (e) {
         continue;
@@ -64,17 +88,18 @@ class RideHistory {
   }
 }
 
-
 double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371;
   double dLat = _degToRad(lat2 - lat1);
   double dLon = _degToRad(lon2 - lon1);
-  double a = sin(dLat / 2) * sin(dLat / 2) +
-             cos(_degToRad(lat1)) * cos(_degToRad(lat2)) *
-             sin(dLon / 2) * sin(dLon / 2);
+  double a =
+      sin(dLat / 2) * sin(dLat / 2) +
+      cos(_degToRad(lat1)) *
+          cos(_degToRad(lat2)) *
+          sin(dLon / 2) *
+          sin(dLon / 2);
   double c = 2 * atan2(sqrt(a), sqrt(1 - a));
   return R * c;
 }
 
 double _degToRad(double deg) => deg * (pi / 180);
-

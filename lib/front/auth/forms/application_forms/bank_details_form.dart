@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BankDetailsForm extends ConsumerStatefulWidget {
   const BankDetailsForm({super.key});
@@ -51,6 +52,42 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
   late FocusNode _iBANFocusNode;
   bool isIBANEmpty = false;
 
+  Future<void> _saveTempData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('address', _addressController.text);
+    await prefs.setString('fin', _finCodeController.text);
+    await prefs.setString('vat', _vATnumberController.text);
+    await prefs.setString('bankName', _bankNameController.text);
+    await prefs.setString('bankCode', _bankCodeController.text);
+    await prefs.setString('mh', _mHController.text);
+    await prefs.setString('swift', _sWIFTController.text);
+    await prefs.setString('iban', _iBANController.text);
+  }
+
+  Future<void> _loadTempData() async {
+    final prefs = await SharedPreferences.getInstance();
+    _addressController.text = prefs.getString('address') ?? '';
+    _finCodeController.text = prefs.getString('fin') ?? '';
+    _vATnumberController.text = prefs.getString('vat') ?? '';
+    _bankNameController.text = prefs.getString('bankName') ?? '';
+    _bankCodeController.text = prefs.getString('bankCode') ?? '';
+    _mHController.text = prefs.getString('mh') ?? '';
+    _sWIFTController.text = prefs.getString('swift') ?? '';
+    _iBANController.text = prefs.getString('iban') ?? '';
+  }
+
+  Future<void> _clearTempData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('address');
+    await prefs.remove('fin');
+    await prefs.remove('vat');
+    await prefs.remove('bankName');
+    await prefs.remove('bankCode');
+    await prefs.remove('mh');
+    await prefs.remove('swift');
+    await prefs.remove('iban');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +113,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
     _addressController.addListener(() {
       setState(() {});
+      _saveTempData();
     });
 
     _finCodeFocusNode = FocusNode();
@@ -88,6 +126,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
     _finCodeController.addListener(() {
       setState(() {});
+      _saveTempData();
     });
 
     _vATnumberFocusNode = FocusNode();
@@ -100,6 +139,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
     _vATnumberController.addListener(() {
       setState(() {});
+      _saveTempData();
     });
 
     _bankNameFocusNode = FocusNode();
@@ -112,6 +152,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
     _bankNameController.addListener(() {
       setState(() {});
+      _saveTempData();
     });
 
     _bankCodeFocusNode = FocusNode();
@@ -124,6 +165,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
     _bankCodeController.addListener(() {
       setState(() {});
+      _saveTempData();
     });
 
     _mHFocusNode = FocusNode();
@@ -136,6 +178,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
     _mHController.addListener(() {
       setState(() {});
+      _saveTempData();
     });
 
     _sWIFTFocusNode = FocusNode();
@@ -148,6 +191,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
     _sWIFTController.addListener(() {
       setState(() {});
+      _saveTempData();
     });
 
     _iBANFocusNode = FocusNode();
@@ -160,7 +204,10 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
     _iBANController.addListener(() {
       setState(() {});
+      _saveTempData();
     });
+
+    _loadTempData();
   }
 
   void _isEmpty(TextEditingController controller, String fieldName) {
@@ -249,7 +296,8 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
   @override
   Widget build(BuildContext context) {
-    final role = ref.watch(roleProvider);
+    final roleDetails = ref.watch(roleProvider);
+    final role = roleDetails?['Role'] ?? '';
     String numOfPages = role == 'Guide' ? '3/3' : '3/4';
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
@@ -1233,24 +1281,27 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                       'IBAN': _iBANController.text,
                     };
                     if (userId != null) {
-                      ref.read(loadingProvider.notifier).startLoading();
-                      await uploadBankDetails(
-                        bankDetails: bankDetails,
-                        userId: userId,
-                        context: context,
-                      );
-                      ref.read(loadingProvider.notifier).stopLoading();
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) =>
-                                    role == 'Guide'
-                                        ? WaitingPage()
-                                        : CarDetailsSwitcher(),
-                          ),
+                      if (_allFilledOut()) {
+                        ref.read(loadingProvider.notifier).startLoading();
+                        await uploadBankDetails(
+                          bankDetails: bankDetails,
+                          userId: userId,
+                          context: context,
                         );
+                        await _clearTempData();
+                        ref.read(loadingProvider.notifier).stopLoading();
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      role == 'Guide'
+                                          ? WaitingPage()
+                                          : CarDetailsSwitcher(),
+                            ),
+                          );
+                        }
                       }
                     }
                   },

@@ -69,48 +69,60 @@ class RideNotifier extends StateNotifier<RideState> {
   Timer? _refreshTimer;
 
   RideNotifier() : super(RideState()) {
-    fetchRides();
-    _refreshTimer = Timer.periodic(Duration(seconds: 30), (_) {
-      fetchRides();
-    });
+    _startListeningToRides();
+    _refreshTimer = Timer.periodic(Duration(seconds: 30), (_) {});
   }
 
   StreamSubscription<QuerySnapshot>? carsSubscription;
   Timer? locationTrackingTImer;
 
-  Future<void> fetchRides() async {
+  void _startListeningToRides() {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return;
 
-    carsSubscription = FirebaseFirestore.instance
-        .collection('Cars')
-        .snapshots()
-        .listen((snapshot) {
+    FirebaseFirestore.instance.collection('Users').doc(userId).get().then((
+      userDoc,
+    ) {
+      final role = userDoc.data()?['Role'] ?? '';
+
+      final streams = <Stream<QuerySnapshot>>[];
+
+      if (role == 'Guide') {
+        streams.add(FirebaseFirestore.instance.collection('Guide').snapshots());
+      } else if (role == 'Driver Cum Guide') {
+        streams.add(FirebaseFirestore.instance.collection('Cars').snapshots());
+        streams.add(FirebaseFirestore.instance.collection('Guide').snapshots());
+      } else {
+        streams.add(FirebaseFirestore.instance.collection('Cars').snapshots());
+      }
+
+      for (final stream in streams) {
+        stream.listen((snapshot) {
           final allRides =
-              snapshot.docs
-                  .map(
-                    (doc) => Ride.fromFirestore(data: doc.data(), id: doc.id),
-                  )
-                  .toList();
+              snapshot.docs.map((doc) {
+                return Ride.fromFirestore(
+                  data: doc.data() as Map<String, dynamic>,
+                  id: doc.id,
+                );
+              }).toList();
 
           final filtered =
-              allRides.where((ride) => ride.driver == userId).toList();
+              allRides.where((ride) {
+                if (role == 'Guide') {
+                  return ride.guide == userId;
+                } else if (role == 'Driver') {
+                  return ride.driver == userId;
+                }
+                return ride.driver == userId || ride.guide == userId;
+              }).toList();
+
           final updatedRides = <Map<String, dynamic>>[];
 
           for (var ride in filtered) {
             ride.routes.forEach((key, route) {
-              final routeDate = (route['StartDate'] as Timestamp).toDate();
-              final routeEndDate = (route['EndDate'] as Timestamp).toDate();
-              final now = DateTime.now();
-              final startArrived = route["Start Arrived"] as bool;
-              final endArrived = route["End Arrived"] as bool;
-              if (now.isAfter(routeDate.subtract(Duration(hours: 1))) &&
-                  now.isBefore(routeEndDate.add(Duration(hours: 5))) &&
-                  (!startArrived || !endArrived)) {
-                final routeWithKey = Map<String, dynamic>.from(route);
-                routeWithKey['routeKey'] = key;
-                updatedRides.add(routeWithKey);
-              }
+              final routeWithKey = Map<String, dynamic>.from(route);
+              routeWithKey['routeKey'] = key;
+              updatedRides.add(routeWithKey);
             });
           }
 
@@ -121,6 +133,8 @@ class RideNotifier extends StateNotifier<RideState> {
 
           _updateNextRoute(updatedRides);
         });
+      }
+    });
   }
 
   Future<void> _updateNextRoute(List<Map<String, dynamic>> currentRides) async {
@@ -149,8 +163,25 @@ class RideNotifier extends StateNotifier<RideState> {
         currentNext?['Start Arrived'] != newNext['Start Arrived'];
     final endArrivedChanged =
         currentNext?['End Arrived'] != newNext['End Arrived'];
+    final currentStart =
+        DateTime.tryParse(currentNext?['StartDate'] ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    final currentEnd =
+        DateTime.tryParse(currentNext?['EndDate'] ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    final newStart =
+        DateTime.tryParse(newNext['StartDate'] ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    final newEnd =
+        DateTime.tryParse(newNext['EndDate'] ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    final tourDateChanged = currentStart != newStart || currentEnd != newEnd;
 
-    if (isNewRoute || startArrivedChanged || endArrivedChanged) {
+    if (isNewRoute ||
+        startArrivedChanged ||
+        endArrivedChanged ||
+        tourDateChanged ||
+        true) {
       final routeKey = newNext['routeKey'] as String;
       final docId =
           state.filteredRides
@@ -159,6 +190,7 @@ class RideNotifier extends StateNotifier<RideState> {
                 orElse:
                     () => Ride(
                       tourName: '',
+                      category: '',
                       transfer: false,
                       startDate: Timestamp.now(),
                       endDate: Timestamp.now(),
@@ -169,32 +201,49 @@ class RideNotifier extends StateNotifier<RideState> {
                       vehicleType: '',
                       driver: '',
                       docId: '',
+                      language: '',
                     ),
               )
               .docId;
 
-      final startLatLngSplit = newNext['Start'].split(',');
-      final startLatLng = LatLng(
-        double.parse(startLatLngSplit[0]),
-        double.parse(startLatLngSplit[1]),
-      );
-      final endLatLngSplit = newNext['End'].split(',');
-      final endLatLng = LatLng(
-        double.parse(endLatLngSplit[0]),
-        double.parse(endLatLngSplit[1]),
-      );
+      LatLng? startLatLng;
+      LatLng? endLatLng;
+      String? startLocationName;
+      String? endLocationName;
 
-      final startLocationName = await getLocationName(
-        startLatLng.latitude,
-        startLatLng.longitude,
-      );
-      final endLocationName = await getLocationName(
-        endLatLng.latitude,
-        endLatLng.longitude,
-      );
+      try {
+        final startLatLngSplit = newNext['Start'].split(',');
+        startLatLng = LatLng(
+          double.parse(startLatLngSplit[0]),
+          double.parse(startLatLngSplit[1]),
+        );
+        startLocationName = await getLocationName(
+          startLatLng.latitude,
+          startLatLng.longitude,
+        );
+      } catch (e) {
+        startLatLng = const LatLng(0, 0);
+        startLocationName = 'Unknown';
+      }
 
+      try {
+        final endLatLngSplit = newNext['End'].split(',');
+        endLatLng = LatLng(
+          double.parse(endLatLngSplit[0]),
+          double.parse(endLatLngSplit[1]),
+        );
+        endLocationName = await getLocationName(
+          endLatLng.latitude,
+          endLatLng.longitude,
+        );
+      } catch (e) {
+        endLatLng = const LatLng(0, 0);
+        endLocationName = 'Unknown';
+      }
+
+      final updatedNextRoute = Map<String, dynamic>.from(newNext);
       state = state.copyWith(
-        nextRoute: newNext,
+        nextRoute: updatedNextRoute,
         routeKey: routeKey,
         docId: docId,
         startLatLng: startLatLng,
@@ -215,18 +264,20 @@ class RideNotifier extends StateNotifier<RideState> {
     locationTrackingTImer = Timer.periodic(Duration(seconds: 5), (_) async {
       final next = state.nextRoute;
       if (next == null) return;
-      final startDate = (next['StartDate'] as Timestamp).toDate();
+      final startDateString = next['StartDate'];
+      final endDateString = next['EndDate'];
+      final startDate = DateTime.parse(startDateString);
+      final endDate = DateTime.parse(endDateString);
       final now = DateTime.now();
-      await fetchRides();
+      _startListeningToRides();
       if (now.isAfter(startDate.subtract(Duration(hours: 1))) &&
-          now.isBefore(startDate.add(Duration(hours: 5)))) {
-        final startArrived = next['Start Arrived'] as bool;
+          now.isBefore(endDate.add(Duration(hours: 5)))) {
         final endArrived = next['End Arrived'] as bool;
         final currentUser = FirebaseAuth.instance.currentUser;
-        if (currentUser != null && (!startArrived || !endArrived)) {
+        if (currentUser != null && endArrived == false) {
           await initializeService();
         } else {
-          await fetchRides();
+          _startListeningToRides();
           locationTrackingTImer?.cancel();
           final service = FlutterBackgroundService();
           service.invoke("stopService");

@@ -375,7 +375,7 @@ class _AuthState extends ConsumerState<AuthEmail> {
                   try {
                     ref.read(loadingProvider.notifier).startLoading();
                     await FirebaseAuth.instance.signInWithEmailAndPassword(
-                      email: _emailController.text.trim(),
+                      email: _emailController.text.trim().toLowerCase(),
                       password: _passwordController.text.trim(),
                     );
                     final userId = FirebaseAuth.instance.currentUser?.uid;

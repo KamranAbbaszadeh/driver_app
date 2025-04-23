@@ -30,7 +30,10 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
-    bool hasUnviewedNotifications = ref.watch(notificationsProvider);
+    final notifications = ref.watch(notificationsProvider);
+    final hasUnviewedNotifications = notifications.any((notif) {
+      return notif['isViewed'] == false;
+    });
 
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
@@ -63,8 +66,8 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       ),
                       hasUnviewedNotifications
                           ? Positioned(
-                            right: 13,
-                            top: 2,
+                            right: width * 0.033,
+                            top: height * 0.002,
                             child: Icon(
                               Icons.brightness_1,
                               color:

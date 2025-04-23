@@ -13,6 +13,29 @@ Future<void> uploadVehicleDetailsAndSave({
   await firestore.collection('Users').doc(userId).set({
     'Vehicle Details': vehicleDetails,
   }, SetOptions(merge: true));
+  final vehiclesCollection = firestore
+      .collection('Users')
+      .doc(userId)
+      .collection('Vehicles');
+  final vehiclesSnapshot = await vehiclesCollection.get();
+
+  String vehicleId;
+  if (vehiclesSnapshot.docs.isEmpty) {
+    vehicleId = 'Car1';
+  } else {
+    final existingIds = vehiclesSnapshot.docs.map((doc) => doc.id).toList();
+    final lastId = existingIds.where((id) => id.startsWith('Car')).fold<int>(
+      0,
+      (prev, id) {
+        final number = int.tryParse(id.replaceFirst('Car', '')) ?? 0;
+        return number > prev ? number : prev;
+      },
+    );
+    vehicleId = 'Car${lastId + 1}';
+  }
+  await vehiclesCollection
+      .doc(vehicleId)
+      .set(vehicleDetails, SetOptions(merge: true));
 
   final currentUserEmail = FirebaseAuth.instance.currentUser?.email;
 

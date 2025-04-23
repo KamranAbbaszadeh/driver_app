@@ -4,6 +4,7 @@ import 'package:driver_app/back/auth/post_api.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 Future<void> signUp({
@@ -86,11 +87,16 @@ Future<void> signUp({
     );
   } catch (e) {
     String errorMessage = 'Error signing up: ${e.toString()}';
+    final darkMode =
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     showDialog(
       context: context,
       builder:
           (ctx) => AlertDialog(
-            backgroundColor: Colors.white,
+            backgroundColor:
+                darkMode
+                    ? const Color.fromARGB(255, 62, 62, 62)
+                    : const Color.fromARGB(255, 214, 213, 213),
             title: const Text('Invalid Input'),
             content: Text(errorMessage),
             actions: [
@@ -98,7 +104,13 @@ Future<void> signUp({
                 onPressed: () {
                   Navigator.pop(ctx);
                 },
-                child: Text('Got it'),
+                child: Text(
+                  'Got it',
+                  style: GoogleFonts.cabin(
+                    fontWeight: FontWeight.w600,
+                    color: darkMode ? Colors.white : Colors.black,
+                  ),
+                ),
               ),
             ],
           ),

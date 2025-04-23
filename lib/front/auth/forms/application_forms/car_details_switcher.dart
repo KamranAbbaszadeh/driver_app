@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:driver_app/back/upload_files/vehicle_details/vehicle_details_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
@@ -10,17 +13,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class CarDetailsSwitcher extends ConsumerWidget {
+class CarDetailsSwitcher extends ConsumerStatefulWidget {
   const CarDetailsSwitcher({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CarDetailsSwitcher> createState() => _CarDetailsSwitcherState();
+}
+
+class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      final stored = prefs.getString('vehicleDetails');
+      if (stored != null && stored.isNotEmpty) {
+        ref
+            .read(vehicleDetailsProvider.notifier)
+            .state = Map<String, dynamic>.from(jsonDecode(stored));
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final vehicleTypes = ref.watch(vehicleTypeProvider);
+    final vehicleDetails = ref.watch(vehicleDetailsProvider);
+    ref.listen<Map<String, dynamic>>(vehicleDetailsProvider, (
+      previous,
+      next,
+    ) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('vehicleDetails', jsonEncode(next));
+    });
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
-    Map<String, dynamic> vehicleDetails = {};
 
     final Map<String, String> vehicleTypeIcons = {
       'Sedan': "assets/car_icons/sedan.png",
@@ -33,8 +61,13 @@ class CarDetailsSwitcher extends ConsumerWidget {
       data: (types) {
         if (types.length == 1) {
           return CarDetailsForm(
+            multiSelection: false,
             onFormSubmit: (formData) async {
-              vehicleDetails[types[0]] = formData;
+              ref.read(vehicleDetailsProvider.notifier).update((state) {
+                final updated = Map<String, dynamic>.from(state);
+                updated[types[0]] = formData;
+                return updated;
+              });
               final userId = FirebaseAuth.instance.currentUser?.uid;
               if (userId != null) {
                 await uploadVehicleDetailsAndSave(
@@ -160,8 +193,17 @@ class CarDetailsSwitcher extends ConsumerWidget {
                       MaterialPageRoute(
                         builder:
                             (context) => CarDetailsForm(
+                              multiSelection: true,
                               onFormSubmit: (formData) {
-                                vehicleDetails[types[index]] = formData;
+                                ref
+                                    .read(vehicleDetailsProvider.notifier)
+                                    .update((state) {
+                                      final updated = Map<String, dynamic>.from(
+                                        state,
+                                      );
+                                      updated[types[index]] = formData;
+                                      return updated;
+                                    });
                               },
                               vehicleType: types[index],
                             ),
@@ -177,11 +219,15 @@ class CarDetailsSwitcher extends ConsumerWidget {
                   ref.read(loadingProvider.notifier).startLoading();
                   final userId = FirebaseAuth.instance.currentUser?.uid;
                   if (userId != null) {
-                    await uploadVehicleDetailsAndSave(
-                      userId: userId,
-                      vehicleDetails: vehicleDetails,
-                      context: context,
-                    );
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.remove('vehicleDetails');
+                    if (context.mounted) {
+                      await uploadVehicleDetailsAndSave(
+                        userId: userId,
+                        vehicleDetails: vehicleDetails,
+                        context: context,
+                      );
+                    }
                     await FirebaseFirestore.instance
                         .collection('Users')
                         .doc(userId)

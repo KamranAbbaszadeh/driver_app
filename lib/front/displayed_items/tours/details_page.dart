@@ -65,8 +65,7 @@ class _DetailsPageState extends State<DetailsPage> {
     List<Map<String, dynamic>> matchingRoutes =
         detailList.values
             .where((route) {
-              Timestamp date = route['StartDate'];
-              DateTime startDate = date.toDate();
+              DateTime startDate = DateTime.parse(route['StartDate']);
               return isSameDay(startDate, selectedDay);
             })
             .cast<Map<String, dynamic>>()
@@ -148,6 +147,7 @@ class _DetailsPageState extends State<DetailsPage> {
       ),
       title: Text(
         widget.ride.tourName,
+        maxLines: 2,
         style: GoogleFonts.daysOne(
           fontSize: width * 0.076,
           fontWeight: FontWeight.bold,
@@ -160,7 +160,11 @@ class _DetailsPageState extends State<DetailsPage> {
         widget.ride.driver == ''
             ? GestureDetector(
               onTap: () async {
-                userAssign(docId: widget.ride.docId, baseUrl: baseUrl);
+                userAssign(
+                  docId: widget.ride.docId,
+                  baseUrl: baseUrl,
+                  collection: widget.ride.collectionSource!,
+                );
               },
               child: Container(
                 width: width * 0.22,

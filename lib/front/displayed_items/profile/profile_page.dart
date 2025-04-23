@@ -1,8 +1,9 @@
 import 'package:driver_app/back/rides_history/rides_provider.dart';
-import 'package:driver_app/front/auth/forms/application_forms/car_details_switcher.dart';
+import 'package:driver_app/db/user_data/store_role.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:driver_app/front/displayed_items/profile/profile_data.dart';
 import 'package:driver_app/front/displayed_items/profile/rides_history.dart';
+import 'package:driver_app/front/displayed_items/profile/vehicle_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +24,8 @@ class ProfilePage extends ConsumerWidget {
     ref.watch(ridesHistoryProvider);
     final earningsMap = ref.read(ridesHistoryProvider.notifier).earningsByDate;
     final dates = earningsMap.keys.toList();
+    final roleDetails = ref.watch(roleProvider);
+    final userRole = roleDetails?['Role'];
 
     return Scaffold(
       body: Container(
@@ -204,46 +207,50 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
 
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => CarDetailsSwitcher()),
-                  );
-                },
-                child: Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(width * 0.039),
-                    color: const Color.fromARGB(100, 193, 192, 192),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: width * 0.02),
-                  child: Row(
-                    spacing: width * 0.03,
-                    children: [
-                      Image.asset(
-                        'assets/car_icons/vehicle.png',
-                        width: 24,
-                        height: 24,
-                        fit: BoxFit.fill,
-                        color: darkMode ? Colors.white : Colors.black,
-                        errorBuilder:
-                            (context, error, stackTrace) => Icon(Icons.error),
+              userRole == "Guide"
+                  ? SizedBox.shrink()
+                  : GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => VehicleList()),
+                      );
+                    },
+                    child: Container(
+                      width: width,
+                      height: height * 0.065,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(width * 0.039),
+                        color: const Color.fromARGB(100, 193, 192, 192),
                       ),
-                      Text(
-                        "My Vehicles",
-                        style: GoogleFonts.cabin(
-                          fontWeight: FontWeight.bold,
-                          fontSize: width * 0.05,
-                        ),
+                      padding: EdgeInsets.symmetric(horizontal: width * 0.02),
+                      child: Row(
+                        spacing: width * 0.03,
+                        children: [
+                          Image.asset(
+                            'assets/car_icons/vehicle.png',
+                            width: 24,
+                            height: 24,
+                            fit: BoxFit.fill,
+                            color: darkMode ? Colors.white : Colors.black,
+                            errorBuilder:
+                                (context, error, stackTrace) =>
+                                    Icon(Icons.error),
+                          ),
+                          Text(
+                            "My Vehicles",
+                            style: GoogleFonts.cabin(
+                              fontWeight: FontWeight.bold,
+                              fontSize: width * 0.05,
+                            ),
+                          ),
+                          Spacer(),
+                          Icon(Icons.arrow_forward_ios),
+                        ],
                       ),
-                      Spacer(),
-                      Icon(Icons.arrow_forward_ios),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+
               GestureDetector(
                 onTap: () async {
                   await showDialog<bool>(
