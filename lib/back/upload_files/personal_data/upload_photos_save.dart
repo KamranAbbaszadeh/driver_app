@@ -45,8 +45,8 @@ Future<void> uploadPhotosAndSaveData({
       await firestore.collection('Users').doc(userId).set({
         'idPhotos': idPhotoUrls,
       }, SetOptions(merge: true));
-      idUrl1 = idPhotoUrls[0];
-      idUrl2 = idPhotoUrls[1];
+      idUrl1 = idPhotoUrls.isNotEmpty ? idPhotoUrls[0] : '';
+      idUrl2 = idPhotoUrls.length > 1 ? idPhotoUrls[1] : '';
     }
 
     // Upload Driver License Photos
@@ -60,8 +60,8 @@ Future<void> uploadPhotosAndSaveData({
       await firestore.collection('Users').doc(userId).set({
         'licensePhotos': licensePhotoUrls,
       }, SetOptions(merge: true));
-      licenseUrl1 = licensePhotoUrls[0];
-      licenseurl2 = licensePhotoUrls[1];
+      licenseUrl1 = licensePhotoUrls.isNotEmpty ? licensePhotoUrls[0] : '';
+      licenseurl2 = licensePhotoUrls.length > 1 ? licensePhotoUrls[1] : '';
     }
 
     final currentUserEmail = FirebaseAuth.instance.currentUser?.email;

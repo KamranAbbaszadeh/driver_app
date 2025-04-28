@@ -1,15 +1,24 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:android_intent_plus/android_intent.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:driver_app/front/tools/bottom_bar_provider.dart';
 import 'package:driver_app/front/tools/notification_notifier.dart';
 import 'package:driver_app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 final Logger logger = Logger();
 
@@ -138,7 +147,10 @@ class FirebaseApi {
             }
           } else if (type == "/new_tours") {
             ref.read(selectedIndexProvider.notifier).state = 1;
-            navigatorKey.currentState?.pushNamed("home_page");
+            navigatorKey.currentState?.pushNamedAndRemoveUntil(
+              "home_page",
+              (route) => false,
+            );
           } else {
             navigatorKey.currentState?.pushNamed(
               type ?? '/notification_screen',
@@ -297,7 +309,10 @@ class FirebaseApi {
         }
       } else if (route == "/new_tours") {
         ref.read(selectedIndexProvider.notifier).state = 1;
-        navigatorKey.currentState?.pushNamed("home_page");
+        navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          "home_page",
+          (route) => false,
+        );
       } else {
         navigatorKey.currentState?.pushNamed(route ?? '/notification_screen');
       }
@@ -390,5 +405,145 @@ class FirebaseApi {
       return null;
     }
     return null;
+  }
+
+  Future<void> initializeTimeZone() async {
+    tz.initializeTimeZones();
+
+    try {
+      final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } catch (e) {
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
+  }
+
+  Future<void> scheduleTourReminders(DateTime startDate, String tourId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final scheduled = prefs.getStringList('scheduledTours') ?? [];
+
+    if (scheduled.contains(tourId)) return;
+
+    scheduled.add(tourId);
+    await prefs.setStringList('scheduledTours', scheduled);
+
+    _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
+
+    final notificationTimes = [
+      Duration(hours: 2),
+      Duration(minutes: 90),
+      Duration(hours: 1),
+      Duration(minutes: 30),
+    ];
+
+    int baseId = tourId.hashCode;
+
+    for (int i = 0; i < notificationTimes.length; i++) {
+      final scheduledTime = startDate.subtract(notificationTimes[i]);
+
+      if (scheduledTime.isAfter(tz.TZDateTime.now(tz.local))) {
+        await _localNotifications.zonedSchedule(
+          baseId + i,
+          '⏰ Tour Reminder',
+          'Tour starts in ${notificationTimes[i].inMinutes ~/ 60 > 0 ? '${notificationTimes[i].inMinutes ~/ 60} hour(s)' : '${notificationTimes[i].inMinutes} minutes'}',
+          tz.TZDateTime.from(scheduledTime, tz.local),
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              'high_importance_channel',
+              'High Importance Notifications',
+              channelDescription:
+                  'This channel is used for important notifications',
+              importance: Importance.max,
+              priority: Priority.high,
+              icon: '@mipmap/launcher_icon',
+              additionalFlags: Int32List.fromList(<int>[4]),
+            ),
+            iOS: DarwinNotificationDetails(),
+          ),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.dateAndTime,
+        );
+      }
+      logger.e("Scheduled notification for tour $tourId at $scheduledTime");
+    }
+  }
+
+  void cancelTourReminders(String tourId) async {
+    final baseId = tourId.hashCode;
+    for (int i = 0; i < 4; i++) {
+      await FlutterLocalNotificationsPlugin().cancel(baseId + i);
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final scheduled = prefs.getStringList('scheduledTours') ?? [];
+    scheduled.remove(tourId);
+    await prefs.setStringList('scheduledTours', scheduled);
+  }
+
+  Future<void> checkAndRequestExactAlarmPermission(BuildContext context) async {
+    if (!Platform.isAndroid) return;
+    final width = MediaQuery.of(context).size.width;
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    final sdkInt = androidInfo.version.sdkInt;
+
+    if (sdkInt < 33) return;
+
+    final alarmManager =
+        FlutterLocalNotificationsPlugin()
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
+
+    final canSchedule =
+        await alarmManager?.canScheduleExactNotifications() ?? false;
+
+    if (!canSchedule && context.mounted) {
+      showDialog(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: Text(
+                "Allow Exact Alarms",
+                style: GoogleFonts.gothicA1(fontWeight: FontWeight.bold),
+              ),
+              content: Text(
+                "To ensure you receive tour reminders exactly on time, "
+                "please allow this app to schedule exact alarms in settings.",
+                style: TextStyle(fontSize: width * 0.04),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    final intent = AndroidIntent(
+                      action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
+                    );
+                    await intent.launch();
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                    }
+                  },
+                  child: Text(
+                    "Open Settings",
+                    style: GoogleFonts.cabin(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    "Cancel",
+                    style: GoogleFonts.cabin(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+      );
+    }
   }
 }

@@ -36,7 +36,8 @@ class RoleDataProvider extends StateNotifier<Map<String, dynamic>?> {
   }
 }
 
-final roleProvider = StateNotifierProvider<RoleDataProvider, Map<String, dynamic>?>((ref) {
-  final currentUser = FirebaseAuth.instance.currentUser;
-  return RoleDataProvider(currentUser);
-});
+final roleProvider =
+    StateNotifierProvider<RoleDataProvider, Map<String, dynamic>?>((ref) {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      return RoleDataProvider(currentUser);
+    });

@@ -7,7 +7,12 @@ import 'package:intl/intl.dart';
 
 class MyRides extends StatefulWidget {
   final List<Ride> filteredRides;
-  const MyRides({super.key, required this.filteredRides});
+  final ScrollController parentScrollController;
+  const MyRides({
+    super.key,
+    required this.filteredRides,
+    required this.parentScrollController,
+  });
 
   @override
   State<MyRides> createState() => _MyRidesState();
@@ -21,28 +26,37 @@ class _MyRidesState extends State<MyRides> {
   }
 
   @override
+  dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     return widget.filteredRides.isNotEmpty
-        ? Column(
-          children: List.generate(
-            widget.filteredRides.length,
-            (index) => _buildRide(
-              context: context,
-              darkMode: darkMode,
-              height: height,
-              width: width,
-              ride: widget.filteredRides[index],
-              index: index,
-            ),
-          ),
+        ? ListView.builder(
+          controller: null,
+          padding: EdgeInsets.zero,
+          physics: NeverScrollableScrollPhysics(),
+          itemCount: widget.filteredRides.length,
+
+          shrinkWrap: true,
+          itemBuilder:
+              (context, index) => _buildRide(
+                context: context,
+                darkMode: darkMode,
+                height: height,
+                width: width,
+                ride: widget.filteredRides[index],
+                index: index,
+              ),
         )
         : Center(
           child: Text(
-            'You don\'t have any Rides. \nNavigate to Rides page and grab some',
+            'You don\'t have any Rides.\nNavigate to Rides page and grab some',
             textAlign: TextAlign.center,
             style: GoogleFonts.ptSans(),
           ),
@@ -72,6 +86,8 @@ class _MyRidesState extends State<MyRides> {
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
+            final willExpand = !isExpanded;
+
             setState(() {
               if (isExpanded) {
                 expandedIndices.remove(index);
@@ -80,6 +96,33 @@ class _MyRidesState extends State<MyRides> {
                 expandedIndices.add(index);
               }
             });
+            if (willExpand &&
+                widget.filteredRides.length > 1 &&
+                index == widget.filteredRides.length - 1) {
+              Future.delayed(const Duration(milliseconds: 400), () {
+                if (widget.parentScrollController.hasClients) {
+                  widget.parentScrollController.animateTo(
+                    widget.parentScrollController.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOut,
+                  );
+                }
+              });
+            }
+
+            if (!willExpand &&
+                widget.filteredRides.length > 1 &&
+                index == widget.filteredRides.length - 1) {
+              Future.delayed(const Duration(milliseconds: 400), () {
+                if (widget.parentScrollController.hasClients) {
+                  widget.parentScrollController.animateTo(
+                    widget.parentScrollController.offset - 250,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOut,
+                  );
+                }
+              });
+            }
           },
 
           child: Container(
@@ -152,132 +195,144 @@ class _MyRidesState extends State<MyRides> {
 
         ExpandableSection(
           expand: isExpanded,
-          curve: Curves.fastOutSlowIn,
-          child: Container(
-            padding: EdgeInsets.only(
-              left: width * 0.033,
-              right: width * 0.033,
-              bottom: width * 0.033,
+          curve: Curves.easeOut,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: 0,
+              maxHeight: double.infinity,
             ),
-            width: width,
-            decoration: BoxDecoration(
-              color: darkMode ? Colors.black54 : Colors.white38,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(width * 0.012),
-                bottomRight: Radius.circular(width * 0.012),
+            child: Container(
+              padding: EdgeInsets.only(
+                left: width * 0.033,
+                right: width * 0.033,
+                bottom: width * 0.033,
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: height * 0.005),
-                    RichText(
-                      text: TextSpan(
-                        text: 'End Date: ',
-                        style: GoogleFonts.ptSans(
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).textTheme.bodyMedium?.color!,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: tourEndDate,
-                            style: GoogleFonts.ptSans(
-                              fontWeight: FontWeight.w500,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.color!,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: height * 0.005),
-                    RichText(
-                      text: TextSpan(
-                        text: 'Numer of Guest: ',
-                        style: GoogleFonts.ptSans(
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).textTheme.bodyMedium?.color!,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: ride.numOfGuests.toString(),
-                            style: GoogleFonts.ptSans(
-                              fontWeight: FontWeight.w500,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.color!,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: height * 0.005),
-                    RichText(
-                      text: TextSpan(
-                        text: 'Price: ',
-                        style: GoogleFonts.ptSans(
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).textTheme.bodyMedium?.color!,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: '\$${ride.price.toString()} ',
-                            style: GoogleFonts.ptSans(
-                              fontWeight: FontWeight.w500,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.color!,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: height * 0.005),
-
-                    GestureDetector(
-                      onTap: () {
-                        expandedIndices.remove(index);
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => DetailsPage(ride: ride),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 200,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(width * 0.019),
-                          color:
-                              darkMode
-                                  ? Color.fromARGB(255, 52, 168, 235)
-                                  : Color.fromARGB(255, 1, 105, 170),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'See Ride Details',
-                            style: GoogleFonts.daysOne(
-                              fontWeight: FontWeight.w600,
-                              color: darkMode ? Colors.black : Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+              width: width,
+              decoration: BoxDecoration(
+                color: darkMode ? Colors.black54 : Colors.white38,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(width * 0.012),
+                  bottomRight: Radius.circular(width * 0.012),
                 ),
-              ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: height * 0.005),
+                      RichText(
+                        text: TextSpan(
+                          text: 'End Date: ',
+                          style: GoogleFonts.ptSans(
+                            fontWeight: FontWeight.w600,
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color!,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: tourEndDate,
+                              style: GoogleFonts.ptSans(
+                                fontWeight: FontWeight.w500,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.color!,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: height * 0.005),
+                      RichText(
+                        text: TextSpan(
+                          text: 'Numer of Guest: ',
+                          style: GoogleFonts.ptSans(
+                            fontWeight: FontWeight.w600,
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color!,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: ride.numOfGuests.toString(),
+                              style: GoogleFonts.ptSans(
+                                fontWeight: FontWeight.w500,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.color!,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: height * 0.005),
+                      RichText(
+                        text: TextSpan(
+                          text: 'Price: ',
+                          style: GoogleFonts.ptSans(
+                            fontWeight: FontWeight.w600,
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color!,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: '\$${ride.price.toString()} ',
+                              style: GoogleFonts.ptSans(
+                                fontWeight: FontWeight.w500,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.color!,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: height * 0.005),
+
+                      GestureDetector(
+                        onTap: () {
+                          expandedIndices.remove(index);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => DetailsPage(ride: ride),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: width * 0.508,
+                          height: height * 0.046,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(width * 0.019),
+                            color:
+                                darkMode
+                                    ? Color.fromARGB(255, 52, 168, 235)
+                                    : Color.fromARGB(255, 1, 105, 170),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'See Ride Details',
+                              style: GoogleFonts.daysOne(
+                                fontWeight: FontWeight.w600,
+                                color: darkMode ? Colors.black : Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
         SizedBox(height: height * 0.005),
+        index == widget.filteredRides.length - 1 && isExpanded
+            ? SizedBox(height: height * 0.08)
+            : SizedBox.shrink(),
       ],
     );
   }

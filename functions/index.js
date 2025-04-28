@@ -1,3 +1,5 @@
+const {onSchedule} = require("firebase-functions/v2/scheduler");
+const {getFirestore} = require("firebase-admin/firestore");
 const {onDocumentUpdated} = require("firebase-functions/v2/firestore");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 
@@ -179,7 +181,7 @@ exports.notifyDriversOnNewCarTour = onDocumentCreated(
               body: `A new Ride tour has been added.`,
             },
             data: {
-              route: "/new_tours",
+              route: "scheduled_tours",
               fullBody: `A new Ride tour has been added.`,
             },
             token: fcmToken,

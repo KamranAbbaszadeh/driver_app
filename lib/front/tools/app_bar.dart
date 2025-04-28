@@ -17,8 +17,6 @@ class BuildAppBar extends ConsumerStatefulWidget {
 }
 
 class _BuildAppBarState extends ConsumerState<BuildAppBar> {
-  List<String> vehicleIds = [];
-  List<Map<String, dynamic>> vehicles = [];
   final Map<String, String> vehicleTypeIcons = {
     'Sedan': "assets/car_icons/sedan.png",
     'Minivan': "assets/car_icons/mininvan.png",
@@ -32,38 +30,23 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.watch(notificationsProvider.notifier).refresh();
-      fetchVehicleIds();
-    });
-  }
-
-  Future<void> fetchVehicleIds() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
-
-    final snapshot =
-        await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(userId)
-            .collection('Vehicles')
-            .get();
-
-    setState(() {
-      vehicles =
-          snapshot.docs.where((doc) => doc.data()['isApproved'] == true).map((
-            doc,
-          ) {
-            final data = doc.data();
-            return {
-              'id': doc.id,
-              'registration': data['Vehicle Registration Number'] ?? doc.id,
-              'vehicleType': data['Vehicle Type'] ?? 'Unknown',
-            };
-          }).toList();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final vehiclesAsync = ref.watch(vehiclesProvider);
+
+    if (vehiclesAsync.isLoading) {
+      return CircularProgressIndicator();
+    }
+
+    if (vehiclesAsync.hasError) {
+      return Text('Error loading vehicles');
+    }
+
+    final vehicles = vehiclesAsync.value;
+
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
@@ -119,7 +102,7 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
 
                   value:
                       userData['Active Vehicle'] ??
-                      (vehicles.isNotEmpty ? vehicles.first['id'] : null),
+                      (vehicles!.isNotEmpty ? vehicles.first['id'] : null),
                   underline: SizedBox(),
                   iconSize: width * 0.05,
                   onChanged: (String? newValue) {
@@ -145,7 +128,14 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
                     }).toList();
                   },
                   items:
-                      vehicles.map((vehicle) {
+                      vehicles!.map((vehicle) {
+                        bool isActive =
+                            (vehicle['id'] ==
+                                (userData['Active Vehicle'] ??
+                                    (vehicles.isNotEmpty
+                                        ? vehicles.first['id']
+                                        : null)));
+
                         return DropdownMenuItem<String>(
                           value: vehicle['id'],
                           child: Row(
@@ -168,6 +158,19 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (isActive) ...[
+                                SizedBox(width: width * 0.02),
+                                Icon(
+                                  Icons.check_circle,
+                                  color: const Color.fromARGB(
+                                    255,
+                                    103,
+                                    168,
+                                    120,
+                                  ),
+                                  size: width * 0.045,
+                                ),
+                              ],
                             ],
                           ),
                         );

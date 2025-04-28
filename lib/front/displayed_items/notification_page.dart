@@ -1,6 +1,7 @@
 import 'package:driver_app/back/bloc/notification_bloc.dart';
 import 'package:driver_app/back/bloc/notification_event.dart';
 import 'package:driver_app/back/bloc/notification_state.dart';
+import 'package:driver_app/front/tools/bottom_bar_provider.dart';
 import 'package:driver_app/front/tools/notification_notifier.dart';
 import 'package:driver_app/main.dart';
 import 'package:flutter/material.dart';
@@ -108,6 +109,12 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                           'width': width,
                           'height': height,
                         },
+                      );
+                    } else if (route == "/new_tours") {
+                      ref.read(selectedIndexProvider.notifier).state = 1;
+                      navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                        "home_page",
+                        (route) => false,
                       );
                     } else {
                       navigatorKey.currentState?.pushNamed(route);

@@ -269,8 +269,8 @@ class RideNotifier extends StateNotifier<RideState> {
       final startDate = DateTime.parse(startDateString);
       final endDate = DateTime.parse(endDateString);
       final now = DateTime.now();
-      _startListeningToRides();
-      if (now.isAfter(startDate.subtract(Duration(hours: 1))) &&
+
+      if (now.isAfter(startDate.subtract(Duration(hours: 2))) &&
           now.isBefore(endDate.add(Duration(hours: 5)))) {
         final endArrived = next['End Arrived'] as bool;
         final currentUser = FirebaseAuth.instance.currentUser;

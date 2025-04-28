@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/back/map_and_location/get_functions.dart';
 import 'package:driver_app/back/map_and_location/location_provider.dart';
 import 'package:driver_app/back/ride/ride_state.dart';
@@ -23,20 +24,11 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   StreamSubscription? _locationSubscription;
-  late final ProviderSubscription _rideSubscription;
   @override
   void initState() {
     super.initState();
-    _rideSubscription = ref.listenManual<RideState>(rideProvider, (
-      previous,
-      next,
-    ) {
-      final prevRoute = previous?.nextRoute;
-      final nextRoute = next.nextRoute;
-
-      if (prevRoute != nextRoute) {
-        setState(() {});
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FirebaseApi.instance.checkAndRequestExactAlarmPermission(context);
     });
   }
 
@@ -53,15 +45,48 @@ class _HomePageState extends ConsumerState<HomePage> {
         });
   }
 
+  DateTime parseDate(dynamic value) {
+    if (value is DateTime) return value;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.parse(value);
+    return DateTime.now();
+  }
+
   @override
   void dispose() {
-    _rideSubscription.close();
     _locationSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<RideState>(rideProvider, (previous, next) {
+      final prevRoute = previous?.nextRoute;
+      final nextRoute = next.nextRoute;
+      final currentDate = DateTime.now();
+      final tourStartDate = parseDate(nextRoute?['StartDate']);
+      final tourEndDate = parseDate(nextRoute?['EndDate']);
+      final tourId = nextRoute?['ID'];
+
+      if (prevRoute != nextRoute) {
+        setState(() {});
+      }
+
+      if (tourId != null &&
+          nextRoute?['End Arrived'] == false &&
+          currentDate.isAfter(
+            tourStartDate.subtract(const Duration(hours: 2, minutes: 30)),
+          ) &&
+          currentDate.isBefore(tourEndDate.add(const Duration(hours: 1)))) {
+        FirebaseApi.instance.scheduleTourReminders(tourStartDate, tourId);
+      }
+
+      if (tourId != null &&
+          (nextRoute?['onRoad'] == true || nextRoute?['End Arrived'] == true)) {
+        FirebaseApi.instance.cancelTourReminders(tourId);
+      }
+    });
+
     final rideState = ref.watch(rideProvider);
     final selectedIndex = ref.watch(selectedIndexProvider);
     final height = MediaQuery.of(context).size.height;
@@ -69,22 +94,15 @@ class _HomePageState extends ConsumerState<HomePage> {
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final index = ref.watch(selectedIndexProvider);
-    DateTime parseDate(dynamic value) {
-      if (value is DateTime) return value;
-      if (value is Timestamp) return value.toDate();
-      if (value is String) return DateTime.parse(value);
-      return DateTime.now();
-    }
 
     final currentDate = DateTime.now();
     final tourStartDate = parseDate(rideState.nextRoute?['StartDate']);
     final tourEndDate = parseDate(rideState.nextRoute?['EndDate']);
-
     final endArrived = rideState.nextRoute?["End Arrived"];
 
     final bool isTourStarted =
         endArrived == false &&
-        currentDate.isAfter(tourStartDate.subtract(const Duration(hours: 1))) &&
+        currentDate.isAfter(tourStartDate.subtract(const Duration(hours: 2))) &&
         currentDate.isBefore(tourEndDate.add(const Duration(hours: 1)));
 
     return Scaffold(
@@ -94,34 +112,60 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
       body: listNavBar[selectedIndex],
       bottomNavigationBar: BottomNavBar(),
+
       floatingActionButton:
           isTourStarted
               ? index == 0
                   ? Padding(
                     padding: EdgeInsets.symmetric(horizontal: width * 0.04),
-                    child: GestureDetector(
-                      onTap: () async {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => RidePage()),
-                        );
-                      },
-                      child: Container(
-                        width: width,
-                        height: height * 0.06,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(width * 0.019),
-                          color:
-                              darkMode
-                                  ? Color.fromARGB(255, 52, 168, 235)
-                                  : Color.fromARGB(255, 1, 105, 170),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Start Ride',
-                            style: GoogleFonts.cabin(
-                              fontWeight: FontWeight.bold,
-                              fontSize: width * 0.06,
+                    child: SizedBox(
+                      width: width * 0.5,
+                      height: height * 0.07,
+                      child: Material(
+                        elevation: width * 0.02,
+                        borderRadius: BorderRadius.circular(width * 0.045),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(width * 0.045),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RidePage(),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                width * 0.045,
+                              ),
+                              gradient: LinearGradient(
+                                colors:
+                                    darkMode
+                                        ? [Color(0xFF34A8EB), Color(0xFF015E9C)]
+                                        : [
+                                          Color(0xFF34A8EB),
+                                          Color(0xFF015E9C),
+                                        ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(width: width * 0.02),
+                                  Text(
+                                    'Start Ride',
+                                    style: GoogleFonts.cabin(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: width * 0.05,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -130,7 +174,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   )
                   : null
               : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.miniCenterFloat,
     );
   }
 }

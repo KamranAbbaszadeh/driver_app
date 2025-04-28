@@ -1,13 +1,11 @@
-import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/bank_details/upload_bank_details.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/auth/forms/application_forms/car_details_switcher.dart';
-import 'package:driver_app/front/auth/waiting_page.dart';
+import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BankDetailsForm extends ConsumerStatefulWidget {
@@ -266,6 +264,28 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     return false;
   }
 
+  Future<void> _submitForm() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    Map<String, dynamic> bankDetails = {
+      'Address': _addressController.text,
+      'FIN': _finCodeController.text,
+      'VAT': _vATnumberController.text,
+      'Bank Name': _bankNameController.text,
+      'Bank Code': _bankCodeController.text,
+      'M.H': _mHController.text,
+      'SWIFT': _sWIFTController.text,
+      'IBAN': _iBANController.text,
+    };
+    if (userId != null) {
+      await uploadBankDetails(
+        bankDetails: bankDetails,
+        userId: userId,
+        context: context,
+      );
+      await _clearTempData();
+    }
+  }
+
   @override
   void dispose() {
     _addressController.dispose();
@@ -303,7 +323,6 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
-    final isLoading = ref.watch(loadingProvider);
 
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
@@ -1269,40 +1288,22 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                 SizedBox(height: height * 0.025),
                 GestureDetector(
                   onTap: () async {
-                    final userId = FirebaseAuth.instance.currentUser?.uid;
-                    Map<String, dynamic> bankDetails = {
-                      'Address': _addressController.text,
-                      'FIN': _finCodeController.text,
-                      'VAT': _vATnumberController.text,
-                      'Bank Name': _bankNameController.text,
-                      'Bank Code': _bankCodeController.text,
-                      'M.H': _mHController.text,
-                      'SWIFT': _sWIFTController.text,
-                      'IBAN': _iBANController.text,
-                    };
-                    if (userId != null) {
-                      if (_allFilledOut()) {
-                        ref.read(loadingProvider.notifier).startLoading();
-                        await uploadBankDetails(
-                          bankDetails: bankDetails,
-                          userId: userId,
-                          context: context,
-                        );
-                        await _clearTempData();
-                        ref.read(loadingProvider.notifier).stopLoading();
-                        if (context.mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) =>
-                                      role == 'Guide'
-                                          ? WaitingPage()
-                                          : CarDetailsSwitcher(),
-                            ),
-                          );
-                        }
-                      }
+                    if (_allFilledOut()) {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.fade,
+                          child: IntermediateFormPage(
+                            isFromPersonalDataForm: false,
+                            isFromBankDetailsForm: true,
+                            isFromCarDetailsForm: false,
+                            isFromCertificateDetailsForm: false,
+                            isFromCarDetailsSwitcher: false,
+                            isFromProfilePage: false,
+                            backgroundProcess:_submitForm,
+                          ),
+                        ),
+                      );
                     }
                   },
                   child: Container(
@@ -1317,53 +1318,35 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                               : (darkMode
                                   ? Color.fromARGB(128, 52, 168, 235)
                                   : Color.fromARGB(177, 0, 134, 179)),
-                      borderRadius: BorderRadius.circular(7.5),
+                      borderRadius: BorderRadius.circular(width * 0.019),
                     ),
-                    child:
-                        isLoading
-                            ? Center(
-                              child: SpinKitThreeBounce(
-                                color: const Color.fromRGBO(231, 231, 231, 1),
-                                size: width * 0.061,
-                              ),
-                            )
-                            : Center(
-                              child: Text(
-                                role == 'Guide' ? 'Submit' : 'Next',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: width * 0.04,
-                                  color:
-                                      _allFilledOut()
-                                          ? (darkMode
-                                              ? const Color.fromARGB(
-                                                255,
-                                                0,
-                                                0,
-                                                0,
-                                              )
-                                              : const Color.fromARGB(
-                                                255,
-                                                255,
-                                                255,
-                                                255,
-                                              ))
-                                          : (darkMode
-                                              ? const Color.fromARGB(
-                                                132,
-                                                0,
-                                                0,
-                                                0,
-                                              )
-                                              : const Color.fromARGB(
-                                                187,
-                                                255,
-                                                255,
-                                                255,
-                                              )),
-                                ),
-                              ),
-                            ),
+                    child: Center(
+                      child: Text(
+                        role == 'Guide' ? 'Submit' : 'Next',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: width * 0.04,
+                          color:
+                              _allFilledOut()
+                                  ? (darkMode
+                                      ? const Color.fromARGB(255, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ))
+                                  : (darkMode
+                                      ? const Color.fromARGB(132, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        187,
+                                        255,
+                                        255,
+                                        255,
+                                      )),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 SizedBox(height: height * 0.058),

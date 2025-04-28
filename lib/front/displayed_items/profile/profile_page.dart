@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/rides_history/rides_provider.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
@@ -5,6 +6,7 @@ import 'package:driver_app/front/displayed_items/profile/profile_data.dart';
 import 'package:driver_app/front/displayed_items/profile/rides_history.dart';
 import 'package:driver_app/front/displayed_items/profile/vehicle_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,20 +88,20 @@ class ProfilePage extends ConsumerWidget {
                               barRods: [
                                 BarChartRodData(
                                   toY: paidValue,
-                                  width: 8,
+                                  width: width * 0.02,
                                   rodStackItems: [],
                                   color: Colors.green,
                                   borderRadius: BorderRadius.zero,
                                 ),
                                 BarChartRodData(
                                   toY: unpaidValue,
-                                  width: 8,
+                                  width: width * 0.02,
                                   rodStackItems: [],
                                   color: Colors.red,
                                   borderRadius: BorderRadius.zero,
                                 ),
                               ],
-                              barsSpace: 4,
+                              barsSpace: width * 0.01,
                             );
                           }),
                           titlesData: FlTitlesData(
@@ -142,215 +144,448 @@ class ProfilePage extends ConsumerWidget {
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ProfileData()),
-                  );
-                },
-                child: Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(width * 0.039),
-                    color: const Color.fromARGB(100, 193, 192, 192),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: width * 0.02),
-                  child: Row(
-                    spacing: width * 0.03,
-                    children: [
-                      Icon(Icons.person_2_outlined),
-                      Text(
-                        "Profile",
-                        style: GoogleFonts.cabin(
-                          fontWeight: FontWeight.bold,
-                          fontSize: width * 0.05,
+              Material(
+                color:
+                    darkMode
+                        ? const Color(0xFF2C2C2C)
+                        : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(width * 0.039),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(width * 0.039),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProfileData()),
+                    );
+                  },
+                  child: Container(
+                    width: width,
+                    height: height * 0.065,
+                    padding: EdgeInsets.symmetric(horizontal: width * 0.02),
+                    child: Row(
+                      spacing: width * 0.03,
+                      children: [
+                        Icon(Icons.person_2_outlined),
+                        Text(
+                          "Profile",
+                          style: GoogleFonts.cabin(
+                            fontWeight: FontWeight.bold,
+                            fontSize: width * 0.05,
+                          ),
                         ),
-                      ),
-                      Spacer(),
-                      Icon(Icons.arrow_forward_ios),
-                    ],
+                        Spacer(),
+                        Icon(Icons.arrow_forward_ios),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => RidesHistory()),
-                  );
-                },
-                child: Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(width * 0.039),
-                    color: const Color.fromARGB(100, 193, 192, 192),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: width * 0.02),
-                  child: Row(
-                    spacing: width * 0.03,
-                    children: [
-                      Icon(Icons.history_toggle_off_sharp),
-                      Text(
-                        "Ride History",
-                        style: GoogleFonts.cabin(
-                          fontWeight: FontWeight.bold,
-                          fontSize: width * 0.05,
+              Material(
+                color:
+                    darkMode
+                        ? const Color(0xFF2C2C2C)
+                        : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(width * 0.039),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(width * 0.039),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => RidesHistory()),
+                    );
+                  },
+                  child: Container(
+                    width: width,
+                    height: height * 0.065,
+                    padding: EdgeInsets.symmetric(horizontal: width * 0.02),
+                    child: Row(
+                      spacing: width * 0.03,
+                      children: [
+                        Icon(Icons.history_toggle_off_sharp),
+                        Text(
+                          "Ride History",
+                          style: GoogleFonts.cabin(
+                            fontWeight: FontWeight.bold,
+                            fontSize: width * 0.05,
+                          ),
                         ),
-                      ),
-                      Spacer(),
-                      Icon(Icons.arrow_forward_ios),
-                    ],
+                        Spacer(),
+                        Icon(Icons.arrow_forward_ios),
+                      ],
+                    ),
                   ),
                 ),
               ),
 
               userRole == "Guide"
                   ? SizedBox.shrink()
-                  : GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => VehicleList()),
-                      );
-                    },
-                    child: Container(
-                      width: width,
-                      height: height * 0.065,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(width * 0.039),
-                        color: const Color.fromARGB(100, 193, 192, 192),
-                      ),
-                      padding: EdgeInsets.symmetric(horizontal: width * 0.02),
-                      child: Row(
-                        spacing: width * 0.03,
-                        children: [
-                          Image.asset(
-                            'assets/car_icons/vehicle.png',
-                            width: 24,
-                            height: 24,
-                            fit: BoxFit.fill,
-                            color: darkMode ? Colors.white : Colors.black,
-                            errorBuilder:
-                                (context, error, stackTrace) =>
-                                    Icon(Icons.error),
+                  : Material(
+                    color:
+                        darkMode
+                            ? const Color(0xFF2C2C2C)
+                            : const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(width * 0.039),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(width * 0.039),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => VehicleList(),
                           ),
-                          Text(
-                            "My Vehicles",
-                            style: GoogleFonts.cabin(
-                              fontWeight: FontWeight.bold,
-                              fontSize: width * 0.05,
+                        );
+                      },
+                      child: Container(
+                        width: width,
+                        height: height * 0.065,
+                        padding: EdgeInsets.symmetric(horizontal: width * 0.02),
+                        child: Row(
+                          spacing: width * 0.03,
+                          children: [
+                            Image.asset(
+                              'assets/car_icons/vehicle.png',
+                              width: width * 0.061,
+                              height: height * 0.028,
+                              fit: BoxFit.fill,
+                              color: darkMode ? Colors.white : Colors.black,
+                              errorBuilder:
+                                  (context, error, stackTrace) =>
+                                      Icon(Icons.error),
                             ),
-                          ),
-                          Spacer(),
-                          Icon(Icons.arrow_forward_ios),
-                        ],
+                            Text(
+                              "My Vehicles",
+                              style: GoogleFonts.cabin(
+                                fontWeight: FontWeight.bold,
+                                fontSize: width * 0.05,
+                              ),
+                            ),
+                            Spacer(),
+                            Icon(Icons.arrow_forward_ios),
+                          ],
+                        ),
                       ),
                     ),
                   ),
 
-              GestureDetector(
-                onTap: () async {
-                  await showDialog<bool>(
-                    context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          title: Text(
-                            'Confirm Logout',
-                            style: GoogleFonts.cabin(
-                              fontWeight: FontWeight.bold,
-                              fontSize: width * 0.07,
+              Material(
+                color:
+                    darkMode
+                        ? const Color(0xFF2C2C2C)
+                        : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(width * 0.039),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(width * 0.039),
+                  onTap: () async {
+                    await showDialog<bool>(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            backgroundColor:
+                                darkMode ? Color(0xFF1E1E1E) : Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(width * 0.05),
                             ),
-                          ),
-                          content: Text(
-                            'Are you sure you want to log out?',
-                            style: GoogleFonts.cabin(fontSize: width * 0.04),
-                          ),
-                          actions: [
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context, false);
-                              },
-                              child: Text(
-                                'Cancel',
-                                style: GoogleFonts.cabin(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: width * 0.043,
-                                ),
+                            title: Text(
+                              'Confirm Logout',
+                              style: GoogleFonts.cabin(
+                                color: darkMode ? Colors.white : Colors.black87,
+                                fontWeight: FontWeight.bold,
+                                fontSize: width * 0.07,
                               ),
                             ),
-                            SizedBox(width: width * 0.01),
-                            GestureDetector(
-                              onTap: () async {
-                                await FirebaseAuth.instance.signOut();
-                                if (context.mounted) {
-                                  Navigator.pushAndRemoveUntil(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const WaitingPage(),
-                                    ),
-                                    (route) => false,
-                                  );
-                                }
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color:
-                                      darkMode
-                                          ? Color.fromARGB(255, 52, 168, 235)
-                                          : Color.fromARGB(255, 1, 105, 170),
-                                  borderRadius: BorderRadius.circular(
-                                    width * 0.029,
+                            content: Text(
+                              'Are you sure you want to log out?',
+                              style: GoogleFonts.cabin(
+                                color:
+                                    darkMode ? Colors.white70 : Colors.black54,
+                                fontSize: width * 0.045,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context, false);
+                                },
+                                child: Text(
+                                  'Cancel',
+                                  style: GoogleFonts.cabin(
+                                    color:
+                                        darkMode
+                                            ? Colors.grey[400]
+                                            : Colors.blueGrey,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: width * 0.045,
                                   ),
                                 ),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: width * 0.02,
-                                  vertical: height * 0.005,
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      darkMode
+                                          ? Color(0xFF34A8EB)
+                                          : Color(0xFF007BFF),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      width * 0.03,
+                                    ),
+                                  ),
                                 ),
+                                onPressed: () async {
+                                  await FirebaseAuth.instance.signOut();
+                                  if (context.mounted) {
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => const WaitingPage(),
+                                      ),
+                                      (route) => false,
+                                    );
+                                  }
+                                },
                                 child: Text(
                                   'Log out',
                                   style: GoogleFonts.cabin(
+                                    color: Colors.white,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: width * 0.05,
+                                    fontSize: width * 0.045,
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                    );
+                  },
+                  child: Container(
+                    width: width,
+                    height: height * 0.065,
+                    padding: EdgeInsets.symmetric(horizontal: width * 0.02),
+                    child: Row(
+                      spacing: width * 0.03,
+                      children: [
+                        Image.asset(
+                          'assets/logout.png',
+                          width: width * 0.061,
+                          height: height * 0.028,
+                          fit: BoxFit.fill,
+                          color: darkMode ? Colors.white : Colors.black,
+                          errorBuilder:
+                              (context, error, stackTrace) => Icon(Icons.error),
                         ),
-                  );
-                },
-                child: Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(width * 0.039),
-                    color: const Color.fromARGB(100, 193, 192, 192),
+                        Text(
+                          "Log out",
+                          style: GoogleFonts.cabin(
+                            fontWeight: FontWeight.bold,
+                            fontSize: width * 0.05,
+                          ),
+                        ),
+                        Spacer(),
+                        Icon(Icons.arrow_forward_ios),
+                      ],
+                    ),
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: width * 0.02),
-                  child: Row(
-                    spacing: width * 0.03,
+                ),
+              ),
+
+              Spacer(),
+              Padding(
+                padding: EdgeInsets.only(top: height * 0.02),
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color.fromARGB(255, 231, 1, 55),
+                    textStyle: GoogleFonts.cabin(
+                      fontWeight: FontWeight.bold,
+                      fontSize: width * 0.045,
+                    ),
+                  ),
+                  onPressed: () async {
+                    final confirmDelete = await showDialog<bool>(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            backgroundColor:
+                                darkMode ? Color(0xFF1E1E1E) : Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(width * 0.05),
+                            ),
+                            title: Text(
+                              'Delete Profile',
+                              style: GoogleFonts.cabin(
+                                fontWeight: FontWeight.bold,
+                                fontSize: width * 0.05,
+                                color: darkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            content: Text(
+                              'Are you sure you want to delete your profile? This action cannot be undone.',
+                              style: GoogleFonts.cabin(
+                                fontSize: width * 0.04,
+                                color:
+                                    darkMode ? Colors.white70 : Colors.black54,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(
+                                  'Cancel',
+                                  style: GoogleFonts.cabin(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: width * 0.04,
+                                    color:
+                                        darkMode
+                                            ? Colors.grey[400]
+                                            : Colors.blueGrey,
+                                  ),
+                                ),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromARGB(
+                                    255,
+                                    231,
+                                    1,
+                                    55,
+                                  ),
+                                ),
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(
+                                  'Delete',
+                                  style: GoogleFonts.cabin(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: width * 0.04,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                    );
+
+                    if (confirmDelete == true) {
+                      try {
+                        if (context.mounted) {
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder:
+                                (_) => Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        color: Color(0xFFE70137),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Deleting your profile...',
+                                        style: GoogleFonts.cabin(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                          color:
+                                              darkMode
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                          );
+                        }
+
+                        final user = FirebaseAuth.instance.currentUser;
+                        final userId = user?.uid;
+                        if (userId != null) {
+                          final firestore = FirebaseFirestore.instance;
+                          final storage = FirebaseStorage.instance;
+
+                          final docRef = firestore
+                              .collection('Users')
+                              .doc(userId);
+                          final docSnapshot = await docRef.get();
+                          if (docSnapshot.exists) {
+                            await docRef.delete();
+                          }
+
+                          final storageRef = storage
+                              .ref()
+                              .child('Users')
+                              .child(userId);
+                          await _deleteAllFilesUnderRef(storageRef);
+
+                          await user?.delete();
+                        }
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: const Color.fromARGB(
+                                255,
+                                103,
+                                168,
+                                120,
+                              ),
+                              content: Text(
+                                'Profile deleted successfully.',
+                                style: GoogleFonts.cabin(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          );
+                          await Future.delayed(const Duration(seconds: 1));
+                          if (context.mounted) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const WaitingPage(),
+                              ),
+                              (route) => false,
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: const Color.fromARGB(
+                                255,
+                                231,
+                                1,
+                                55,
+                              ),
+                              content: Text(
+                                'Failed to delete profile. Please re-login and try again.',
+                                style: GoogleFonts.cabin(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.asset(
-                        'assets/logout.png',
-                        width: 24,
-                        height: 24,
-                        fit: BoxFit.fill,
-                        color: darkMode ? Colors.white : Colors.black,
-                        errorBuilder:
-                            (context, error, stackTrace) => Icon(Icons.error),
-                      ),
                       Text(
-                        "Log out",
+                        'Delete Profile',
                         style: GoogleFonts.cabin(
                           fontWeight: FontWeight.bold,
-                          fontSize: width * 0.05,
+                          fontSize: width * 0.045,
+                          color: const Color.fromARGB(255, 231, 1, 55),
                         ),
                       ),
-                      Spacer(),
-                      Icon(Icons.arrow_forward_ios),
+                      SizedBox(height: height * 0.001),
+                      Container(
+                        width: width * 0.3,
+                        height: height * 0.002,
+                        color: const Color.fromARGB(255, 231, 1, 55),
+                      ),
                     ],
                   ),
                 ),
@@ -360,5 +595,17 @@ class ProfilePage extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _deleteAllFilesUnderRef(Reference ref) async {
+    final listResult = await ref.listAll();
+
+    for (final item in listResult.items) {
+      await item.delete();
+    }
+
+    for (final folder in listResult.prefixes) {
+      await _deleteAllFilesUnderRef(folder);
+    }
   }
 }

@@ -1,16 +1,17 @@
 import 'dart:convert';
+import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/back/upload_files/vehicle_details/vehicle_details_provider.dart';
+import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
 import 'package:driver_app/db/user_data/vehicle_type_provider.dart';
 import 'package:driver_app/front/auth/forms/application_forms/car_details_form.dart';
-import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CarDetailsSwitcher extends ConsumerStatefulWidget {
@@ -21,6 +22,7 @@ class CarDetailsSwitcher extends ConsumerStatefulWidget {
 }
 
 class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
+  late Map<String, GlobalKey<CarDetailsFormState>> formKeys;
   @override
   void initState() {
     super.initState();
@@ -32,6 +34,30 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
             .state = Map<String, dynamic>.from(jsonDecode(stored));
       }
     });
+  }
+
+  bool isVehicleFullyFilled(String vehicleType) {
+    final details = ref.read(vehicleDetailsProvider)[vehicleType];
+    if (details == null) return false;
+
+    return details['Vehicle Name'] != null &&
+        details['Vehicle Name'].toString().isNotEmpty &&
+        details['Vehicle Photos Local'] != null &&
+        (details['Vehicle Photos Local'] as List).isNotEmpty &&
+        details['Technical Passport Number'] != null &&
+        details['Technical Passport Number'].toString().isNotEmpty &&
+        details['Technical Passport Photos Local'] != null &&
+        (details['Technical Passport Photos Local'] as List).isNotEmpty &&
+        details['Chassis Number'] != null &&
+        details['Chassis Number'].toString().isNotEmpty &&
+        details['Chassis Number Photo Local'] != null &&
+        details['Chassis Number Photo Local'].toString().isNotEmpty &&
+        details['Vehicle Registration Number'] != null &&
+        details['Vehicle Registration Number'].toString().isNotEmpty &&
+        details['Vehicle\'s Year'] != null &&
+        details['Vehicle\'s Year'].toString().isNotEmpty &&
+        details['Vehicle\'s Type'] != null &&
+        details['Seat Number'] != null;
   }
 
   @override
@@ -59,38 +85,56 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
     };
     return vehicleTypes.maybeWhen(
       data: (types) {
+        formKeys = {
+          for (final type in types) type: GlobalKey<CarDetailsFormState>(),
+        };
         if (types.length == 1) {
+          final formKey = formKeys[types[0]]!;
           return CarDetailsForm(
             multiSelection: false,
+            key: formKey,
             onFormSubmit: (formData) async {
+              final preparedFormData =
+                  await formKey.currentState?.prepareVehicleFormData();
+              if (preparedFormData == null) return;
+
               ref.read(vehicleDetailsProvider.notifier).update((state) {
                 final updated = Map<String, dynamic>.from(state);
-                updated[types[0]] = formData;
+                updated[types[0]] = preparedFormData;
                 return updated;
               });
-              final userId = FirebaseAuth.instance.currentUser?.uid;
-              if (userId != null) {
-                await uploadVehicleDetailsAndSave(
-                  userId: userId,
-                  vehicleDetails: vehicleDetails,
-                  context: context,
-                );
-                await FirebaseFirestore.instance
-                    .collection('Users')
-                    .doc(userId)
-                    .update({
-                      'Personal & Car Details Form': 'APPLICATION RECEIVED',
-                    });
 
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const WaitingPage(),
+              final userId = FirebaseAuth.instance.currentUser?.uid;
+              if (userId != null && context.mounted) {
+                await Navigator.push(
+                  context,
+                  PageTransition(
+                    type: PageTransitionType.fade,
+                    child: IntermediateFormPage(
+                      isFromPersonalDataForm: false,
+                      isFromBankDetailsForm: false,
+                      isFromCertificateDetailsForm: false,
+                      isFromCarDetailsSwitcher: false,
+                      isFromCarDetailsForm: true,
+                      isFromProfilePage: false,
+                      backgroundProcess: () async {
+                        await uploadVehicleDetailsAndSave(
+                          userId: userId,
+                          vehicleDetails: ref.read(vehicleDetailsProvider),
+                          context: context,
+                        );
+                        await FirebaseFirestore.instance
+                            .collection('Users')
+                            .doc(userId)
+                            .update({
+                              'Personal & Car Details Form':
+                                  'APPLICATION RECEIVED',
+                              'Active vehicle': "Car1",
+                            });
+                      },
                     ),
-                    (route) => false,
-                  );
-                }
+                  ),
+                );
               }
             },
             vehicleType: types[0],
@@ -105,10 +149,18 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
             return true;
           }
 
-          final isLoading = ref.watch(loadingProvider);
+          bool allFormsProperlyFilledOut() {
+            ref.read(vehicleDetailsProvider);
+            final types = ref.read(vehicleTypeProvider).asData?.value ?? [];
+
+            for (final type in types) {
+              if (!isVehicleFullyFilled(type)) return false;
+            }
+            return true;
+          }
+
           return Scaffold(
             backgroundColor: darkMode ? Colors.black : Colors.white,
-
             appBar: AppBar(
               backgroundColor: darkMode ? Colors.black : Colors.white,
               surfaceTintColor: darkMode ? Colors.black : Colors.white,
@@ -137,7 +189,6 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
             ),
             body: ListView.builder(
               itemCount: types.length,
-
               itemBuilder: (context, index) {
                 return ListTile(
                   title: Container(
@@ -165,6 +216,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                           height: height * 0.08,
                           fit: BoxFit.fill,
                         ),
+                        SizedBox(width: width * 0.05),
                         Text(
                           types[index],
                           style: GoogleFonts.cabin(
@@ -173,20 +225,19 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                           ),
                         ),
                         Spacer(),
-                        vehicleDetails.containsKey(types[index])
+                        isVehicleFullyFilled(types[index])
                             ? Icon(
                               Icons.check_box_rounded,
                               color:
                                   darkMode
-                                      ? const Color.fromARGB(255, 52, 168, 235)
-                                      : const Color.fromARGB(255, 0, 134, 179),
+                                      ? Color(0xFF34A8EB)
+                                      : Color(0xFF0086B3),
                               size: width * 0.07,
                             )
                             : SizedBox.shrink(),
                       ],
                     ),
                   ),
-
                   onTap: () {
                     Navigator.push(
                       context,
@@ -194,7 +245,8 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                         builder:
                             (context) => CarDetailsForm(
                               multiSelection: true,
-                              onFormSubmit: (formData) {
+                              key: formKeys[types[index]],
+                              onFormSubmit: (formData) async {
                                 ref
                                     .read(vehicleDetailsProvider.notifier)
                                     .update((state) {
@@ -202,8 +254,12 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                                         state,
                                       );
                                       updated[types[index]] = formData;
+
                                       return updated;
                                     });
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                }
                               },
                               vehicleType: types[index],
                             ),
@@ -215,37 +271,119 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
             ),
             floatingActionButton: GestureDetector(
               onTap: () async {
-                if (allFilledOut()) {
-                  ref.read(loadingProvider.notifier).startLoading();
-                  final userId = FirebaseAuth.instance.currentUser?.uid;
-                  if (userId != null) {
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.remove('vehicleDetails');
-                    if (context.mounted) {
-                      await uploadVehicleDetailsAndSave(
-                        userId: userId,
-                        vehicleDetails: vehicleDetails,
-                        context: context,
-                      );
-                    }
-                    await FirebaseFirestore.instance
-                        .collection('Users')
-                        .doc(userId)
-                        .update({
-                          'Personal & Car Details Form': 'APPLICATION RECEIVED',
-                        });
+                if (!allFormsProperlyFilledOut()) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Please fill out all vehicle details before submitting.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
 
-                    if (context.mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const WaitingPage(),
-                        ),
-                        (route) => false,
-                      );
-                    }
-                  }
-                  ref.read(loadingProvider.notifier).stopLoading();
+                final userId = FirebaseAuth.instance.currentUser?.uid;
+                if (userId == null) return;
+
+                final vehicleDetails = ref.read(vehicleDetailsProvider);
+
+                if (context.mounted) {
+                  await Navigator.push(
+                    context,
+                    PageTransition(
+                      type: PageTransitionType.fade,
+                      child: IntermediateFormPage(
+                        isFromPersonalDataForm: false,
+                        isFromCarDetailsForm: false,
+                        isFromBankDetailsForm: false,
+                        isFromCertificateDetailsForm: false,
+                        isFromCarDetailsSwitcher: true,
+                        isFromProfilePage: false,
+                        backgroundProcess: () async {
+                          try {
+                            final storageRef = FirebaseStorage.instance
+                                .ref()
+                                .child('Users')
+                                .child(userId);
+
+                            for (final entry in vehicleDetails.entries) {
+                              final form = entry.value;
+
+                              List<String> carPhotoPaths = List<String>.from(
+                                form['Vehicle Photos Local'],
+                              );
+                              List<String> techPhotoPaths = List<String>.from(
+                                form['Technical Passport Photos Local'],
+                              );
+                              String chassisPhotoPath =
+                                  form['Chassis Number Photo Local'];
+
+                              List<String> uploadedCarPhotos =
+                                  await uploadMultiplePhotosFromPaths(
+                                    carPhotoPaths,
+                                    storageRef,
+                                    userId,
+                                    'Vehicle Photos',
+                                    form['Vehicle Registration Number'],
+                                  );
+                              List<String> uploadedTechPhotos =
+                                  await uploadMultiplePhotosFromPaths(
+                                    techPhotoPaths,
+                                    storageRef,
+                                    userId,
+                                    'Technical Passport',
+                                    form['Vehicle Registration Number'],
+                                  );
+                              String uploadedChassisPhoto =
+                                  await uploadSinglePhotoFromPath(
+                                    chassisPhotoPath,
+                                    storageRef,
+                                    userId,
+                                    'Chassis Number',
+                                    form['Vehicle Registration Number'],
+                                  );
+
+                              final finalFormData = {
+                                'Vehicle Name': form['Vehicle Name'],
+                                'Vehicle Photos': uploadedCarPhotos,
+                                'Technical Passport Number':
+                                    form['Technical Passport Number'],
+                                'Technical Passport Photos': uploadedTechPhotos,
+                                'Chassis Number': form['Chassis Number'],
+                                'Chassis Number Photo': uploadedChassisPhoto,
+                                'Vehicle Registration Number':
+                                    form['Vehicle Registration Number'],
+                                'Vehicle\'s Year': form['Vehicle\'s Year'],
+                                'Vehicle\'s Type': form['Vehicle\'s Type'],
+                                'Seat Number': form['Seat Number'],
+                                'isApproved': false,
+                              };
+                              if (context.mounted) {
+                                await uploadVehicleDetailsAndSave(
+                                  userId: userId,
+                                  vehicleDetails: finalFormData,
+                                  context: context,
+                                );
+                              }
+                            }
+                            await FirebaseFirestore.instance
+                                .collection('Users')
+                                .doc(userId)
+                                .update({
+                                  'Personal & Car Details Form':
+                                      'APPLICATION RECEIVED',
+                                  'Active vehicle': "Car1",
+                                });
+
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.remove('vehicleDetails');
+                          } catch (e) {
+                            logger.e('Error uploading vehicle details: $e');
+                          }
+                        },
+                      ),
+                    ),
+                  );
                 }
               },
               child: Container(
@@ -262,31 +400,23 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                               : Color.fromARGB(177, 0, 134, 179)),
                   borderRadius: BorderRadius.circular(7.5),
                 ),
-                child:
-                    isLoading
-                        ? Center(
-                          child: SpinKitThreeBounce(
-                            color: Color.fromRGBO(231, 231, 231, 1),
-                            size: width * 0.061,
-                          ),
-                        )
-                        : Center(
-                          child: Text(
-                            'Submit',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: width * 0.04,
-                              color:
-                                  allFilledOut()
-                                      ? (darkMode
-                                          ? Color.fromARGB(255, 0, 0, 0)
-                                          : Color.fromARGB(255, 255, 255, 255))
-                                      : (darkMode
-                                          ? Color.fromARGB(132, 0, 0, 0)
-                                          : Color.fromARGB(187, 255, 255, 255)),
-                            ),
-                          ),
-                        ),
+                child: Center(
+                  child: Text(
+                    'Submit',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: width * 0.04,
+                      color:
+                          allFilledOut()
+                              ? (darkMode
+                                  ? Color.fromARGB(255, 0, 0, 0)
+                                  : Color.fromARGB(255, 255, 255, 255))
+                              : (darkMode
+                                  ? Color.fromARGB(132, 0, 0, 0)
+                                  : Color.fromARGB(187, 255, 255, 255)),
+                    ),
+                  ),
+                ),
               ),
             ),
           );

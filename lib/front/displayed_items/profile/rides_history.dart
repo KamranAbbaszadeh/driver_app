@@ -4,6 +4,85 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+// CustomExpansionTile widget with smooth animation
+class CustomExpansionTile extends StatefulWidget {
+  final Widget title;
+  final List<Widget> children;
+  final bool initiallyExpanded;
+
+  const CustomExpansionTile({
+    super.key,
+    required this.title,
+    required this.children,
+    this.initiallyExpanded = false,
+  });
+
+  @override
+  State<CustomExpansionTile> createState() => _CustomExpansionTileState();
+}
+
+class _CustomExpansionTileState extends State<CustomExpansionTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _expandAnimation;
+  bool isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    isExpanded = widget.initiallyExpanded;
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+    if (isExpanded) {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void toggleExpansion() {
+    setState(() {
+      isExpanded = !isExpanded;
+      if (isExpanded) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        ListTile(
+          title: widget.title,
+          trailing: RotationTransition(
+            turns: Tween(begin: 0.0, end: 0.5).animate(_expandAnimation),
+            child: Icon(Icons.expand_more),
+          ),
+          onTap: toggleExpansion,
+        ),
+        SizeTransition(
+          sizeFactor: _expandAnimation,
+          axisAlignment: 1.0,
+          child: Column(children: widget.children),
+        ),
+      ],
+    );
+  }
+}
+
 class RidesHistory extends ConsumerStatefulWidget {
   const RidesHistory({super.key});
 
@@ -150,38 +229,16 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
         horizontal: width * 0.035,
         vertical: height * 0.009,
       ),
-      color:
-          darkMode
-              ? const Color.fromARGB(255, 81, 80, 80)
-              : const Color.fromARGB(255, 201, 201, 201),
-      shadowColor:
-          darkMode
-              ? const Color.fromARGB(255, 81, 80, 80)
-              : const Color.fromARGB(255, 201, 201, 201),
-      elevation: 10,
+      color: darkMode ? const Color(0xFF2C2C2C) : Colors.white,
+      shadowColor: Colors.black.withAlpha((255 * 0.2).toInt()),
+      elevation: 12,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(width * 0.03),
+        borderRadius: BorderRadius.circular(width * 0.05),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(width * 0.03),
-        child: ExpansionTile(
-          onExpansionChanged: (isExpanded) {
-            if (isExpanded) {
-              setState(() => expandedTileKey = ride.docId);
-            } else {
-              Future.delayed(const Duration(milliseconds: 300), () {
-                if (mounted && expandedTileKey == ride.docId) {
-                  setState(() => expandedTileKey = null);
-                }
-              });
-            }
-          },
+        borderRadius: BorderRadius.circular(width * 0.05),
+        child: CustomExpansionTile(
           initiallyExpanded: expandedTileKey == ride.docId,
-          tilePadding: EdgeInsets.symmetric(
-            horizontal: width * 0.04,
-            vertical: height * 0.009,
-          ),
-
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -203,13 +260,6 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
               ),
             ],
           ),
-          shape: Border(
-            bottom: BorderSide.none,
-            left: BorderSide.none,
-            right: BorderSide.none,
-            top: BorderSide.none,
-          ),
-          iconColor: darkMode ? Colors.white : Colors.black,
           children: [
             Padding(
               padding: EdgeInsets.symmetric(horizontal: width * 0.04),
@@ -388,7 +438,6 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
                             ],
                           ),
                         ),
-
                         SizedBox(height: height * 0.01),
                       ],
                     ),

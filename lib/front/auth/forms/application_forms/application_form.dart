@@ -2,15 +2,15 @@ import 'package:driver_app/back/auth/firebase_auth.dart';
 import 'package:driver_app/back/tools/date_picker.dart';
 import 'package:driver_app/back/tools/gender_picker.dart';
 import 'package:driver_app/back/tools/language_picker.dart';
-import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/tools/role_picker.dart';
 import 'package:driver_app/back/tools/validate_email.dart';
 import 'package:driver_app/back/tools/vehicle_type_picker.dart';
+import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApplicationForm extends ConsumerStatefulWidget {
@@ -241,6 +241,25 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
         }
       }
     });
+  }
+
+  Future<void> _submitForm() async {
+    await signUp(
+      emailController: _emailController,
+      passwordController: _passwordController,
+      firstNameController: _firstNameController,
+      lastNameController: _lastNameController,
+      fathersNameController: _fathersNameController,
+      phoneNumberController: _phoneNumberController,
+      languageController: _languageController,
+      birthDayController: _birthDayController,
+      experienceController: _experienceController,
+      vehicleTypeController: _vehicleTypeController,
+      roleController: _roleController,
+      genderController: _genderController,
+      context: context,
+    );
+    _clearFormData();
   }
 
   @override
@@ -483,7 +502,6 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
-    final isLoading = ref.watch(loadingProvider);
 
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
@@ -2038,34 +2056,23 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                 //MAIN BUTTON
                 GestureDetector(
                   onTap: () async {
-                    if (isTapped) return;
-                    setState(() {
-                      isTapped = true;
-                    });
                     if (_allFilledOut()) {
-                      ref.read(loadingProvider.notifier).startLoading();
-                      await signUp(
-                        emailController: _emailController,
-                        passwordController: _passwordController,
-                        firstNameController: _firstNameController,
-                        lastNameController: _lastNameController,
-                        fathersNameController: _fathersNameController,
-                        phoneNumberController: _phoneNumberController,
-                        languageController: _languageController,
-                        birthDayController: _birthDayController,
-                        experienceController: _experienceController,
-                        vehicleTypeController: _vehicleTypeController,
-                        roleController: _roleController,
-                        genderController: _genderController,
-                        context: context,
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.fade,
+                          child: IntermediateFormPage(
+                            isFromPersonalDataForm: false,
+                            isFromCarDetailsForm: false,
+                            isFromBankDetailsForm: false,
+                            isFromCertificateDetailsForm: false,
+                            isFromCarDetailsSwitcher: false,
+                            isFromProfilePage: false,
+                            backgroundProcess: _submitForm,
+                          ),
+                        ),
                       );
-                      _clearFormData();
-                      ref.read(loadingProvider.notifier).stopLoading();
                     }
-
-                    setState(() {
-                      isTapped = false;
-                    });
                   },
                   child: Container(
                     width: width,
@@ -2081,53 +2088,36 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                                   : Color.fromARGB(177, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(7.5),
                     ),
-                    child:
-                        isLoading
-                            ? Center(
-                              child: SpinKitThreeBounce(
-                                color: const Color.fromRGBO(231, 231, 231, 1),
-                                size: width * 0.061,
-                              ),
-                            )
-                            : Center(
-                              child: Text(
-                                'Send application',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: width * 0.04,
-                                  color:
-                                      _allFilledOut()
-                                          ? (darkMode
-                                              ? const Color.fromARGB(
-                                                255,
-                                                0,
-                                                0,
-                                                0,
-                                              )
-                                              : const Color.fromARGB(
-                                                255,
-                                                255,
-                                                255,
-                                                255,
-                                              ))
-                                          : (darkMode
-                                              ? const Color.fromARGB(
-                                                132,
-                                                0,
-                                                0,
-                                                0,
-                                              )
-                                              : const Color.fromARGB(
-                                                187,
-                                                255,
-                                                255,
-                                                255,
-                                              )),
-                                ),
-                              ),
-                            ),
+                    child: Center(
+                      child: Text(
+                        'Send application',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: width * 0.04,
+                          color:
+                              _allFilledOut()
+                                  ? (darkMode
+                                      ? const Color.fromARGB(255, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ))
+                                  : (darkMode
+                                      ? const Color.fromARGB(132, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        187,
+                                        255,
+                                        255,
+                                        255,
+                                      )),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
+                SizedBox(height: height * 0.015),
               ],
             ),
           ),

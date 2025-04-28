@@ -41,7 +41,8 @@ class _WaitingPageState extends State<WaitingPage> {
               if (userStatusSnapshot.hasError ||
                   !userStatusSnapshot.hasData ||
                   userStatusSnapshot.data?.data() == null) {
-                return const Center(child: Text("Error loading data"));
+                FirebaseAuth.instance.signOut();
+                return WelcomePage();
               }
 
               final userData = userStatusSnapshot.data!.data();

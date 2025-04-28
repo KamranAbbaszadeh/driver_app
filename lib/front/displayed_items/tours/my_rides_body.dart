@@ -25,6 +25,7 @@ class _MyRidesBodyState extends State<MyRidesBody> {
   Map<String, dynamic>? userData;
   Map<DateTime, int> datasets = {};
   bool showAllRides = true;
+  late ScrollController _scrollController;
 
   StreamSubscription<QuerySnapshot>? carsSubscription;
 
@@ -165,6 +166,13 @@ class _MyRidesBodyState extends State<MyRidesBody> {
   void initState() {
     fetchUserData();
     super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -175,6 +183,7 @@ class _MyRidesBodyState extends State<MyRidesBody> {
     final width = MediaQuery.of(context).size.width;
     final today = DateTime.now();
     return SingleChildScrollView(
+      controller: _scrollController,
       child: Container(
         width: width,
         constraints: BoxConstraints(
@@ -269,7 +278,10 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    MyRides(filteredRides: carRides),
+                    MyRides(
+                      filteredRides: carRides,
+                      parentScrollController: _scrollController,
+                    ),
                     SizedBox(height: height * 0.02),
                   ],
                   if (guideRides.isNotEmpty) ...[
@@ -280,7 +292,10 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    MyRides(filteredRides: guideRides),
+                    MyRides(
+                      filteredRides: guideRides,
+                      parentScrollController: _scrollController,
+                    ),
                   ],
                 ] else ...[
                   if (filteredCarRidesByDate.isNotEmpty) ...[
@@ -291,7 +306,10 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    MyRides(filteredRides: filteredCarRidesByDate),
+                    MyRides(
+                      filteredRides: filteredCarRidesByDate,
+                      parentScrollController: _scrollController,
+                    ),
                     SizedBox(height: height * 0.02),
                   ],
                   if (filteredGuideRidesByDate.isNotEmpty) ...[
@@ -302,7 +320,10 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    MyRides(filteredRides: filteredGuideRidesByDate),
+                    MyRides(
+                      filteredRides: filteredGuideRidesByDate,
+                      parentScrollController: _scrollController,
+                    ),
                   ],
                 ],
               ],

@@ -15,6 +15,7 @@ import 'package:driver_app/front/displayed_items/no_internet_page.dart';
 import 'package:driver_app/front/displayed_items/notification_page.dart';
 import 'package:driver_app/front/tools/theme/theme.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -35,7 +36,7 @@ void main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
+  await FirebaseApi.instance.initializeTimeZone();
   runApp(
     BlocProvider(
       create: (context) => NotificationBloc()..add(FetchNotifications()),
@@ -77,6 +78,10 @@ class _MyAppState extends ConsumerState<MyApp> {
       autoInitFuture,
       Future.delayed(const Duration(seconds: 3)),
     ]);
+    final userID = FirebaseAuth.instance.currentUser?.uid;
+    if (userID != null) {
+      FirebaseApi.instance.saveFCMToken(userID);
+    }
 
     FlutterNativeSplash.remove();
 

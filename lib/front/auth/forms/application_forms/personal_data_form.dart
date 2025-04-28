@@ -1,14 +1,13 @@
 import 'package:driver_app/back/tools/image_picker.dart';
-import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/personal_data/upload_photos_save.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/auth/forms/application_forms/certificates_details.dart';
+import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PersonalDataForm extends ConsumerStatefulWidget {
@@ -95,6 +94,20 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
     _loadTempPersonalPhotos();
   }
 
+  Future<void> _submitForm() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      await uploadPhotosAndSaveData(
+        userId: userId,
+        personalPhoto: personalPhoto,
+        driverLicensePhotos: driverLicensePhoto,
+        idPhotos: iDPhoto,
+        context: context,
+      );
+      await _clearTempPersonalPhotos();
+    }
+  }
+
   @override
   void dispose() {
     super.dispose();
@@ -108,7 +121,6 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
     final width = MediaQuery.of(context).size.width;
     final roleDetails = ref.watch(roleProvider);
     final role = roleDetails?['Role'];
-    final isLoading = ref.watch(loadingProvider);
     String numOfPages = role == 'Guide' ? '1/3' : '1/4';
 
     if (role == null) {
@@ -267,30 +279,23 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                     ),
                 SizedBox(height: height * 0.025),
                 GestureDetector(
-                  onTap: () async {
+                  onTap: () {
                     if (_allFilledOut(role)) {
-                      final userId = FirebaseAuth.instance.currentUser?.uid;
-                      if (userId != null) {
-                        ref.read(loadingProvider.notifier).startLoading();
-                        await uploadPhotosAndSaveData(
-                          userId: userId,
-                          personalPhoto: personalPhoto,
-                          driverLicensePhotos: driverLicensePhoto,
-                          idPhotos: iDPhoto,
-                          context: context,
-                        );
-                        await _clearTempPersonalPhotos();
-                      }
-                      ref.read(loadingProvider.notifier).stopLoading();
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => CertificatesDetails(role: role),
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.fade,
+                          child: IntermediateFormPage(
+                            isFromPersonalDataForm: true,
+                            isFromBankDetailsForm: false,
+                            isFromCarDetailsForm: false,
+                            isFromCertificateDetailsForm: false,
+                            isFromCarDetailsSwitcher: false,
+                            isFromProfilePage: false,
+                            backgroundProcess: _submitForm,
                           ),
-                        );
-                      }
+                        ),
+                      );
                     }
                   },
                   child: Container(
@@ -307,53 +312,36 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                                   : Color.fromARGB(177, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(7.5),
                     ),
-                    child:
-                        isLoading
-                            ? Center(
-                              child: SpinKitThreeBounce(
-                                color: const Color.fromRGBO(231, 231, 231, 1),
-                                size: width * 0.061,
-                              ),
-                            )
-                            : Center(
-                              child: Text(
-                                'Next',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: width * 0.04,
-                                  color:
-                                      _allFilledOut(role)
-                                          ? (darkMode
-                                              ? const Color.fromARGB(
-                                                255,
-                                                0,
-                                                0,
-                                                0,
-                                              )
-                                              : const Color.fromARGB(
-                                                255,
-                                                255,
-                                                255,
-                                                255,
-                                              ))
-                                          : (darkMode
-                                              ? const Color.fromARGB(
-                                                132,
-                                                0,
-                                                0,
-                                                0,
-                                              )
-                                              : const Color.fromARGB(
-                                                187,
-                                                255,
-                                                255,
-                                                255,
-                                              )),
-                                ),
-                              ),
-                            ),
+                    child: Center(
+                      child: Text(
+                        'Next',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: width * 0.04,
+                          color:
+                              _allFilledOut(role)
+                                  ? (darkMode
+                                      ? const Color.fromARGB(255, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ))
+                                  : (darkMode
+                                      ? const Color.fromARGB(132, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        187,
+                                        255,
+                                        255,
+                                        255,
+                                      )),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
+                SizedBox(height: height * 0.025),
               ],
             ),
           ),

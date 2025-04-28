@@ -21,17 +21,20 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
   Map<String, dynamic>? userData;
   StreamSubscription<DocumentSnapshot>? userSubscription;
   StreamSubscription? carsSubscription;
+  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
     listenToUserData();
+    _scrollController = ScrollController();
   }
 
   @override
   void dispose() {
     userSubscription?.cancel();
     carsSubscription?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -229,16 +232,19 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                     padding: EdgeInsets.only(top: height * 0.15),
                     child: CircularProgressIndicator(),
                   ),
-                )
-              else if (filteredRidesFromCars.isEmpty &&
+                ),
+              if (userData != null &&
+                  filteredRidesFromCars.isEmpty &&
                   filteredRidesFromGuide.isEmpty)
                 Center(
                   child: Padding(
                     padding: EdgeInsets.only(top: height * 0.15),
                     child: Text(
-                      'There are no rides available',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.ptSans(fontSize: width * 0.04),
+                      'No new rides available',
+                      style: GoogleFonts.notoSans(
+                        fontSize: width * 0.045,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -250,7 +256,10 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                MyRides(filteredRides: filteredRidesFromCars),
+                MyRides(
+                  filteredRides: filteredRidesFromCars,
+                  parentScrollController: _scrollController,
+                ),
                 SizedBox(height: height * 0.011),
               ],
               if (filteredRidesFromGuide.isNotEmpty) ...[
@@ -261,7 +270,10 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                MyRides(filteredRides: filteredRidesFromGuide),
+                MyRides(
+                  filteredRides: filteredRidesFromGuide,
+                  parentScrollController: _scrollController,
+                ),
               ],
             ],
           ),

@@ -10,9 +10,9 @@ final vehicleTypeProvider = FutureProvider<List<String>>((ref) async {
       await FirebaseFirestore.instance.collection('Users').doc(userId).get();
   final data = doc.data();
 
-  if (data == null || !data.containsKey('Vehicle type')) return [];
+  if (data == null || !data.containsKey('Vehicle Type')) return [];
 
-  final vehicleTypeField = data['Vehicle type'];
+  final vehicleTypeField = data['Vehicle Type'];
   if (vehicleTypeField is String) {
     return vehicleTypeField.split(',').map((e) => e.trim()).toList();
   } else {

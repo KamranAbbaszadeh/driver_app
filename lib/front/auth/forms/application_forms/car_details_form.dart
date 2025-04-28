@@ -1,5 +1,4 @@
 import 'package:driver_app/back/tools/image_picker.dart';
-import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
 import 'package:driver_app/back/tools/vehicle_type_picker.dart';
@@ -7,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,10 +23,10 @@ class CarDetailsForm extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<CarDetailsForm> createState() => _CarDetailsFormState();
+  ConsumerState<CarDetailsForm> createState() => CarDetailsFormState();
 }
 
-class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
+class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
   final ScrollController _scrollController = ScrollController();
   String error = "No Error Detected";
 
@@ -110,6 +108,13 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
   @override
   void initState() {
     super.initState();
+    nameOfTheCarFocusNode = FocusNode();
+    technicalPassportNumberFocusNode = FocusNode();
+    chassisNumberFocusNode = FocusNode();
+    yearOfTheCarFocusNode = FocusNode();
+    vehicleCategoryFocusNode = FocusNode();
+    seatNumbersFocusNode = FocusNode();
+    vehicleRegistrationNumberFocusNode = FocusNode();
     if (widget.multiSelection) return;
 
     _scrollController.addListener(() {
@@ -123,14 +128,6 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
         });
       }
     });
-
-    nameOfTheCarFocusNode = FocusNode();
-    technicalPassportNumberFocusNode = FocusNode();
-    chassisNumberFocusNode = FocusNode();
-    yearOfTheCarFocusNode = FocusNode();
-    vehicleCategoryFocusNode = FocusNode();
-    seatNumbersFocusNode = FocusNode();
-    vehicleRegistrationNumberFocusNode = FocusNode();
 
     if (!widget.multiSelection) {
       nameOfTheCarFocusNode.addListener(() {
@@ -210,18 +207,36 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
   }
 
   Future<void> _saveTempPhotos() async {
-    if (widget.multiSelection) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-      'carPhotos',
-      carsPhoto.map((x) => x.path).toList(),
-    );
-    await prefs.setStringList(
-      'techPassportPhotos',
-      technicalPassportNumberPhoto.map((x) => x.path).toList(),
-    );
-    if (chassisNumberPhoto != null) {
-      await prefs.setString('chassisPhoto', chassisNumberPhoto.path);
+    final prefix = widget.vehicleType.toLowerCase().replaceAll(' ', '_');
+
+    if (widget.multiSelection) {
+      await prefs.setStringList(
+        '${prefix}_carPhotos',
+        carsPhoto.map((x) => x.path).toList(),
+      );
+      await prefs.setStringList(
+        '${prefix}_techPassportPhotos',
+        technicalPassportNumberPhoto.map((x) => x.path).toList(),
+      );
+      if (chassisNumberPhoto != null) {
+        await prefs.setString(
+          '${prefix}_chassisPhoto',
+          chassisNumberPhoto.path,
+        );
+      }
+    } else {
+      await prefs.setStringList(
+        'carPhotos',
+        carsPhoto.map((x) => x.path).toList(),
+      );
+      await prefs.setStringList(
+        'techPassportPhotos',
+        technicalPassportNumberPhoto.map((x) => x.path).toList(),
+      );
+      if (chassisNumberPhoto != null) {
+        await prefs.setString('chassisPhoto', chassisNumberPhoto.path);
+      }
     }
   }
 
@@ -242,15 +257,22 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
     });
   }
 
-  Future<void> _clearTempPhotos() async {
-    if (widget.multiSelection) return;
+  Future<void> clearTempPhotos() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('carPhotos');
-    await prefs.remove('techPassportPhotos');
-    await prefs.remove('chassisPhoto');
+    final prefix = widget.vehicleType.toLowerCase().replaceAll(' ', '_');
+
+    if (widget.multiSelection) {
+      await prefs.remove('${prefix}_carPhotos');
+      await prefs.remove('${prefix}_techPassportPhotos');
+      await prefs.remove('${prefix}_chassisPhoto');
+    } else {
+      await prefs.remove('carPhotos');
+      await prefs.remove('techPassportPhotos');
+      await prefs.remove('chassisPhoto');
+    }
   }
 
-  bool _allFilledOut() {
+  bool allFilledOut() {
     if (nameOfTheCarController.text.isNotEmpty &&
         technicalPassportNumberController.text.isNotEmpty &&
         chassisNumberController.text.isNotEmpty &&
@@ -267,47 +289,141 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
   }
 
   Future<void> _saveTempData() async {
-    if (widget.multiSelection) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('carName', nameOfTheCarController.text);
-    await prefs.setString(
-      'techPassport',
-      technicalPassportNumberController.text,
-    );
-    await prefs.setString('chassisNumber', chassisNumberController.text);
-    await prefs.setString('year', yearOfTheCarController.text);
-    await prefs.setString('vehicleType', vehicleCategoryController.text);
-    await prefs.setString('seatNumber', seatNumbersController.text);
-    await prefs.setString(
-      'registrationNumber',
-      vehicleRegistrationNumberController.text,
-    );
+    final prefix = widget.vehicleType.toLowerCase().replaceAll(' ', '_');
+
+    if (widget.multiSelection) {
+      await prefs.setString('${prefix}_carName', nameOfTheCarController.text);
+      await prefs.setString('${prefix}_seatNumber', seatNumbersController.text);
+      await prefs.setString('${prefix}_year', yearOfTheCarController.text);
+      await prefs.setString(
+        '${prefix}_vehicleType',
+        vehicleCategoryController.text,
+      );
+      await prefs.setString(
+        '${prefix}_technicalPassport',
+        technicalPassportNumberController.text,
+      );
+      await prefs.setString(
+        '${prefix}_chassisNumber',
+        chassisNumberController.text,
+      );
+      await prefs.setString(
+        '${prefix}_registrationNumber',
+        vehicleRegistrationNumberController.text,
+      );
+    } else {
+      await prefs.setString('carName', nameOfTheCarController.text);
+      await prefs.setString('seatNumber', seatNumbersController.text);
+      await prefs.setString('year', yearOfTheCarController.text);
+      await prefs.setString('vehicleType', vehicleCategoryController.text);
+      await prefs.setString(
+        'technicalPassport',
+        technicalPassportNumberController.text,
+      );
+      await prefs.setString('chassisNumber', chassisNumberController.text);
+      await prefs.setString(
+        'registrationNumber',
+        vehicleRegistrationNumberController.text,
+      );
+    }
   }
 
   Future<void> _loadTempData() async {
-    if (widget.multiSelection) return;
     final prefs = await SharedPreferences.getInstance();
-    nameOfTheCarController.text = prefs.getString('carName') ?? '';
-    technicalPassportNumberController.text =
-        prefs.getString('techPassport') ?? '';
-    chassisNumberController.text = prefs.getString('chassisNumber') ?? '';
-    yearOfTheCarController.text = prefs.getString('year') ?? '';
-    vehicleCategoryController.text = prefs.getString('vehicleType') ?? '';
-    seatNumbersController.text = prefs.getString('seatNumber') ?? '';
-    vehicleRegistrationNumberController.text =
-        prefs.getString('registrationNumber') ?? '';
+    final prefix = widget.vehicleType.toLowerCase().replaceAll(' ', '_');
+
+    if (widget.multiSelection) {
+      nameOfTheCarController.text = prefs.getString('${prefix}_carName') ?? '';
+      seatNumbersController.text =
+          prefs.getString('${prefix}_seatNumber') ?? '';
+      yearOfTheCarController.text = prefs.getString('${prefix}_year') ?? '';
+      vehicleCategoryController.text =
+          prefs.getString('${prefix}_vehicleType') ?? '';
+      technicalPassportNumberController.text =
+          prefs.getString('${prefix}_technicalPassport') ?? '';
+      chassisNumberController.text =
+          prefs.getString('${prefix}_chassisNumber') ?? '';
+      vehicleRegistrationNumberController.text =
+          prefs.getString('${prefix}_registrationNumber') ?? '';
+    } else {
+      nameOfTheCarController.text = prefs.getString('carName') ?? '';
+      seatNumbersController.text = prefs.getString('seatNumber') ?? '';
+      yearOfTheCarController.text = prefs.getString('year') ?? '';
+      vehicleCategoryController.text = prefs.getString('vehicleType') ?? '';
+      technicalPassportNumberController.text =
+          prefs.getString('technicalPassport') ?? '';
+      chassisNumberController.text = prefs.getString('chassisNumber') ?? '';
+      vehicleRegistrationNumberController.text =
+          prefs.getString('registrationNumber') ?? '';
+    }
   }
 
-  Future<void> _clearTempData() async {
-    if (widget.multiSelection) return;
+  Future<void> clearTempData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('carName');
-    await prefs.remove('techPassport');
-    await prefs.remove('chassisNumber');
-    await prefs.remove('year');
-    await prefs.remove('vehicleType');
-    await prefs.remove('seatNumber');
-    await prefs.remove('registrationNumber');
+    final prefix = widget.vehicleType.toLowerCase().replaceAll(' ', '_');
+
+    if (widget.multiSelection) {
+      await prefs.remove('${prefix}_carName');
+      await prefs.remove('${prefix}_seatNumber');
+      await prefs.remove('${prefix}_year');
+      await prefs.remove('${prefix}_vehicleType');
+      await prefs.remove('${prefix}_technicalPassport');
+      await prefs.remove('${prefix}_chassisNumber');
+      await prefs.remove('${prefix}_registrationNumber');
+    } else {
+      await prefs.remove('carName');
+      await prefs.remove('seatNumber');
+      await prefs.remove('year');
+      await prefs.remove('vehicleType');
+      await prefs.remove('technicalPassport');
+      await prefs.remove('chassisNumber');
+      await prefs.remove('registrationNumber');
+    }
+  }
+
+  Future<Map<String, dynamic>?> prepareVehicleFormData() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return null;
+
+    final storageRef = FirebaseStorage.instance.ref();
+
+    List<String> vehiclePhotosUrls = await uploadMultiplePhotos(
+      storageRef: storageRef,
+      userId: userId,
+      files: carsPhoto,
+      folderName: 'Vehicle Photos',
+    );
+
+    List<String> technicalPassportUrls = await uploadMultiplePhotos(
+      storageRef: storageRef,
+      userId: userId,
+      files: technicalPassportNumberPhoto,
+      folderName: 'Technical Passport',
+    );
+
+    String chassisNumberUrl = await uploadSinglePhoto(
+      storageRef: storageRef,
+      userID: userId,
+      file: chassisNumberPhoto,
+      folderName: 'Chassis Number',
+    );
+
+    int seatNumberNum = int.parse(seatNumbersController.text);
+
+    return {
+      'Vehicle Name': nameOfTheCarController.text,
+      'Vehicle Photos': vehiclePhotosUrls,
+      'Technical Passport Number': technicalPassportNumberController.text,
+      'Technical Passport Photos': technicalPassportUrls,
+      'Chassis Number': chassisNumberController.text,
+      'Chassis Number Photo': chassisNumberUrl,
+      'Vehicle Registration Number': vehicleRegistrationNumberController.text,
+      'Vehicle\'s Year': yearOfTheCarController.text,
+      'Vehicle\'s Type': vehicleCategoryController.text,
+      'Seat Number': seatNumberNum,
+      "isApproved": false,
+    };
   }
 
   @override
@@ -340,7 +456,6 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
-    final isLoading = ref.watch(loadingProvider);
 
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
@@ -1257,61 +1372,33 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                 SizedBox(height: height * 0.025),
                 GestureDetector(
                   onTap: () async {
-                    if (_allFilledOut()) {
-                      ref.read(loadingProvider.notifier).startLoading();
-                      final userId = FirebaseAuth.instance.currentUser?.uid;
-                      if (userId != null) {
-                        final storageRef = FirebaseStorage.instance.ref();
-                        List<String> vehiclePhotosUrls =
-                            await uploadMultiplePhotos(
-                              storageRef: storageRef,
-                              userId: userId,
-                              files: carsPhoto,
-                              folderName: 'Vehicle Photos',
-                            );
-                        List<String> technicalPassportUrls =
-                            await uploadMultiplePhotos(
-                              storageRef: storageRef,
-                              userId: userId,
-                              files: technicalPassportNumberPhoto,
-                              folderName: 'Technical Passport',
-                            );
-                        String chassisNumberUrl = await uploadSinglePhoto(
-                          storageRef: storageRef,
-                          userID: userId,
-                          file: chassisNumberPhoto,
-                          folderName: 'Chassis Number',
-                        );
+                    if (allFilledOut()) {
+                      Map<String, dynamic> formData = {
+                        'Vehicle Name': nameOfTheCarController.text,
+                        'Technical Passport Number':
+                            technicalPassportNumberController.text,
+                        'Chassis Number': chassisNumberController.text,
+                        'Vehicle Registration Number':
+                            vehicleRegistrationNumberController.text,
+                        'Vehicle\'s Year': yearOfTheCarController.text,
+                        'Vehicle\'s Type': vehicleCategoryController.text,
+                        'Seat Number': int.parse(seatNumbersController.text),
+                        "isApproved": false,
+                        'Vehicle Photos Local':
+                            carsPhoto.map((x) => x.path).toList(),
+                        'Technical Passport Photos Local':
+                            technicalPassportNumberPhoto
+                                .map((x) => x.path)
+                                .toList(),
+                        'Chassis Number Photo Local':
+                            chassisNumberPhoto?.path ?? '',
+                      };
 
-                        int seatNumberNum = int.parse(
-                          seatNumbersController.text,
-                        );
-
-                        Map<String, dynamic> formData = {
-                          'Vehicle Name': nameOfTheCarController.text,
-                          'Vehicle Photos': vehiclePhotosUrls,
-                          'Technical Passport Number':
-                              technicalPassportNumberController.text,
-                          'Technical Passport Photos': technicalPassportUrls,
-                          'Chassis Number': chassisNumberController.text,
-                          'Chassis Number Photo': chassisNumberUrl,
-                          'Vehicle Registration Number':
-                              vehicleRegistrationNumberController.text,
-                          'Vehicle\'s Year': yearOfTheCarController.text,
-                          'Vehicle\'s Type': vehicleCategoryController.text,
-                          'Seat Number': seatNumberNum,
-                          "isApproved": false,
-                        };
-
-                        widget.onFormSubmit(formData);
-                        await _clearTempPhotos();
-                        await _clearTempData();
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
+                      widget.onFormSubmit(formData);
+                      if (!widget.multiSelection) {
+                        await clearTempPhotos();
+                        await clearTempData();
                       }
-
-                      ref.read(loadingProvider.notifier).stopLoading();
                     }
                   },
                   child: Container(
@@ -1319,50 +1406,32 @@ class _CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     height: height * 0.058,
                     decoration: BoxDecoration(
                       color:
-                          _allFilledOut()
+                          allFilledOut()
                               ? (darkMode
                                   ? Color.fromARGB(255, 1, 105, 170)
                                   : Color.fromARGB(255, 0, 134, 179))
                               : (darkMode
                                   ? Color.fromARGB(128, 52, 168, 235)
                                   : Color.fromARGB(177, 0, 134, 179)),
-                      borderRadius: BorderRadius.circular(7.5),
+                      borderRadius: BorderRadius.circular(width * 0.019),
                     ),
-                    child:
-                        isLoading
-                            ? Center(
-                              child: SpinKitThreeBounce(
-                                color: Color.fromRGBO(231, 231, 231, 1),
-                                size: width * 0.061,
-                              ),
-                            )
-                            : Center(
-                              child: Text(
-                                widget.multiSelection ? 'Done' : 'Submit',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: width * 0.04,
-                                  color:
-                                      _allFilledOut()
-                                          ? (darkMode
-                                              ? Color.fromARGB(255, 0, 0, 0)
-                                              : Color.fromARGB(
-                                                255,
-                                                255,
-                                                255,
-                                                255,
-                                              ))
-                                          : (darkMode
-                                              ? Color.fromARGB(132, 0, 0, 0)
-                                              : Color.fromARGB(
-                                                187,
-                                                255,
-                                                255,
-                                                255,
-                                              )),
-                                ),
-                              ),
-                            ),
+                    child: Center(
+                      child: Text(
+                        widget.multiSelection ? 'Done' : 'Submit',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: width * 0.04,
+                          color:
+                              allFilledOut()
+                                  ? (darkMode
+                                      ? Color.fromARGB(255, 0, 0, 0)
+                                      : Color.fromARGB(255, 255, 255, 255))
+                                  : (darkMode
+                                      ? Color.fromARGB(132, 0, 0, 0)
+                                      : Color.fromARGB(187, 255, 255, 255)),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 SizedBox(height: height * 0.058),

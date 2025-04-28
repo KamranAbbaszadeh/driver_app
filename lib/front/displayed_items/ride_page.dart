@@ -250,7 +250,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                         height: height * 0.035,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(
-                                            8,
+                                            width * 0.02,
                                           ),
                                           border: Border.all(
                                             color: Colors.white,
@@ -303,7 +303,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                         height: height * 0.035,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(
-                                            8,
+                                            width * 0.02,
                                           ),
                                           border: Border.all(
                                             color: Colors.white,
@@ -640,7 +640,6 @@ class _RidePageState extends ConsumerState<RidePage>
                                         );
                                         return;
                                       }
-
                                       if (availableMaps.isEmpty) {
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(
@@ -655,7 +654,6 @@ class _RidePageState extends ConsumerState<RidePage>
                                         }
                                         return;
                                       }
-
                                       if (context.mounted) {
                                         AvailableMap draftMap =
                                             availableMaps.first;

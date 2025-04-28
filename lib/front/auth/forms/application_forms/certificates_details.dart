@@ -1,14 +1,14 @@
 import 'dart:io';
 
-import 'package:driver_app/back/tools/loading_notifier.dart';
 import 'package:driver_app/back/upload_files/certificates/upload_certificate_save.dart';
 import 'package:driver_app/front/auth/forms/application_forms/bank_details_form.dart';
+import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CertificatesDetails extends ConsumerStatefulWidget {
@@ -76,6 +76,18 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
           context,
         ).showSnackBar(SnackBar(content: Text('No file selected')));
       }
+    }
+  }
+
+  Future<void> _submitForm() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      await uploadCertificateAndSave(
+        userId: userId,
+        certificates: certificates,
+        context: context,
+      );
+      await _clearTempCertificates();
     }
   }
 
@@ -228,9 +240,9 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                     certificates[index]['fileUrl'] != null
                         ? Colors.green
                         : Colors.grey,
-                size: 40,
+                size: width * 0.101,
               ),
-              SizedBox(width: 10),
+              SizedBox(width: width * 0.025),
               Text(
                 certificates[index]['file name'] ?? 'Upload Certificate',
                 style: TextStyle(
@@ -243,7 +255,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
             ],
           ),
         ),
-        SizedBox(height: 20),
+        SizedBox(height: height * 0.023),
       ],
     );
   }
@@ -331,7 +343,6 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     final role = widget.role;
-    final isLoading = ref.watch(loadingProvider);
     String numOfPages = role == 'Guide' ? '2/3' : '2/4';
 
     return Scaffold(
@@ -451,29 +462,25 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                         : SizedBox.shrink(),
                   ],
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: height * 0.023),
                 GestureDetector(
                   onTap: () async {
                     if (_allFilledOut()) {
-                      final userId = FirebaseAuth.instance.currentUser?.uid;
-                      if (userId != null) {
-                        ref.read(loadingProvider.notifier).startLoading();
-                        await uploadCertificateAndSave(
-                          userId: userId,
-                          certificates: certificates,
-                          context: context,
-                        );
-                        await _clearTempCertificates();
-                        ref.read(loadingProvider.notifier).stopLoading();
-                        if (context.mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => BankDetailsForm(),
-                            ),
-                          );
-                        }
-                      }
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          type: PageTransitionType.fade,
+                          child: IntermediateFormPage(
+                            isFromPersonalDataForm: false,
+                            isFromCarDetailsForm: false,
+                            isFromBankDetailsForm: false,
+                            isFromCertificateDetailsForm: true,
+                            isFromCarDetailsSwitcher: false,
+                            isFromProfilePage: false,
+                            backgroundProcess: _submitForm,
+                          ),
+                        ),
+                      );
                     }
                   },
 
@@ -491,51 +498,33 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                                   : Color.fromARGB(177, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(7.5),
                     ),
-                    child:
-                        isLoading
-                            ? Center(
-                              child: SpinKitThreeBounce(
-                                color: const Color.fromRGBO(231, 231, 231, 1),
-                                size: width * 0.061,
-                              ),
-                            )
-                            : Center(
-                              child: Text(
-                                'Next',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: width * 0.04,
-                                  color:
-                                      _allFilledOut()
-                                          ? (darkMode
-                                              ? const Color.fromARGB(
-                                                255,
-                                                0,
-                                                0,
-                                                0,
-                                              )
-                                              : const Color.fromARGB(
-                                                255,
-                                                255,
-                                                255,
-                                                255,
-                                              ))
-                                          : (darkMode
-                                              ? const Color.fromARGB(
-                                                132,
-                                                0,
-                                                0,
-                                                0,
-                                              )
-                                              : const Color.fromARGB(
-                                                187,
-                                                255,
-                                                255,
-                                                255,
-                                              )),
-                                ),
-                              ),
-                            ),
+                    child: Center(
+                      child: Text(
+                        'Next',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: width * 0.04,
+                          color:
+                              _allFilledOut()
+                                  ? (darkMode
+                                      ? const Color.fromARGB(255, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        255,
+                                        255,
+                                        255,
+                                        255,
+                                      ))
+                                  : (darkMode
+                                      ? const Color.fromARGB(132, 0, 0, 0)
+                                      : const Color.fromARGB(
+                                        187,
+                                        255,
+                                        255,
+                                        255,
+                                      )),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
 
