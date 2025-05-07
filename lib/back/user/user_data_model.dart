@@ -36,23 +36,42 @@ class UserModel {
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data) {
-    final user = FirebaseAuth.instance.currentUser?.uid;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return UserModel(
+        userId: user.uid,
+        firstName: data['First Name'] ?? '',
+        lastName: data['Last Name'] ?? '',
+        email: data['E-mail'] ?? '',
+        phoneNumber: data['Phone number'] ?? '',
+        birthday: data['Day of Birth'],
+        experience: data['Experience'],
+        gender: data['Gender'],
+        fin: data['Bank Details']['FIN'] ?? '',
+        role: data['Role'] ?? '',
+        address: data['Bank Details']['Address'],
+        personalPhoto: data['personalPhoto'],
+        vehicleType: data['Vehicle Type'],
+        languageSpoken: data['Language spoken'],
+        lastTourEndDate: data['Tour end Date'].toDate(),
+      );
+    }
     return UserModel(
-      userId: user ?? '',
-      firstName: data['First Name'] ?? '',
-      lastName: data['Last Name'] ?? '',
-      email: data['E-mail'] ?? '',
-      phoneNumber: data['Phone number'] ?? '',
-      birthday: data['Day of Birth'],
-      experience: data['Experience'],
-      gender: data['Gender'],
-      fin: data['Bank Details']['FIN'] ?? '',
-      role: data['Role'] ?? '',
-      address: data['Bank Details']['Address'],
-      personalPhoto: data['personalPhoto'],
-      vehicleType: data['Vehicle type'],
-      languageSpoken: data['Language spoken'],
-      lastTourEndDate: data['Tour end Date'].toDate(),
+      userId: "",
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      birthday: "",
+      experience: "",
+      gender: "",
+      fin: '',
+      role: '',
+      address: "",
+      personalPhoto: "",
+      vehicleType: "",
+      languageSpoken: "",
+      lastTourEndDate: DateTime.now(),
     );
   }
 }

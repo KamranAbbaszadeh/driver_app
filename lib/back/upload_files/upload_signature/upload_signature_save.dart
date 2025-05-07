@@ -10,7 +10,10 @@ Future<void> uploadSignatureAndSave(
   Uint8List signBytes,
   BuildContext context,
 ) async {
-  final userID = FirebaseAuth.instance.currentUser?.uid;
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final userID = user.uid;
   final storageRef = FirebaseStorage.instance.ref();
   final firestore = FirebaseFirestore.instance;
   final filePath =
@@ -26,8 +29,9 @@ Future<void> uploadSignatureAndSave(
     'Contract Signing': 'SIGNED',
     'Tour end Date': date,
   }, SetOptions(merge: true));
-
-  final currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+  final currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) return;
+  final currentUserEmail = currentUser.email;
   if (currentUserEmail != null) {
     final SignaturePostApi signaturePostApi = SignaturePostApi();
     final success = await signaturePostApi.postData({

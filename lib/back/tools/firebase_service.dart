@@ -17,6 +17,7 @@ class UsersDataProvider extends StateNotifier<Map<String, dynamic>?> {
           .doc(userId)
           .snapshots(includeMetadataChanges: true)
           .listen((snapshot) {
+            if (!mounted) return;
             if (snapshot.exists && mounted) {
               state = snapshot.data();
             } else {
@@ -57,6 +58,7 @@ final vehiclesProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
                 'registration': data['Vehicle Registration Number'] ?? doc.id,
                 'vehicleType': data['Vehicle\'s Type'] ?? 'Unknown',
               };
-            }).toList();
+            })
+            .toList();
       });
 });

@@ -13,7 +13,10 @@ Future<void> uploadBankDetails({
       'Bank Details': bankDetails,
     }, SetOptions(merge: true));
 
-    final currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final currentUserEmail = user.email;
     if (currentUserEmail != null) {
       final BankDetailsPostApi bankDetailsPostApi = BankDetailsPostApi();
       final success = await bankDetailsPostApi.postData({

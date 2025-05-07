@@ -2,6 +2,7 @@ import 'package:driver_app/back/tools/image_picker.dart';
 import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
 import 'package:driver_app/back/tools/vehicle_type_picker.dart';
+import 'package:driver_app/front/auth/forms/application_forms/upper_case_text_formatter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -703,6 +704,10 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         technicalPassportNumberFocusNode.unfocus();
                       },
                       controller: technicalPassportNumberController,
+                      inputFormatters: [
+                        UpperCaseTextFormatter(),
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             technicalPassportNumberFocusNode.hasFocus
@@ -844,6 +849,10 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         chassisNumberFocusNode.unfocus();
                       },
                       controller: chassisNumberController,
+                      inputFormatters: [
+                        UpperCaseTextFormatter(),
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             chassisNumberFocusNode.hasFocus
@@ -991,6 +1000,12 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         ).requestFocus(yearOfTheCarFocusNode);
                       },
                       controller: vehicleRegistrationNumberController,
+                      inputFormatters: [
+                        UpperCaseTextFormatter(),
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[A-Z0-9@#\$%^&*()_+=-]'),
+                        ),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             vehicleRegistrationNumberFocusNode.hasFocus

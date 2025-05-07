@@ -80,15 +80,16 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   }
 
   Future<void> _submitForm() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId != null) {
-      await uploadCertificateAndSave(
-        userId: userId,
-        certificates: certificates,
-        context: context,
-      );
-      await _clearTempCertificates();
-    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userId = user.uid;
+
+    await uploadCertificateAndSave(
+      userId: userId,
+      certificates: certificates,
+      context: context,
+    );
+    await _clearTempCertificates();
   }
 
   Widget buildCertificateField({

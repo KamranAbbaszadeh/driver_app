@@ -24,11 +24,15 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:minSdkVersion="34" android:name="android.permission.USE_EXACT_ALARM" />
    <application
         android:label="OMT"
+        tools:replace="android:label"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:enableOnBackInvokedCallback="true">
+         <!-- flutter_background_geolocation licence -->
+        <meta-data android:name="com.transistorsoft.locationmanager.license" android:value="a23868026e8b8af27abc5cfd1d1f234846cb4febc8d9886acbba886111b4f2c4" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -70,13 +74,8 @@
             android:name="com.google.android.gms.location.fusedlocationprovider"
             android:value="true"/>
 
-        <service
-            android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:foregroundServiceType="location"
-            android:exported="false"
-            android:permission="android.permission.FOREGROUND_SERVICE"
-            tools:replace="android:exported">
-        </service>
+        
+
 
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
 
@@ -90,7 +89,9 @@
         </receiver>
 
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
-
+        <service android:name="com.transistorsoft.flutter.backgroundgeolocation.HeadlessTask"
+           android:enabled="true"
+           android:exported="true"/>
         <service
             android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
             android:exported="false"

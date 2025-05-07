@@ -1,20 +1,25 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
 import 'package:driver_app/front/auth/forms/application_forms/car_details_form.dart';
 import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
+import 'package:driver_app/front/displayed_items/profile/vehicle_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
 
-class VehicleList extends StatefulWidget {
+class VehicleList extends ConsumerStatefulWidget {
   const VehicleList({super.key});
 
   @override
-  State<VehicleList> createState() => _VehicleListState();
+  ConsumerState<VehicleList> createState() => _VehicleListState();
 }
 
-class _VehicleListState extends State<VehicleList> {
+class _VehicleListState extends ConsumerState<VehicleList> {
   final Map<String, String> vehicleTypeIcons = {
     'Sedan': "assets/car_icons/sedan.png",
     'Minivan': "assets/car_icons/mininvan.png",
@@ -23,22 +28,37 @@ class _VehicleListState extends State<VehicleList> {
     'Bus': "assets/car_icons/bus.png",
   };
 
-  String? activeVehicleId;
+  final ValueNotifier<String?> activeVehicleIdNotifier = ValueNotifier(null);
+  StreamSubscription<DocumentSnapshot>? activeVehicleSubscription;
 
   @override
   void initState() {
     super.initState();
-    fetchActiveVehicleId();
+    listenToActiveVehicleId();
   }
 
-  Future<void> fetchActiveVehicleId() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
-    final userDoc =
-        await FirebaseFirestore.instance.collection('Users').doc(userId).get();
-    setState(() {
-      activeVehicleId = userDoc.data()?['Active Vehicle'];
-    });
+  void listenToActiveVehicleId() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userId = user.uid;
+
+    activeVehicleSubscription = FirebaseFirestore.instance
+        .collection('Users')
+        .doc(userId)
+        .snapshots()
+        .listen((snapshot) {
+          final data = snapshot.data();
+          if (data != null && data.containsKey('Active Vehicle')) {
+            activeVehicleIdNotifier.value = data['Active Vehicle'];
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    activeVehicleSubscription?.cancel();
+    activeVehicleIdNotifier.dispose();
+    super.dispose();
   }
 
   @override
@@ -104,188 +124,28 @@ class _VehicleListState extends State<VehicleList> {
               itemCount: vehicles.length,
               itemBuilder: (context, index) {
                 final vehicle = vehicles[index];
-                final isSelected = vehicle['docId'] == activeVehicleId;
                 final isApproved = vehicle['isApproved'] == true;
-                final seatNumber = vehicle['Seat Number']?.toString() ?? '-';
-                final vehicleYear =
-                    vehicle['Vehicle\'s Year']?.toString() ?? '-';
-                return InkWell(
-                  onTap:
-                      isApproved && !isSelected
-                          ? () async {
-                            final userId =
-                                FirebaseAuth.instance.currentUser?.uid;
-                            if (userId == null) return;
 
-                            final selectedVehicleDocId = vehicle['docId'];
+                return VehicleCard(
+                  vehicle: vehicle,
+                  isApproved: isApproved,
+                  width: width,
+                  height: height,
+                  darkMode: darkMode,
+                  vehicleTypeIcons: vehicleTypeIcons,
+                  activeVehicleIdNotifier: activeVehicleIdNotifier,
+                  onTap: () async {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) return;
+                    final userId = user.uid;
 
-                            await FirebaseFirestore.instance
-                                .collection('Users')
-                                .doc(userId)
-                                .update({
-                                  'Active Vehicle': selectedVehicleDocId,
-                                });
+                    final selectedVehicleDocId = vehicle['docId'];
 
-                            setState(() {
-                              fetchActiveVehicleId();
-                            });
-                          }
-                          : () {},
-                  child: Card(
-                    margin: EdgeInsets.symmetric(
-                      horizontal: width * 0.04,
-                      vertical: height * 0.009,
-                    ),
-                    elevation: width * 0.025,
-                    shadowColor: Colors.black.withAlpha((255 * 0.1).toInt()),
-                    color:
-                        isApproved
-                            ? (darkMode
-                                ? const Color(0xFF2C2C2C)
-                                : Colors.white)
-                            : (darkMode
-                                ? const Color(0xFF424242)
-                                : const Color.fromARGB(255, 167, 167, 167)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(width * 0.05),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(width * 0.03),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Image.asset(
-                                vehicleTypeIcons[vehicle['Vehicle\'s Type']] ??
-                                    'assets/car_icons/sedan.png',
-                                width: width * 0.1,
-                                height: width * 0.1,
-                                color: darkMode ? Colors.white : Colors.black,
-                              ),
-                              SizedBox(width: width * 0.04),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    vehicle['Vehicle Registration Number'] ??
-                                        'Unknown',
-                                    style: GoogleFonts.ptSans(
-                                      fontSize: width * 0.04,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  RichText(
-                                    text: TextSpan(
-                                      style:
-                                          Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium,
-                                      children: [
-                                        TextSpan(
-                                          text: 'Vehicle: ',
-                                          style: GoogleFonts.cabin(
-                                            fontSize: width * 0.035,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text:
-                                              '${vehicle['Vehicle Name'] ?? 'Unknown'}\n',
-                                          style: GoogleFonts.cabin(
-                                            fontSize: width * 0.033,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: 'Type: ',
-                                          style: GoogleFonts.cabin(
-                                            fontSize: width * 0.035,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text:
-                                              (vehicle['Vehicle\'s Type'] ??
-                                                  'Unknown type') +
-                                              '\n',
-                                          style: GoogleFonts.cabin(
-                                            fontSize: width * 0.033,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: 'Seats: ',
-                                          style: GoogleFonts.cabin(
-                                            fontSize: width * 0.035,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: '$seatNumber\n',
-                                          style: GoogleFonts.cabin(
-                                            fontSize: width * 0.033,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: 'Year: ',
-                                          style: GoogleFonts.cabin(
-                                            fontSize: width * 0.035,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: vehicleYear,
-                                          style: GoogleFonts.cabin(
-                                            fontSize: width * 0.033,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(height: height * 0.004),
-                                ],
-                              ),
-                            ],
-                          ),
-                          if (isSelected)
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: width * 0.02,
-                                vertical: height * 0.004,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 103, 168, 120),
-                                borderRadius: BorderRadius.circular(
-                                  width * 0.03,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.check,
-                                    size: width * 0.04,
-                                    color: Colors.white,
-                                  ),
-                                  SizedBox(width: width * 0.01),
-                                  Text(
-                                    "Active",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: width * 0.03,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
+                    await FirebaseFirestore.instance
+                        .collection('Users')
+                        .doc(userId)
+                        .update({'Active Vehicle': selectedVehicleDocId});
+                  },
                 );
               },
             );
@@ -306,12 +166,12 @@ class _VehicleListState extends State<VehicleList> {
                     vehicleType: '',
                     key: formKey,
                     onFormSubmit: (formData) async {
-                      final userId = FirebaseAuth.instance.currentUser?.uid;
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user == null) return;
+                      final userId = user.uid;
                       final selectedVehicleType = formData['Vehicle\'s Type'];
 
-                      if (userId != null &&
-                          selectedVehicleType != null &&
-                          context.mounted) {
+                      if (selectedVehicleType != null && context.mounted) {
                         await Navigator.push(
                           context,
                           PageTransition(
@@ -324,33 +184,70 @@ class _VehicleListState extends State<VehicleList> {
                               isFromCarDetailsForm: false,
                               isFromProfilePage: true,
                               backgroundProcess: () async {
-                                final formData =
-                                    await formKey.currentState
-                                        ?.prepareVehicleFormData();
-                                if (formData == null) return;
+                                final carPhotoPaths = List<String>.from(
+                                  formData['Vehicle Photos Local'],
+                                );
+                                final techPhotoPaths = List<String>.from(
+                                  formData['Technical Passport Photos Local'],
+                                );
+                                final chassisPhotoPath =
+                                    formData['Chassis Number Photo Local'];
 
-                                final userRef = FirebaseFirestore.instance
-                                    .collection('Users')
-                                    .doc(userId);
-                                final userDoc = await userRef.get();
-                                final currentTypes =
-                                    userDoc.data()?['Vehicle type'] ?? '';
+                                final storageRef = FirebaseStorage.instance
+                                    .ref()
+                                    .child('Users')
+                                    .child(userId);
 
-                                final updatedTypes =
-                                    currentTypes.isEmpty
-                                        ? selectedVehicleType
-                                        : '$currentTypes, $selectedVehicleType';
+                                final uploadedCarPhotos =
+                                    await uploadMultiplePhotosFromPaths(
+                                      carPhotoPaths,
+                                      storageRef,
+                                      userId,
+                                      'Vehicle Photos',
+                                      formData['Vehicle Registration Number'],
+                                    );
 
-                                await userRef.update({
-                                  'Vehicle type': updatedTypes,
-                                });
+                                final uploadedTechPhotos =
+                                    await uploadMultiplePhotosFromPaths(
+                                      techPhotoPaths,
+                                      storageRef,
+                                      userId,
+                                      'Technical Passport',
+                                      formData['Vehicle Registration Number'],
+                                    );
+
+                                final uploadedChassisPhoto =
+                                    await uploadSinglePhotoFromPath(
+                                      chassisPhotoPath,
+                                      storageRef,
+                                      userId,
+                                      'Chassis Number',
+                                      formData['Vehicle Registration Number'],
+                                    );
+
+                                final finalFormData = {
+                                  'Vehicle Name': formData['Vehicle Name'],
+                                  'Vehicle Photos': uploadedCarPhotos,
+                                  'Technical Passport Number':
+                                      formData['Technical Passport Number'],
+                                  'Technical Passport Photos':
+                                      uploadedTechPhotos,
+                                  'Chassis Number': formData['Chassis Number'],
+                                  'Chassis Number Photo': uploadedChassisPhoto,
+                                  'Vehicle Registration Number':
+                                      formData['Vehicle Registration Number'],
+                                  'Vehicle\'s Year':
+                                      formData['Vehicle\'s Year'],
+                                  'Vehicle\'s Type':
+                                      formData['Vehicle\'s Type'],
+                                  'Seat Number': formData['Seat Number'],
+                                  'isApproved': false,
+                                };
 
                                 if (context.mounted) {
                                   await uploadVehicleDetailsAndSave(
                                     userId: userId,
-                                    vehicleDetails: {
-                                      selectedVehicleType: formData,
-                                    },
+                                    vehicleDetails: finalFormData,
                                     context: context,
                                   );
                                 }

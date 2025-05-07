@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/bloc/notification_bloc.dart';
 import 'package:driver_app/back/bloc/notification_event.dart';
 import 'package:driver_app/back/bloc/notification_state.dart';
 import 'package:driver_app/front/tools/bottom_bar_provider.dart';
 import 'package:driver_app/front/tools/notification_notifier.dart';
 import 'package:driver_app/main.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,7 +94,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                 final route = message['data']['route'];
                 final fullBody = message['data']['fullBody'];
                 return GestureDetector(
-                  onTap: () {
+                  onTap: () async {
                     context.read<NotificationBloc>().add(
                       MarkMessageAsViewed(index),
                     );
@@ -100,6 +102,18 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                       ref.read(notificationsProvider.notifier).refresh();
                     });
 
+                    String userId =
+                        FirebaseAuth.instance.currentUser?.uid ?? '';
+                    if (userId.isEmpty) return;
+
+                    DocumentSnapshot userDoc =
+                        await FirebaseFirestore.instance
+                            .collection('Users')
+                            .doc(userId)
+                            .get();
+
+                    bool registrationCompleted =
+                        userDoc['Registration Completed'];
                     if (route == "/chat_page") {
                       final tourId = message['data']['tourId'];
                       navigatorKey.currentState?.pushNamed(
@@ -117,7 +131,9 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                         (route) => false,
                       );
                     } else {
-                      navigatorKey.currentState?.pushNamed(route);
+                      registrationCompleted
+                          ? navigatorKey.currentState?.pop()
+                          : navigatorKey.currentState?.pushNamed(route);
                     }
                   },
                   child: Container(

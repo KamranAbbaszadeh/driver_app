@@ -94,18 +94,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
             multiSelection: false,
             key: formKey,
             onFormSubmit: (formData) async {
-              final preparedFormData =
-                  await formKey.currentState?.prepareVehicleFormData();
-              if (preparedFormData == null) return;
-
-              ref.read(vehicleDetailsProvider.notifier).update((state) {
-                final updated = Map<String, dynamic>.from(state);
-                updated[types[0]] = preparedFormData;
-                return updated;
-              });
-
-              final userId = FirebaseAuth.instance.currentUser?.uid;
-              if (userId != null && context.mounted) {
+              if (context.mounted) {
                 await Navigator.push(
                   context,
                   PageTransition(
@@ -118,18 +107,87 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                       isFromCarDetailsForm: true,
                       isFromProfilePage: false,
                       backgroundProcess: () async {
-                        await uploadVehicleDetailsAndSave(
-                          userId: userId,
-                          vehicleDetails: ref.read(vehicleDetailsProvider),
-                          context: context,
-                        );
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user == null) return;
+                        final userId = user.uid;
+                        if (context.mounted) {
+                          final form =
+                              ref.read(vehicleDetailsProvider)[types[0]];
+
+                          if (form != null) {
+                            final carPhotoPaths = List<String>.from(
+                              form['Vehicle Photos Local'],
+                            );
+                            final techPhotoPaths = List<String>.from(
+                              form['Technical Passport Photos Local'],
+                            );
+                            final chassisPhotoPath =
+                                form['Chassis Number Photo Local'];
+
+                            final storageRef = FirebaseStorage.instance
+                                .ref()
+                                .child('Users')
+                                .child(userId);
+
+                            final uploadedCarPhotos =
+                                await uploadMultiplePhotosFromPaths(
+                                  carPhotoPaths,
+                                  storageRef,
+                                  userId,
+                                  'Vehicle Photos',
+                                  form['Vehicle Registration Number'],
+                                );
+
+                            final uploadedTechPhotos =
+                                await uploadMultiplePhotosFromPaths(
+                                  techPhotoPaths,
+                                  storageRef,
+                                  userId,
+                                  'Technical Passport',
+                                  form['Vehicle Registration Number'],
+                                );
+
+                            final uploadedChassisPhoto =
+                                await uploadSinglePhotoFromPath(
+                                  chassisPhotoPath,
+                                  storageRef,
+                                  userId,
+                                  'Chassis Number',
+                                  form['Vehicle Registration Number'],
+                                );
+
+                            final finalFormData = {
+                              'Vehicle Name': form['Vehicle Name'],
+                              'Vehicle Photos': uploadedCarPhotos,
+                              'Technical Passport Number':
+                                  form['Technical Passport Number'],
+                              'Technical Passport Photos': uploadedTechPhotos,
+                              'Chassis Number': form['Chassis Number'],
+                              'Chassis Number Photo': uploadedChassisPhoto,
+                              'Vehicle Registration Number':
+                                  form['Vehicle Registration Number'],
+                              'Vehicle\'s Year': form['Vehicle\'s Year'],
+                              'Vehicle\'s Type': form['Vehicle\'s Type'],
+                              'Seat Number': form['Seat Number'],
+                              'isApproved': false,
+                            };
+
+                            if (context.mounted) {
+                              await uploadVehicleDetailsAndSave(
+                                userId: userId,
+                                vehicleDetails: finalFormData,
+                                context: context,
+                              );
+                            }
+                          }
+                        }
                         await FirebaseFirestore.instance
                             .collection('Users')
                             .doc(userId)
                             .update({
                               'Personal & Car Details Form':
                                   'APPLICATION RECEIVED',
-                              'Active vehicle': "Car1",
+                              'Active Vehicle': "Car1",
                             });
                       },
                     ),
@@ -281,12 +339,10 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                   );
                   return;
                 }
-
-                final userId = FirebaseAuth.instance.currentUser?.uid;
-                if (userId == null) return;
-
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) return;
+                final userId = user.uid;
                 final vehicleDetails = ref.read(vehicleDetailsProvider);
-
                 if (context.mounted) {
                   await Navigator.push(
                     context,
@@ -372,7 +428,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                                 .update({
                                   'Personal & Car Details Form':
                                       'APPLICATION RECEIVED',
-                                  'Active vehicle': "Car1",
+                                  'Active Vehicle': "Car1",
                                 });
 
                             final prefs = await SharedPreferences.getInstance();

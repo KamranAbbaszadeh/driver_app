@@ -1,10 +1,13 @@
 import 'package:driver_app/back/upload_files/bank_details/upload_bank_details.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
+import 'package:driver_app/front/auth/forms/application_forms/upper_case_text_formatter.dart';
 import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:iban/iban.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,10 +28,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
   final _finCodeController = TextEditingController();
   late FocusNode _finCodeFocusNode;
   bool isFINCodeEmpty = false;
+  bool isFINCodeValid = true;
 
   final _vATnumberController = TextEditingController();
   late FocusNode _vATnumberFocusNode;
   bool isVATnumberEmpty = false;
+  bool isVATnumberValid = true;
 
   final _bankNameController = TextEditingController();
   late FocusNode _bankNameFocusNode;
@@ -37,18 +42,57 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
   final _bankCodeController = TextEditingController();
   late FocusNode _bankCodeFocusNode;
   bool isBankCodeEmpty = false;
+  bool isBankCodeValid = true;
 
   final _mHController = TextEditingController();
   late FocusNode _mHFocusNode;
   bool isMHEmpty = false;
+  bool isMHValid = true;
 
   final _sWIFTController = TextEditingController();
   late FocusNode _sWIFTFocusNode;
   bool isSWIFTEmpty = false;
+  bool isSWIFTValid = true;
 
   final _iBANController = TextEditingController();
   late FocusNode _iBANFocusNode;
   bool isIBANEmpty = false;
+  bool isIbanValid = true;
+
+  bool isValidCorrespondentAccount(String account) {
+    account = account.replaceAll(' ', '');
+    final regex = RegExp(r'^[A-Z0-9]{20,34}$');
+    return regex.hasMatch(account);
+  }
+
+  bool isValidSWIFT(String swift) {
+    swift = swift.replaceAll(' ', '');
+    return swift.length == 8 || swift.length == 11
+        ? RegExp(r'^[A-Z0-9]+$').hasMatch(swift)
+        : false;
+  }
+
+  bool isValidIban(String iban) {
+    return isValid(iban);
+  }
+
+  bool isValidBankCode(String code) {
+    code = code.replaceAll(' ', '');
+    final regex = RegExp(r'^\d{5,8}$');
+    return regex.hasMatch(code);
+  }
+
+  bool isValidFINCode(String fin) {
+    fin = fin.replaceAll(' ', '');
+    final regex = RegExp(r'^[A-Z0-9]{7}$');
+    return regex.hasMatch(fin);
+  }
+
+  bool isValidVATNumber(String vat) {
+    vat = vat.replaceAll(' ', '');
+    final regex = RegExp(r'^\d{10}$');
+    return regex.hasMatch(vat);
+  }
 
   Future<void> _saveTempData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -123,7 +167,11 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     });
 
     _finCodeController.addListener(() {
-      setState(() {});
+      setState(() {
+        if (!isFINCodeEmpty) {
+          isFINCodeValid = isValidFINCode(_finCodeController.text);
+        }
+      });
       _saveTempData();
     });
 
@@ -136,7 +184,11 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     });
 
     _vATnumberController.addListener(() {
-      setState(() {});
+      setState(() {
+        if (!isVATnumberEmpty) {
+          isVATnumberValid = isValidVATNumber(_vATnumberController.text);
+        }
+      });
       _saveTempData();
     });
 
@@ -162,7 +214,11 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     });
 
     _bankCodeController.addListener(() {
-      setState(() {});
+      setState(() {
+        if (!isBankCodeEmpty) {
+          isBankCodeValid = isValidBankCode(_bankCodeController.text);
+        }
+      });
       _saveTempData();
     });
 
@@ -175,7 +231,11 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     });
 
     _mHController.addListener(() {
-      setState(() {});
+      setState(() {
+        if (!isMHEmpty) {
+          isMHValid = isValidCorrespondentAccount(_mHController.text);
+        }
+      });
       _saveTempData();
     });
 
@@ -188,7 +248,11 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     });
 
     _sWIFTController.addListener(() {
-      setState(() {});
+      setState(() {
+        if (!isSWIFTEmpty) {
+          isSWIFTValid = isValidSWIFT(_sWIFTController.text);
+        }
+      });
       _saveTempData();
     });
 
@@ -201,7 +265,11 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     });
 
     _iBANController.addListener(() {
-      setState(() {});
+      setState(() {
+        if (!isIBANEmpty) {
+          isIbanValid = isValidIban(_iBANController.text);
+        }
+      });
       _saveTempData();
     });
 
@@ -265,7 +333,9 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
   }
 
   Future<void> _submitForm() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userId = user.uid;
     Map<String, dynamic> bankDetails = {
       'Address': _addressController.text,
       'FIN': _finCodeController.text,
@@ -276,14 +346,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
       'SWIFT': _sWIFTController.text,
       'IBAN': _iBANController.text,
     };
-    if (userId != null) {
-      await uploadBankDetails(
-        bankDetails: bankDetails,
-        userId: userId,
-        context: context,
-      );
-      await _clearTempData();
-    }
+    await uploadBankDetails(
+      bankDetails: bankDetails,
+      userId: userId,
+      context: context,
+    );
+    await _clearTempData();
   }
 
   @override
@@ -500,7 +568,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color:
-                          isFINCodeEmpty
+                          isFINCodeEmpty || !isFINCodeValid
                               ? const Color.fromARGB(255, 244, 92, 54)
                               : _finCodeFocusNode.hasFocus
                               ? Colors.blue
@@ -520,6 +588,14 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   ),
                   child: Center(
                     child: TextField(
+                      maxLength: 7,
+                      buildCounter:
+                          (
+                            BuildContext context, {
+                            int? currentLength,
+                            bool? isFocused,
+                            int? maxLength,
+                          }) => null,
                       onTap: () {
                         setState(() {
                           _finCodeFocusNode.requestFocus();
@@ -540,6 +616,10 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         ).requestFocus(_vATnumberFocusNode);
                       },
                       controller: _finCodeController,
+                      inputFormatters: [
+                        UpperCaseTextFormatter(),
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             _finCodeFocusNode.hasFocus
@@ -583,7 +663,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         labelStyle: TextStyle(
                           fontSize: width * 0.038,
                           color:
-                              isFINCodeEmpty
+                              isFINCodeEmpty || !isFINCodeValid
                                   ? const Color.fromARGB(255, 244, 92, 54)
                                   : _finCodeFocusNode.hasFocus
                                   ? Colors.blue
@@ -594,14 +674,14 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                     ),
                   ),
                 ),
-                if (isFINCodeEmpty)
+                if (isFINCodeEmpty || !isFINCodeValid)
                   Padding(
                     padding: EdgeInsets.only(
                       left: width * 0.027,
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      isFINCodeEmpty ? "Required" : "Invalid FIN Code",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -615,7 +695,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color:
-                          isVATnumberEmpty
+                          isVATnumberEmpty || !isVATnumberValid
                               ? const Color.fromARGB(255, 244, 92, 54)
                               : _vATnumberFocusNode.hasFocus
                               ? Colors.blue
@@ -635,6 +715,16 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   ),
                   child: Center(
                     child: TextField(
+                      maxLength: 10,
+                      buildCounter:
+                          (
+                            BuildContext context, {
+                            int? currentLength,
+                            bool? isFocused,
+                            int? maxLength,
+                          }) => null,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       onTap: () {
                         setState(() {
                           _vATnumberFocusNode.requestFocus();
@@ -696,7 +786,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         labelStyle: TextStyle(
                           fontSize: width * 0.038,
                           color:
-                              isVATnumberEmpty
+                              isVATnumberEmpty || !isVATnumberValid
                                   ? const Color.fromARGB(255, 244, 92, 54)
                                   : _vATnumberFocusNode.hasFocus
                                   ? Colors.blue
@@ -707,14 +797,14 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                     ),
                   ),
                 ),
-                if (isVATnumberEmpty)
+                if (isVATnumberEmpty || !isVATnumberValid)
                   Padding(
                     padding: EdgeInsets.only(
                       left: width * 0.027,
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      isVATnumberEmpty ? "Required" : "Invalid VAT Number",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -841,7 +931,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color:
-                          isBankCodeEmpty
+                          isBankCodeEmpty || !isBankCodeValid
                               ? const Color.fromARGB(255, 244, 92, 54)
                               : _bankCodeFocusNode.hasFocus
                               ? Colors.blue
@@ -861,6 +951,16 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   ),
                   child: Center(
                     child: TextField(
+                      maxLength: 8,
+                      buildCounter:
+                          (
+                            BuildContext context, {
+                            int? currentLength,
+                            bool? isFocused,
+                            int? maxLength,
+                          }) => null,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       onTap: () {
                         setState(() {
                           _bankCodeFocusNode.requestFocus();
@@ -922,7 +1022,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         labelStyle: TextStyle(
                           fontSize: width * 0.038,
                           color:
-                              isBankCodeEmpty
+                              isBankCodeEmpty || !isBankCodeValid
                                   ? const Color.fromARGB(255, 244, 92, 54)
                                   : _bankCodeFocusNode.hasFocus
                                   ? Colors.blue
@@ -933,14 +1033,16 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                     ),
                   ),
                 ),
-                if (isBankCodeEmpty)
+                if (isBankCodeEmpty || !isBankCodeValid)
                   Padding(
                     padding: EdgeInsets.only(
                       left: width * 0.027,
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      isBankCodeEmpty
+                          ? "Required"
+                          : "Invalid Bank Code format.",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -954,7 +1056,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color:
-                          isMHEmpty
+                          isMHEmpty || !isMHValid
                               ? const Color.fromARGB(255, 244, 92, 54)
                               : _mHFocusNode.hasFocus
                               ? Colors.blue
@@ -973,6 +1075,15 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   ),
                   child: Center(
                     child: TextField(
+                      maxLength: 34,
+                      buildCounter:
+                          (
+                            BuildContext context, {
+                            int? currentLength,
+                            bool? isFocused,
+                            int? maxLength,
+                          }) => null,
+
                       onTap: () {
                         setState(() {
                           _mHFocusNode.requestFocus();
@@ -991,6 +1102,10 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         FocusScope.of(context).requestFocus(_sWIFTFocusNode);
                       },
                       controller: _mHController,
+                      inputFormatters: [
+                        UpperCaseTextFormatter(),
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             _mHFocusNode.hasFocus
@@ -1034,7 +1149,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         labelStyle: TextStyle(
                           fontSize: width * 0.038,
                           color:
-                              isMHEmpty
+                              isMHEmpty || !isMHValid
                                   ? const Color.fromARGB(255, 244, 92, 54)
                                   : _mHFocusNode.hasFocus
                                   ? Colors.blue
@@ -1045,14 +1160,16 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                     ),
                   ),
                 ),
-                if (isMHEmpty)
+                if (isMHEmpty || !isMHValid)
                   Padding(
                     padding: EdgeInsets.only(
                       left: width * 0.027,
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      isMHEmpty
+                          ? "Required"
+                          : "Invalid Correspondent Bank Account (Müxbir Hesab) format.",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -1066,7 +1183,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color:
-                          isSWIFTEmpty
+                          isSWIFTEmpty || !isSWIFTValid
                               ? const Color.fromARGB(255, 244, 92, 54)
                               : _sWIFTFocusNode.hasFocus
                               ? Colors.blue
@@ -1086,6 +1203,14 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   ),
                   child: Center(
                     child: TextField(
+                      maxLength: 11,
+                      buildCounter:
+                          (
+                            BuildContext context, {
+                            int? currentLength,
+                            bool? isFocused,
+                            int? maxLength,
+                          }) => null,
                       onTap: () {
                         setState(() {
                           _sWIFTFocusNode.requestFocus();
@@ -1104,6 +1229,10 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         FocusScope.of(context).requestFocus(_iBANFocusNode);
                       },
                       controller: _sWIFTController,
+                      inputFormatters: [
+                        UpperCaseTextFormatter(),
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             _sWIFTFocusNode.hasFocus
@@ -1138,7 +1267,8 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         ),
                         floatingLabelBehavior: FloatingLabelBehavior.auto,
                         labelText: 'SWIFT',
-                        hintText: 'AIIRDAZ9X',
+                        hintText: 'AIIRDAZ9',
+
                         hintStyle: TextStyle(
                           fontSize: width * 0.038,
                           color: Colors.grey.shade500.withValues(alpha: 0.5),
@@ -1147,7 +1277,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         labelStyle: TextStyle(
                           fontSize: width * 0.038,
                           color:
-                              isSWIFTEmpty
+                              isSWIFTEmpty || !isSWIFTValid
                                   ? const Color.fromARGB(255, 244, 92, 54)
                                   : _sWIFTFocusNode.hasFocus
                                   ? Colors.blue
@@ -1158,20 +1288,21 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                     ),
                   ),
                 ),
-                if (isSWIFTEmpty)
+                if (isSWIFTEmpty || !isSWIFTValid)
                   Padding(
                     padding: EdgeInsets.only(
                       left: width * 0.027,
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      isSWIFTEmpty ? "Required" : "Invalid SWIFT Code format.",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
                       ),
                     ),
                   ),
+
                 SizedBox(height: height * 0.015),
                 Container(
                   width: width,
@@ -1179,7 +1310,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color:
-                          isIBANEmpty
+                          isIBANEmpty || !isIbanValid
                               ? const Color.fromARGB(255, 244, 92, 54)
                               : _iBANFocusNode.hasFocus
                               ? Colors.blue
@@ -1199,6 +1330,14 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                   ),
                   child: Center(
                     child: TextField(
+                      maxLength: 34,
+                      buildCounter:
+                          (
+                            BuildContext context, {
+                            int? currentLength,
+                            bool? isFocused,
+                            int? maxLength,
+                          }) => null,
                       onTap: () {
                         setState(() {
                           _iBANFocusNode.requestFocus();
@@ -1216,6 +1355,10 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         _iBANFocusNode.unfocus();
                       },
                       controller: _iBANController,
+                      inputFormatters: [
+                        UpperCaseTextFormatter(),
+                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             _iBANFocusNode.hasFocus
@@ -1259,7 +1402,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         labelStyle: TextStyle(
                           fontSize: width * 0.038,
                           color:
-                              isIBANEmpty
+                              isIBANEmpty || !isIbanValid
                                   ? const Color.fromARGB(255, 244, 92, 54)
                                   : _iBANFocusNode.hasFocus
                                   ? Colors.blue
@@ -1270,14 +1413,16 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                     ),
                   ),
                 ),
-                if (isIBANEmpty)
+                if (isIBANEmpty || !isIbanValid)
                   Padding(
                     padding: EdgeInsets.only(
                       left: width * 0.027,
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      isIBANEmpty
+                          ? "Required"
+                          : "Invalid International Bank Account Number (IBAN) format.",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -1300,7 +1445,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                             isFromCertificateDetailsForm: false,
                             isFromCarDetailsSwitcher: false,
                             isFromProfilePage: false,
-                            backgroundProcess:_submitForm,
+                            backgroundProcess: _submitForm,
                           ),
                         ),
                       );

@@ -1,18 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/auth/is_deleting_profile_provider.dart';
 import 'package:driver_app/front/auth/waiting_page_view.dart';
 import 'package:driver_app/front/intro/welcome_page.dart';
 import 'package:driver_app/front/displayed_items/home_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class WaitingPage extends StatefulWidget {
+class WaitingPage extends ConsumerStatefulWidget {
   const WaitingPage({super.key});
 
   @override
-  State<WaitingPage> createState() => _WaitingPageState();
+  ConsumerState<WaitingPage> createState() => _WaitingPageState();
 }
 
-class _WaitingPageState extends State<WaitingPage> {
+class _WaitingPageState extends ConsumerState<WaitingPage> {
   Stream<DocumentSnapshot<Map<String, dynamic>>> getUserStatusStream(
     String uid,
   ) {
@@ -37,12 +39,14 @@ class _WaitingPageState extends State<WaitingPage> {
                   ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-
+              final isDeleting = ref.read(isDeletingProfileProvider);
               if (userStatusSnapshot.hasError ||
                   !userStatusSnapshot.hasData ||
                   userStatusSnapshot.data?.data() == null) {
-                FirebaseAuth.instance.signOut();
-                return WelcomePage();
+                if (!isDeleting) {
+                  FirebaseAuth.instance.signOut();
+                  return WelcomePage();
+                }
               }
 
               final userData = userStatusSnapshot.data!.data();

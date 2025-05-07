@@ -135,7 +135,7 @@ class FirebaseApi {
 
     await _localNotifications.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: (details) {
+      onDidReceiveNotificationResponse: (details) async {
         if (details.payload != null) {
           final Map<String, dynamic> data = jsonDecode(details.payload!);
           final String? type = data['route'];
@@ -152,8 +152,20 @@ class FirebaseApi {
               (route) => false,
             );
           } else {
+            String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+            if (userId.isEmpty) return;
+
+            DocumentSnapshot userDoc =
+                await FirebaseFirestore.instance
+                    .collection('Users')
+                    .doc(userId)
+                    .get();
+
+            bool registrationCompleted = userDoc['Registration Completed'];
             navigatorKey.currentState?.pushNamed(
-              type ?? '/notification_screen',
+              registrationCompleted
+                  ? '/home_page'
+                  : type ?? '/notification_screen',
             );
           }
         }
@@ -164,7 +176,6 @@ class FirebaseApi {
   }
 
   Future<void> handleMessage(RemoteMessage message) async {
-    logger.i("🔔 handleMessage called with: ${message.notification?.title}");
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
 
@@ -433,12 +444,15 @@ class FirebaseApi {
         >()
         ?.requestNotificationsPermission();
 
-    final notificationTimes = [
-      Duration(hours: 2),
-      Duration(minutes: 90),
-      Duration(hours: 1),
-      Duration(minutes: 30),
-    ];
+    final detailsDoc =
+        await FirebaseFirestore.instance
+            .collection('Details')
+            .doc('Ride')
+            .get();
+
+    final List<dynamic> periods = detailsDoc['Notification Period'] ?? [];
+    final notificationTimes =
+        periods.map((minutes) => Duration(minutes: minutes as int)).toList();
 
     int baseId = tourId.hashCode;
 

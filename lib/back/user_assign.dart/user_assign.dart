@@ -8,11 +8,13 @@ Future<void> userAssign({
   required String baseUrl,
   required String collection, // "Cars" or "Guide"
 }) async {
-  final userId = FirebaseAuth.instance.currentUser?.uid;
-  final userEmail = FirebaseAuth.instance.currentUser?.email;
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+  final userId = user.uid;
+  final userEmail = user.email;
   final UserAssignPostApi userAssignPostApi = UserAssignPostApi();
 
-  if (userId != null && userEmail != null) {
+  if (userEmail != null) {
     final fieldToUpdate = collection == 'Cars' ? 'Driver' : 'Guide';
 
     await FirebaseFirestore.instance.collection(collection).doc(docId).set({

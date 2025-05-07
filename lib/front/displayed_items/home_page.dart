@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/back/map_and_location/get_functions.dart';
-import 'package:driver_app/back/map_and_location/location_provider.dart';
 import 'package:driver_app/back/ride/ride_state.dart';
 import 'package:driver_app/front/displayed_items/ride_page.dart';
 import 'package:driver_app/front/tools/app_bar.dart';
@@ -11,7 +10,6 @@ import 'package:driver_app/front/tools/bottom_bar_provider.dart';
 import 'package:driver_app/front/tools/bottom_nav_bar.dart';
 import 'package:driver_app/front/tools/list_nav_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -30,20 +28,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FirebaseApi.instance.checkAndRequestExactAlarmPermission(context);
     });
+    
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     requestLocationPermissions(context);
-    _locationSubscription = FlutterBackgroundService()
-        .on('LocationUpdates')
-        .listen((event) {
-          if (event != null) {
-            ref.read(locationProvider.notifier).state = event;
-          }
-        });
-  }
+     }
 
   DateTime parseDate(dynamic value) {
     if (value is DateTime) return value;

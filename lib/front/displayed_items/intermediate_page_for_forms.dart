@@ -126,7 +126,7 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                             context,
                             PageTransition(
                               type: PageTransitionType.fade,
-                              child: CarDetailsSwitcher(),
+                              child: WaitingPage(),
                             ),
                             (route) => false,
                           );

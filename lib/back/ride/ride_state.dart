@@ -1,13 +1,18 @@
 import 'dart:async';
 
+import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/back/map_and_location/get_functions.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:driver_app/back/map_and_location/location_post_api.dart';
+import 'package:driver_app/back/map_and_location/location_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
+    as bg;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:driver_app/front/tools/ride_model.dart';
 import 'package:driver_app/front/tools/get_location_name.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RideState {
   final List<Ride> filteredRides;
@@ -67,8 +72,10 @@ class RideState {
 
 class RideNotifier extends StateNotifier<RideState> {
   Timer? _refreshTimer;
+  final Ref ref;
+  final BuildContext context;
 
-  RideNotifier() : super(RideState()) {
+  RideNotifier(this.ref, this.context) : super(RideState()) {
     _startListeningToRides();
     _refreshTimer = Timer.periodic(Duration(seconds: 30), (_) {});
   }
@@ -77,8 +84,9 @@ class RideNotifier extends StateNotifier<RideState> {
   Timer? locationTrackingTImer;
 
   void _startListeningToRides() {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userId = user.uid;
 
     FirebaseFirestore.instance.collection('Users').doc(userId).get().then((
       userDoc,
@@ -131,13 +139,18 @@ class RideNotifier extends StateNotifier<RideState> {
             currentRides: updatedRides,
           );
 
-          _updateNextRoute(updatedRides);
+          if (context.mounted) {
+            _updateNextRoute(updatedRides, context);
+          }
         });
       }
     });
   }
 
-  Future<void> _updateNextRoute(List<Map<String, dynamic>> currentRides) async {
+  Future<void> _updateNextRoute(
+    List<Map<String, dynamic>> currentRides,
+    BuildContext context,
+  ) async {
     if (currentRides.isEmpty) {
       state = state.copyWith(nextRoute: null);
       return;
@@ -254,16 +267,40 @@ class RideNotifier extends StateNotifier<RideState> {
         endArrived: newNext["End Arrived"],
       );
     }
-    if (newNext.isNotEmpty) {
-      startLocationTrackingLoop();
+    if (newNext.isNotEmpty && context.mounted) {
+      startLocationTrackingLoop(context);
     }
   }
 
-  void startLocationTrackingLoop() {
+  void updateCurrentLocation({
+    required latitude,
+    required longitude,
+    required speedKph,
+    required heading,
+    required timestamp,
+  }) {
+    final locationPostApi = LocationPostApi();
+    locationPostApi.postData({
+      "CarID": state.docId,
+      "Lat": latitude,
+      "Long": longitude,
+      "Speed": speedKph,
+    });
+    ref.read(locationProvider.notifier).state = {
+      'latitude': latitude,
+      'longitude': longitude,
+      'speedKph': speedKph,
+      'heading': heading,
+      'timestamp': timestamp,
+    };
+    logger.d('Location update ');
+  }
+
+  void startLocationTrackingLoop(BuildContext context) {
     locationTrackingTImer?.cancel();
     locationTrackingTImer = Timer.periodic(Duration(seconds: 5), (_) async {
       final next = state.nextRoute;
-      if (next == null) return;
+      if (next == null || !mounted) return;
       final startDateString = next['StartDate'];
       final endDateString = next['EndDate'];
       final startDate = DateTime.parse(startDateString);
@@ -275,17 +312,50 @@ class RideNotifier extends StateNotifier<RideState> {
         final endArrived = next['End Arrived'] as bool;
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null && endArrived == false) {
-          await initializeService();
+          if (context.mounted) {
+            await initializeForegroundTracking(
+              context: context,
+              onLocation:
+                  ({
+                    required heading,
+                    required latitude,
+                    required longitude,
+                    required speedKph,
+                    required timestamp,
+                  }) => updateCurrentLocation(
+                    heading: heading,
+                    latitude: latitude,
+                    longitude: longitude,
+                    speedKph: speedKph,
+                    timestamp: timestamp,
+                  ),
+            );
+          } else {
+            await initializeBackgroundTracking(
+              onLocation:
+                  ({
+                    required heading,
+                    required latitude,
+                    required longitude,
+                    required speedKph,
+                    required timestamp,
+                  }) => updateCurrentLocation(
+                    heading: heading,
+                    latitude: latitude,
+                    longitude: longitude,
+                    speedKph: speedKph,
+                    timestamp: timestamp,
+                  ),
+            );
+          }
         } else {
           _startListeningToRides();
           locationTrackingTImer?.cancel();
-          final service = FlutterBackgroundService();
-          service.invoke("stopService");
+          await bg.BackgroundGeolocation.stop();
         }
       } else {
         locationTrackingTImer?.cancel();
-        final service = FlutterBackgroundService();
-        service.invoke("stopService");
+        await bg.BackgroundGeolocation.stop();
       }
     });
   }
@@ -295,11 +365,15 @@ class RideNotifier extends StateNotifier<RideState> {
     carsSubscription?.cancel();
     locationTrackingTImer?.cancel();
     _refreshTimer?.cancel();
-    FlutterBackgroundService().invoke("stopService");
     super.dispose();
   }
 }
 
 final rideProvider = StateNotifierProvider<RideNotifier, RideState>((ref) {
-  return RideNotifier();
+  final context = ref.read(appContextProvider);
+  return RideNotifier(ref, context);
+});
+
+final appContextProvider = Provider<BuildContext>((ref) {
+  throw UnimplementedError();
 });

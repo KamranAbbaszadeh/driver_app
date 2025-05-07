@@ -13,6 +13,9 @@ dependencies{
     implementation("androidx.work:work-runtime:2.7.1")
 }
 
+val backgroundGeolocation = project(":flutter_background_geolocation")
+apply { from("${backgroundGeolocation.projectDir}/background_geolocation.gradle") }
+
 android {
     namespace = "onemoretour.com"
     compileSdk = flutter.compileSdkVersion
@@ -45,6 +48,7 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            isShrinkResources = false
         }
     }
 

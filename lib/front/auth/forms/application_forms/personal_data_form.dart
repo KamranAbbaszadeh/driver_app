@@ -95,17 +95,17 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
   }
 
   Future<void> _submitForm() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId != null) {
-      await uploadPhotosAndSaveData(
-        userId: userId,
-        personalPhoto: personalPhoto,
-        driverLicensePhotos: driverLicensePhoto,
-        idPhotos: iDPhoto,
-        context: context,
-      );
-      await _clearTempPersonalPhotos();
-    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userId = user.uid;
+    await uploadPhotosAndSaveData(
+      userId: userId,
+      personalPhoto: personalPhoto,
+      driverLicensePhotos: driverLicensePhoto,
+      idPhotos: iDPhoto,
+      context: context,
+    );
+    await _clearTempPersonalPhotos();
   }
 
   @override
@@ -121,11 +121,10 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
     final width = MediaQuery.of(context).size.width;
     final roleDetails = ref.watch(roleProvider);
     final role = roleDetails?['Role'];
-    String numOfPages = role == 'Guide' ? '1/3' : '1/4';
-
-    if (role == null) {
-      return Center(child: CircularProgressIndicator());
+    if (roleDetails == null) {
+      return const Center(child: CircularProgressIndicator());
     }
+    String numOfPages = role == 'Guide' ? '1/3' : '1/4';
 
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,

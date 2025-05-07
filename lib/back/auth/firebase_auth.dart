@@ -24,14 +24,18 @@ Future<void> signUp({
 }) async {
   try {
     final ApiService apiService = ApiService();
-    // Create user with email and password
+
+    // 1. Create user with email and password
     final userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(
           email: emailController.text.trim().toLowerCase(),
           password: passwordController.text.trim(),
         );
 
-    // If user creation is successful, add user details to Firestore
+    final user = userCredential.user;
+    if (user == null) throw Exception("User creation failed");
+
+    // 2. Create Firestore user document
     await addUserDetails(
       birthDayController: birthDayController,
       emailController: emailController,
@@ -47,8 +51,24 @@ Future<void> signUp({
       vehicleTypeController: vehicleTypeController,
     );
 
-    FirebaseApi.instance.saveFCMToken(userCredential.user!.uid);
+    // 3. 🛠 Confirm Firestore document and "Role" field are available
+    final userDocSnapshot =
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(user.uid)
+            .get();
 
+    if (!userDocSnapshot.exists ||
+        !(userDocSnapshot.data()?.containsKey('Role') ?? false)) {
+      throw Exception(
+        "User Firestore document missing or 'Role' field missing.",
+      );
+    }
+
+    // 4. Save FCM Token
+    await FirebaseApi.instance.saveFCMToken(user.uid);
+
+    // 5. Post additional data (to external API)
     DateTime parsedDate = DateFormat(
       'dd/MM/yyyy',
     ).parse(birthDayController.text);
@@ -60,33 +80,31 @@ Future<void> signUp({
       'LastName': lastNameController.text,
       'FatherName': fathersNameController.text,
       'mobile': phoneNumberController.text,
-      'email': emailController.text,
+      'email': emailController.text.toLowerCase(),
       'YoE': yOE,
       'Languages': languageController.text,
       'VehicleCategory': vehicleTypeController.text,
       'Gender': genderController.text,
       'DateofBirth': jsonFormattedDate,
       'Password': passwordController.text,
-      'UID': userCredential.user!.uid,
+      'UID': user.uid,
     };
 
     final success = await apiService.postData(data);
+
     if (success) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
     }
 
-    final firebaseApi = FirebaseApi.instance;
-    await firebaseApi.saveFCMToken(userCredential.user!.uid);
-
+    // 6. 🚀 Now it's safe to navigate to WaitingPage
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => WaitingPage()),
+      MaterialPageRoute(builder: (_) => WaitingPage()),
       (route) => false,
     );
   } catch (e) {
-    String errorMessage = 'Error signing up: ${e.toString()}';
     final darkMode =
         MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     showDialog(
@@ -98,12 +116,10 @@ Future<void> signUp({
                     ? const Color.fromARGB(255, 62, 62, 62)
                     : const Color.fromARGB(255, 214, 213, 213),
             title: const Text('Invalid Input'),
-            content: Text(errorMessage),
+            content: Text('Error signing up: ${e.toString()}'),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                },
+                onPressed: () => Navigator.pop(ctx),
                 child: Text(
                   'Got it',
                   style: GoogleFonts.cabin(
@@ -173,7 +189,7 @@ Future<void> addUserDetails({
               'Language spoken': languageController.text.trim(),
               'Role': roleController.text.trim(),
               'Experience': '${experienceController.text.trim()} years',
-              'Vehicle type': vehicleTypeController.text.trim(),
+              'Vehicle Type': vehicleTypeController.text.trim(),
               'Application Form Verified': false,
               'Personal & Car Details Form Verified': false,
               'Application Form Decline': false,

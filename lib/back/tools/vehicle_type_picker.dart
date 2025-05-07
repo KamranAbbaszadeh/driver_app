@@ -13,6 +13,8 @@ Future<void> showVehicleTypePicker(
 
   final vehicleTypes = ['Sedan', 'Minivan', 'SUV', 'Premium SUV', 'Bus'];
 
+  final Set<String> currentSelection = Set<String>.from(selectedVehicles);
+
   await WoltModalSheet.show(
     context: context,
     pageListBuilder:
@@ -33,6 +35,9 @@ Future<void> showVehicleTypePicker(
             trailingNavBarWidget: TextButton(
               onPressed: () {
                 Navigator.of(modalSheetContext).pop();
+                selectedVehicles
+                  ..clear()
+                  ..addAll(currentSelection);
               },
               child: Text(
                 'Done',
@@ -52,9 +57,9 @@ Future<void> showVehicleTypePicker(
                           final vehicle = vehicleTypes[index];
                           final isChecked =
                               singleSelection
-                                  ? selectedVehicles.length == 1 &&
-                                      selectedVehicles.contains(vehicle)
-                                  : selectedVehicles.contains(vehicle);
+                                  ? currentSelection.length == 1 &&
+                                      currentSelection.contains(vehicle)
+                                  : currentSelection.contains(vehicle);
 
                           return ListTile(
                             splashColor: Colors.transparent,
@@ -84,14 +89,14 @@ Future<void> showVehicleTypePicker(
                                   setState(() {
                                     if (value == true) {
                                       if (singleSelection) {
-                                        selectedVehicles
+                                        currentSelection
                                           ..clear()
                                           ..add(vehicle);
                                       } else {
-                                        selectedVehicles.add(vehicle);
+                                        currentSelection.add(vehicle);
                                       }
                                     } else {
-                                      selectedVehicles.remove(vehicle);
+                                      currentSelection.remove(vehicle);
                                     }
                                   });
                                 },
@@ -104,14 +109,14 @@ Future<void> showVehicleTypePicker(
                             onTap: () {
                               setState(() {
                                 if (isChecked) {
-                                  selectedVehicles.remove(vehicle);
+                                  currentSelection.remove(vehicle);
                                 } else {
                                   if (singleSelection) {
-                                    selectedVehicles
+                                    currentSelection
                                       ..clear()
                                       ..add(vehicle);
                                   } else {
-                                    selectedVehicles.add(vehicle);
+                                    currentSelection.add(vehicle);
                                   }
                                 }
                               });

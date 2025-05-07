@@ -31,21 +31,22 @@ class _MyRidesBodyState extends State<MyRidesBody> {
 
   Future<void> fetchUserData() async {
     try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final userId = user.uid;
 
-      if (userId != null) {
-        FirebaseApi.instance.saveFCMToken(userId);
-        final docSnapshot =
-            await FirebaseFirestore.instance
-                .collection('Users')
-                .doc(userId)
-                .get();
-        if (docSnapshot.exists) {
-          setState(() {
-            userData = docSnapshot.data();
-          });
-          fetchAndFilterRides(userData: userData!);
-        }
+      FirebaseApi.instance.saveFCMToken(userId);
+      final docSnapshot =
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(userId)
+              .get();
+      if (docSnapshot.exists && mounted) {
+        setState(() {
+          userData = docSnapshot.data();
+        });
+
+        fetchAndFilterRides(userData: userData!);
       }
     } catch (e) {
       logger.e('Error fetching user\'s data: $e');
@@ -65,7 +66,9 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                 querySnapshot.docs.map((doc) {
                   return Ride.fromFirestore(data: doc.data(), id: doc.id);
                 }).toList();
-            final userId = FirebaseAuth.instance.currentUser?.uid;
+            final user = FirebaseAuth.instance.currentUser;
+            if (user == null) return;
+            final userId = user.uid;
             final filtered =
                 allRides.where((ride) {
                   return ride.driver == userId;
@@ -88,7 +91,9 @@ class _MyRidesBodyState extends State<MyRidesBody> {
             querySnapshot.docs.map((doc) {
               return Ride.fromFirestore(data: doc.data(), id: doc.id);
             }).toList();
-        final userId = FirebaseAuth.instance.currentUser?.uid;
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
+        final userId = user.uid;
         final filtered =
             allRides.where((ride) {
               return ride.driver == userId || ride.guide == userId;

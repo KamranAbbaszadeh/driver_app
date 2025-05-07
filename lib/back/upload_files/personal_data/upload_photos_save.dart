@@ -63,8 +63,10 @@ Future<void> uploadPhotosAndSaveData({
       licenseUrl1 = licensePhotoUrls.isNotEmpty ? licensePhotoUrls[0] : '';
       licenseurl2 = licensePhotoUrls.length > 1 ? licensePhotoUrls[1] : '';
     }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-    final currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+    final currentUserEmail = user.email;
     if (currentUserEmail != null) {
       try {
         final PhotoPostApi photoPostApi = PhotoPostApi();

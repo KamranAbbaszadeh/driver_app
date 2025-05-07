@@ -24,7 +24,10 @@ Future<void> uploadCertificateAndSave({
       await storageRef.putFile(certificates[i]['file']);
       String fileUrl = await storageRef.getDownloadURL();
 
-      final currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final currentUserEmail = user.email;
 
       Map<String, String> certificateData = {
         'name': certificates[i]['name'] as String,

@@ -2,6 +2,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/back/bloc/notification_bloc.dart';
 import 'package:driver_app/back/bloc/notification_event.dart';
+import 'package:driver_app/back/map_and_location/get_functions.dart';
+import 'package:driver_app/back/ride/ride_state.dart';
 import 'package:driver_app/front/auth/forms/application_forms/application_form.dart';
 import 'package:driver_app/front/auth/auth_methods/auth_email.dart';
 import 'package:driver_app/front/auth/forms/application_forms/car_details_switcher.dart';
@@ -9,7 +11,6 @@ import 'package:driver_app/front/auth/forms/contracts/contract_sign_form.dart';
 import 'package:driver_app/front/auth/forms/application_forms/personal_data_form.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:driver_app/front/displayed_items/chat_page.dart';
-import 'package:driver_app/front/intro/introduction_screens/introduction_screen.dart';
 import 'package:driver_app/front/displayed_items/home_page.dart';
 import 'package:driver_app/front/displayed_items/no_internet_page.dart';
 import 'package:driver_app/front/displayed_items/notification_page.dart';
@@ -18,15 +19,15 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
+    as bg;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 
-int? isViewed;
 final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -37,10 +38,18 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseApi.instance.initializeTimeZone();
+  bg.BackgroundGeolocation.registerHeadlessTask(headlessTask);
+
   runApp(
     BlocProvider(
       create: (context) => NotificationBloc()..add(FetchNotifications()),
-      child: const ProviderScope(child: MyApp()),
+      child: Builder(
+        builder:
+            (context) => ProviderScope(
+              overrides: [appContextProvider.overrideWithValue(context)],
+              child: MyApp(),
+            ),
+      ),
     ),
   );
 }
@@ -65,21 +74,18 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 
   Future<void> _loadData() async {
-    final prefsFuture = SharedPreferences.getInstance();
     final firebaseInitFuture = FirebaseApi.instance.initialize(ref);
     final autoInitFuture = FirebaseMessaging.instance.setAutoInitEnabled(true);
     FirebaseAnalytics.instance;
-
-    final prefs = await prefsFuture;
-    isViewed = prefs.getInt('IntroScreen');
 
     await Future.wait([
       firebaseInitFuture,
       autoInitFuture,
       Future.delayed(const Duration(seconds: 3)),
     ]);
-    final userID = FirebaseAuth.instance.currentUser?.uid;
-    if (userID != null) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userID = user.uid;
       FirebaseApi.instance.saveFCMToken(userID);
     }
 
@@ -104,15 +110,9 @@ class _MyAppState extends ConsumerState<MyApp> {
       theme: lightMode,
       darkTheme: darkMode,
 
-      home:
-          _isConnected
-              ? isViewed != 0
-                  ? IntroductionScreen()
-                  : WaitingPage()
-              : NoInternetPage(),
+      home: _isConnected ? WaitingPage() : NoInternetPage(),
 
       routes: {
-        '/intro_screen': (context) => IntroductionScreen(),
         '/waiting_screen': (context) => WaitingPage(),
         '/no_internet_screen': (context) => NoInternetPage(),
         '/application_form': (context) => ApplicationForm(),

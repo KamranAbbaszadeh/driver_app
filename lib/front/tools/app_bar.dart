@@ -45,8 +45,6 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
       return Text('Error loading vehicles');
     }
 
-    final vehicles = vehiclesAsync.value;
-
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
@@ -94,87 +92,122 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
 
           userRole == "Guide"
               ? SizedBox.shrink()
-              : SizedBox(
-                width: width * 0.3,
-                child: DropdownButton<String>(
-                  menuWidth: width * 0.5,
-                  borderRadius: BorderRadius.circular(width * 0.02),
-
-                  value:
-                      userData['Active Vehicle'] ??
-                      (vehicles!.isNotEmpty ? vehicles.first['id'] : null),
-                  underline: SizedBox(),
-                  iconSize: width * 0.05,
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      FirebaseFirestore.instance
-                          .collection('Users')
-                          .doc(FirebaseAuth.instance.currentUser?.uid)
-                          .update({'Active Vehicle': newValue});
-                    }
-                  },
-                  selectedItemBuilder: (BuildContext context) {
-                    return vehicles.map<Widget>((vehicle) {
-                      return Padding(
-                        padding: EdgeInsets.only(right: width * 0.02),
-                        child: Image.asset(
-                          vehicleTypeIcons[vehicle['vehicleType']] ??
-                              'assets/car_icons/sedan.png',
-                          width: width * 0.1,
-                          height: width * 0.1,
-                          color: darkMode ? Colors.white : Colors.black,
-                        ),
+              : AnimatedSwitcher(
+                duration: Duration(milliseconds: 400),
+                transitionBuilder:
+                    (child, animation) =>
+                        FadeTransition(opacity: animation, child: child),
+                child: vehiclesAsync.when(
+                  loading:
+                      () => SizedBox(
+                        key: ValueKey('loading'),
+                        width: width * 0.3,
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                  error:
+                      (error, stack) => SizedBox(
+                        key: ValueKey('error'),
+                        width: width * 0.3,
+                        child: Center(child: Text('Error')),
+                      ),
+                  data: (vehicles) {
+                    if (vehicles.isEmpty) {
+                      return SizedBox(
+                        key: ValueKey('empty'),
+                        width: width * 0.3,
+                        child: Center(child: Text('No vehicles')),
                       );
-                    }).toList();
-                  },
-                  items:
-                      vehicles!.map((vehicle) {
-                        bool isActive =
-                            (vehicle['id'] ==
-                                (userData['Active Vehicle'] ??
-                                    (vehicles.isNotEmpty
-                                        ? vehicles.first['id']
-                                        : null)));
-
-                        return DropdownMenuItem<String>(
-                          value: vehicle['id'],
-                          child: Row(
-                            children: [
-                              Image.asset(
+                    }
+                    return SizedBox(
+                      key: ValueKey('dropdown'),
+                      width: width * 0.3,
+                      child: DropdownButton<String>(
+                        menuWidth: width * 0.5,
+                        borderRadius: BorderRadius.circular(width * 0.02),
+                        value:
+                            userData['Active Vehicle'] ??
+                            (vehicles.isNotEmpty ? vehicles.first['id'] : null),
+                        underline: SizedBox(),
+                        iconSize: width * 0.05,
+                        onChanged: (String? newValue) {
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user == null) return;
+                          final userId = user.uid;
+                          if (newValue != null) {
+                            FirebaseFirestore.instance
+                                .collection('Users')
+                                .doc(userId)
+                                .update({'Active Vehicle': newValue});
+                          }
+                        },
+                        selectedItemBuilder: (BuildContext context) {
+                          return vehicles.map<Widget>((vehicle) {
+                            return Padding(
+                              padding: EdgeInsets.only(right: width * 0.02),
+                              child: Image.asset(
                                 vehicleTypeIcons[vehicle['vehicleType']] ??
                                     'assets/car_icons/sedan.png',
-                                width: width * 0.08,
-                                height: width * 0.08,
+                                width: width * 0.1,
+                                height: width * 0.1,
                                 color: darkMode ? Colors.white : Colors.black,
                               ),
-                              SizedBox(width: width * 0.02),
-                              Flexible(
-                                child: Text(
-                                  vehicle['registration'],
-                                  style: GoogleFonts.ptSans(
-                                    fontSize: width * 0.035,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                            );
+                          }).toList();
+                        },
+                        items:
+                            vehicles.map((vehicle) {
+                              bool isActive =
+                                  (vehicle['id'] ==
+                                      (userData['Active Vehicle'] ??
+                                          (vehicles.isNotEmpty
+                                              ? vehicles.first['id']
+                                              : null)));
+
+                              return DropdownMenuItem<String>(
+                                value: vehicle['id'],
+                                child: Row(
+                                  children: [
+                                    Image.asset(
+                                      vehicleTypeIcons[vehicle['vehicleType']] ??
+                                          'assets/car_icons/sedan.png',
+                                      width: width * 0.08,
+                                      height: width * 0.08,
+                                      color:
+                                          darkMode
+                                              ? Colors.white
+                                              : Colors.black,
+                                    ),
+                                    SizedBox(width: width * 0.02),
+                                    Flexible(
+                                      child: Text(
+                                        vehicle['registration'],
+                                        style: GoogleFonts.ptSans(
+                                          fontSize: width * 0.035,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isActive) ...[
+                                      SizedBox(width: width * 0.02),
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          103,
+                                          168,
+                                          120,
+                                        ),
+                                        size: width * 0.045,
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                              ),
-                              if (isActive) ...[
-                                SizedBox(width: width * 0.02),
-                                Icon(
-                                  Icons.check_circle,
-                                  color: const Color.fromARGB(
-                                    255,
-                                    103,
-                                    168,
-                                    120,
-                                  ),
-                                  size: width * 0.045,
-                                ),
-                              ],
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                              );
+                            }).toList(),
+                      ),
+                    );
+                  },
                 ),
               ),
         ],
@@ -192,8 +225,8 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
               ),
               hasUnviewedNotifications
                   ? Positioned(
-                    right: 13,
-                    top: 2,
+                    right: width * 0.033,
+                    top: height * 0.002,
                     child: Icon(
                       Icons.brightness_1,
                       color:

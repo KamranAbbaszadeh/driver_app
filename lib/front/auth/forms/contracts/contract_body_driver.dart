@@ -495,22 +495,26 @@ class ContractBodyDriver extends StatelessWidget {
             SizedBox(height: height * 0.035),
             GestureDetector(
               onTap: () async {
-                final userID = FirebaseAuth.instance.currentUser?.uid;
-                if (userID != null) {
-                  signBytes = await saveSignature(
-                    signaturePadKey: signaturePadKey,
-                    userID: userID,
-                  );
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
+                  return;
                 }
-               if(context.mounted){
-                 if (signBytes != null) {
-                  await uploadSignatureAndSave(signBytes!, context);
-                  navigatorKey.currentState?.pushNamedAndRemoveUntil(
-                    '/waiting_screen',
-                    (route) => false,
-                  );
+                final userID = user.uid;
+
+                signBytes = await saveSignature(
+                  signaturePadKey: signaturePadKey,
+                  userID: userID,
+                );
+
+                if (context.mounted) {
+                  if (signBytes != null) {
+                    await uploadSignatureAndSave(signBytes!, context);
+                    navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                      '/waiting_screen',
+                      (route) => false,
+                    );
+                  }
                 }
-               }
               },
               child: Container(
                 decoration: BoxDecoration(

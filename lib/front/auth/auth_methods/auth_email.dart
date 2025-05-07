@@ -378,10 +378,12 @@ class _AuthState extends ConsumerState<AuthEmail> {
                       email: _emailController.text.trim().toLowerCase(),
                       password: _passwordController.text.trim(),
                     );
-                    final userId = FirebaseAuth.instance.currentUser?.uid;
-                    if (userId != null) {
-                      FirebaseApi.instance.saveFCMToken(userId);
-                    }
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) return;
+                    final userId = user.uid;
+
+                    FirebaseApi.instance.saveFCMToken(userId);
+
                     ref.read(loadingProvider.notifier).stopLoading();
                     if (context.mounted) {
                       Navigator.pushAndRemoveUntil(

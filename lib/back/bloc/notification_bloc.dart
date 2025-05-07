@@ -72,6 +72,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       final currentState = state as NotificationLoaded;
       final messages = List<Map<String, dynamic>>.from(currentState.messages);
       messages[event.index]['isViewed'] = true;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('notification_messages', jsonEncode(messages));
+
       emit(NotificationLoaded(messages, messages.every((m) => m['isViewed'])));
     }
   }

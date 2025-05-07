@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/api/firebase_api.dart';
+import 'package:driver_app/front/intro/welcome_page.dart';
 import 'package:driver_app/front/tools/notification_notifier.dart';
 import 'package:driver_app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,11 +16,22 @@ class WaitingPageView extends ConsumerStatefulWidget {
 }
 
 class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
-  final String userId = FirebaseAuth.instance.currentUser!.uid;
+  late final String? userId;
 
   @override
   void initState() {
     super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const WelcomePage()),
+          (route) => false,
+        );
+      });
+    } else {
+      userId = user.uid;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.watch(notificationsProvider.notifier).refresh();
     });
@@ -632,9 +645,15 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                             userData['Personal & Car Details Form'] == "PENDING"
                         ? GestureDetector(
                           onTap: () {
-                            navigatorKey.currentState?.pushNamed(
-                              '/personal_data_form',
-                            );
+                            try {
+                              navigatorKey.currentState?.pushNamed(
+                                '/personal_data_form',
+                              );
+                            } on Exception catch (e) {
+                              logger.e(
+                                'Error navigating to personal data form: $e',
+                              );
+                            }
                           },
                           child: Container(
                             decoration: BoxDecoration(
@@ -711,7 +730,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                     SizedBox(height: height * 0.01),
                     GestureDetector(
                       onTap: () {
-                        FirebaseAuth.instance.signOut();
+                        // FirebaseAuth.instance.signOut();
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -754,6 +773,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                         ),
                       ),
                     ),
+                    SizedBox(height: height * 0.025),
                   ],
                 ),
               ),

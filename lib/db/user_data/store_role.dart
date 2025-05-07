@@ -16,10 +16,11 @@ class RoleDataProvider extends StateNotifier<Map<String, dynamic>?> {
     _firestore
         .collection('Users')
         .doc(_currentUser!.uid)
-        .snapshots(includeMetadataChanges: true)
+        .snapshots()
         .listen(
           (snapshot) {
             final newData = snapshot.data();
+
             if (newData != null && newData.containsKey('Role')) {
               state = {
                 "Role": newData['Role'],
@@ -38,6 +39,11 @@ class RoleDataProvider extends StateNotifier<Map<String, dynamic>?> {
 
 final roleProvider =
     StateNotifierProvider<RoleDataProvider, Map<String, dynamic>?>((ref) {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      return RoleDataProvider(currentUser);
+      final userAsync = ref.watch(authStateChangesProvider);
+      final user = userAsync.asData?.value;
+      return RoleDataProvider(user);
     });
+
+final authStateChangesProvider = StreamProvider<User?>((ref) {
+  return FirebaseAuth.instance.authStateChanges();
+});

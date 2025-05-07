@@ -1,10 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/auth/is_deleting_profile_provider.dart';
+import 'package:driver_app/back/map_and_location/ride_flow_provider.dart';
+import 'package:driver_app/back/ride/ride_state.dart';
 import 'package:driver_app/back/rides_history/rides_provider.dart';
+import 'package:driver_app/back/tools/firebase_service.dart';
+import 'package:driver_app/back/user/delete_user_post_api.dart';
+import 'package:driver_app/back/user/user_data_provider.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
 import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:driver_app/front/displayed_items/profile/profile_data.dart';
 import 'package:driver_app/front/displayed_items/profile/rides_history.dart';
 import 'package:driver_app/front/displayed_items/profile/vehicle_list.dart';
+import 'package:driver_app/front/intro/welcome_page.dart';
+import 'package:driver_app/front/tools/notification_notifier.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -15,6 +23,12 @@ import 'package:intl/intl.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
+  Future<void> _deleteCollection(CollectionReference collectionRef) async {
+    final querySnapshot = await collectionRef.get();
+    for (final doc in querySnapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -464,6 +478,8 @@ class ProfilePage extends ConsumerWidget {
 
                     if (confirmDelete == true) {
                       try {
+                        ref.read(isDeletingProfileProvider.notifier).state =
+                            true;
                         if (context.mounted) {
                           showDialog(
                             context: context,
@@ -476,12 +492,12 @@ class ProfilePage extends ConsumerWidget {
                                       CircularProgressIndicator(
                                         color: Color(0xFFE70137),
                                       ),
-                                      SizedBox(height: 16),
+                                      SizedBox(height: height * 0.018),
                                       Text(
                                         'Deleting your profile...',
                                         style: GoogleFonts.cabin(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 18,
+                                          fontSize: width * 0.045,
                                           color:
                                               darkMode
                                                   ? Colors.white
@@ -495,26 +511,87 @@ class ProfilePage extends ConsumerWidget {
                         }
 
                         final user = FirebaseAuth.instance.currentUser;
-                        final userId = user?.uid;
-                        if (userId != null) {
-                          final firestore = FirebaseFirestore.instance;
-                          final storage = FirebaseStorage.instance;
+                        if (user == null) {
+                          return;
+                        }
+                        final userId = user.uid;
 
-                          final docRef = firestore
-                              .collection('Users')
-                              .doc(userId);
-                          final docSnapshot = await docRef.get();
-                          if (docSnapshot.exists) {
-                            await docRef.delete();
+                        final firestore = FirebaseFirestore.instance;
+                        final storage = FirebaseStorage.instance;
+                        final deleteUserPostApi = DeleteUserPostApi();
+
+                        await deleteUserPostApi.postData({
+                          'user_id': userId,
+                          "email": user.email,
+                        });
+                        final storageRef = storage
+                            .ref()
+                            .child('Users')
+                            .child(userId);
+                        await _deleteAllFilesUnderRef(storageRef);
+
+                        final docRef = firestore
+                            .collection('Users')
+                            .doc(userId);
+                        final docSnapshot = await docRef.get();
+                        if (docSnapshot.exists) {
+                          final vehicleCollection = docRef.collection(
+                            'Vehicles',
+                          );
+                          await _deleteCollection(vehicleCollection);
+                          await docRef.delete();
+                        }
+
+                        try {
+                          ref.invalidate(roleProvider);
+                          ref.invalidate(ridesHistoryProvider);
+                          ref.invalidate(usersDataProvider);
+                          ref.invalidate(authStateChangesProvider);
+                          ref.invalidate(firestoreServiceProvider);
+                          ref.invalidate(notificationsProvider);
+                          ref.invalidate(vehiclesProvider);
+                          ref.invalidate(rideFlowProvider);
+                          ref.invalidate(rideProvider);
+                          ref.invalidate(ridesHistoryProvider);
+
+                          await user.delete();
+                          ref.read(isDeletingProfileProvider.notifier).state =
+                              false;
+                        } on FirebaseAuthException catch (e) {
+                          if (e.code == 'requires-recent-login') {
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: const Color.fromARGB(
+                                    255,
+                                    231,
+                                    1,
+                                    55,
+                                  ),
+                                  content: Text(
+                                    'Session expired. Please log in again and try deleting your profile.',
+                                    style: GoogleFonts.cabin(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              );
+                              await FirebaseAuth.instance.signOut();
+                              if (context.mounted) {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const WelcomePage(),
+                                  ),
+                                  (route) => false,
+                                );
+                              }
+                            }
+                            return;
+                          } else {
+                            rethrow;
                           }
-
-                          final storageRef = storage
-                              .ref()
-                              .child('Users')
-                              .child(userId);
-                          await _deleteAllFilesUnderRef(storageRef);
-
-                          await user?.delete();
                         }
 
                         if (context.mounted) {
@@ -540,7 +617,7 @@ class ProfilePage extends ConsumerWidget {
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const WaitingPage(),
+                                builder: (_) => const WelcomePage(),
                               ),
                               (route) => false,
                             );

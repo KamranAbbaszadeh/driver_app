@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/front/auth/forms/contracts/contract_body_driver.dart';
 import 'package:driver_app/front/auth/forms/contracts/contract_body_guide.dart';
+import 'package:driver_app/front/intro/welcome_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -15,7 +16,21 @@ class ContractSignForm extends StatefulWidget {
 }
 
 class _ContractSignFormState extends State<ContractSignForm> {
-  final String userId = FirebaseAuth.instance.currentUser!.uid;
+  final user = FirebaseAuth.instance.currentUser;
+  late String userId;
+  @override
+  void initState() {
+    super.initState();
+    if (user == null) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const WelcomePage()),
+        (route) => false,
+      );
+    } else {
+      userId = user!.uid;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

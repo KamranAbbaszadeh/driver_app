@@ -315,11 +315,15 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     _languageFocusNode.addListener(() {
       if (!_languageFocusNode.hasFocus) {
         _isEmpty(_languageController, 'language');
+      } else {
+        _openLanguagePicker();
       }
     });
     _birthDayFocusNode.addListener(() {
       if (!_birthDayFocusNode.hasFocus) {
         _isEmpty(_birthDayController, 'birthDay');
+      } else {
+        _openDatePicker();
       }
     });
     _experienceFocusNode.addListener(() {
@@ -330,11 +334,15 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     _vehicleTypeFocusNode.addListener(() {
       if (!_vehicleTypeFocusNode.hasFocus) {
         _isEmpty(_vehicleTypeController, 'vehicleType');
+      } else {
+        _openVehicleTypePicker();
       }
     });
     _roleFocusNode.addListener(() {
       if (!_roleFocusNode.hasFocus) {
         _isEmpty(_roleController, 'role');
+      } else {
+        _openRolePicker();
       }
     });
     _fathersNameFocusNode.addListener(() {
@@ -342,9 +350,11 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
         _isEmpty(_fathersNameController, 'fathersName');
       }
     });
-    _genderFocusNode.addListener(() {
+    _genderFocusNode.addListener(() async {
       if (!_genderFocusNode.hasFocus) {
         _isEmpty(_genderController, 'gender');
+      } else {
+        _openGenderPicker();
       }
     });
     _passwordFocusNode.addListener(() {
@@ -420,6 +430,60 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     });
 
     _loadFormData();
+  }
+
+  Future<void> _openDatePicker() async {
+    await Future.delayed(Duration(milliseconds: 100));
+    if (mounted) {
+      await selectDate(context: context, controller: _birthDayController);
+      _isEmpty(_birthDayController, 'birthDay');
+    }
+    _genderFocusNode.requestFocus();
+  }
+
+  Future<void> _openGenderPicker() async {
+    await Future.delayed(Duration(milliseconds: 100));
+    if (mounted) {
+      await showGenderPicker(context, _genderController);
+
+      _isEmpty(_genderController, 'gender');
+    }
+    _emailFocusNode.requestFocus();
+  }
+
+  Future<void> _openRolePicker() async {
+    await Future.delayed(Duration(milliseconds: 100));
+    if (mounted) {
+      await showRolePicker(context, _roleController);
+      _isEmpty(_roleController, 'role');
+    }
+    _experienceFocusNode.requestFocus();
+  }
+
+  Future<void> _openLanguagePicker() async {
+    await Future.delayed(Duration(milliseconds: 100));
+    if (mounted) {
+      await showLanguangePicker(context, selectedLanguages);
+      _languageController.text = selectedLanguages.join(', ');
+      _isEmpty(_languageController, 'language');
+    }
+    _vehicleTypeFocusNode.requestFocus();
+  }
+
+  Future<void> _openVehicleTypePicker() async {
+    await Future.delayed(Duration(milliseconds: 100));
+    if (mounted) {
+      await showVehicleTypePicker(
+        context,
+        selectedVehicleType,
+        singleSelection: false,
+      );
+      _vehicleTypeController.text = selectedVehicleType.join(', ');
+      _isEmpty(_vehicleTypeController, 'vehicleType');
+    }
+    setState(() {
+      _vehicleTypeFocusNode.unfocus();
+    });
   }
 
   Future<void> _saveFormData() async {
@@ -915,11 +979,6 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         setState(() {
                           _birthDayFocusNode.requestFocus();
                         });
-                        await selectDate(
-                          context: context,
-                          controller: _birthDayController,
-                        );
-                        _isEmpty(_birthDayController, 'birthDay');
                       },
                       onTapOutside: (_) {
                         _isEmpty(_birthDayController, 'birthDay');
@@ -1008,8 +1067,6 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         setState(() {
                           _genderFocusNode.requestFocus();
                         });
-                        await showGenderPicker(context, _genderController);
-                        _isEmpty(_genderController, 'gender');
                       },
                       onTapOutside: (_) {
                         _isEmpty(_genderController, 'gender');
@@ -1608,8 +1665,6 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         setState(() {
                           _roleFocusNode.requestFocus();
                         });
-                        await showRolePicker(context, _roleController);
-                        _isEmpty(_roleController, 'role');
                       },
                       onTapOutside: (_) {
                         _isEmpty(_roleController, 'role');
@@ -1807,10 +1862,6 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         setState(() {
                           _languageFocusNode.requestFocus();
                         });
-
-                        await showLanguangePicker(context, selectedLanguages);
-                        _languageController.text = selectedLanguages.join(', ');
-                        _isEmpty(_languageController, 'language');
                       },
                       onTapOutside: (_) {
                         _isEmpty(_languageController, 'language');
@@ -1917,17 +1968,6 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                                   setState(() {
                                     _vehicleTypeFocusNode.requestFocus();
                                   });
-                                  await showVehicleTypePicker(
-                                    context,
-                                    selectedVehicleType,
-                                    singleSelection: false,
-                                  );
-                                  _vehicleTypeController
-                                      .text = selectedVehicleType.join(', ');
-                                  _isEmpty(
-                                    _vehicleTypeController,
-                                    'vehicleType',
-                                  );
                                 },
                                 onTapOutside: (_) {
                                   _isEmpty(

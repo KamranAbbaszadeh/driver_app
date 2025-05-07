@@ -60,7 +60,9 @@ Future<void> uploadVehicleDetailsAndSave({
     await userRef.update({'Vehicle Type': newVehicleTypeString});
   }
 
-  final currentUserEmail = FirebaseAuth.instance.currentUser?.email;
+  final currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) return;
+  final currentUserEmail = currentUser.email;
 
   if (currentUserEmail != null) {
     final VehicleDetailsPostApi vehicleDetailsPostApi = VehicleDetailsPostApi();

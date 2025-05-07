@@ -39,30 +39,33 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
   }
 
   void listenToUserData() {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId != null) {
-      userSubscription = FirebaseFirestore.instance
-          .collection('Users')
-          .doc(userId)
-          .snapshots()
-          .listen((docSnapshot) {
-            if (docSnapshot.exists) {
-              setState(() {
-                userData = docSnapshot.data();
-              });
-              listenToRidesUpdates();
-            }
-          });
-    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userId = user.uid;
+
+    userSubscription = FirebaseFirestore.instance
+        .collection('Users')
+        .doc(userId)
+        .snapshots()
+        .listen((docSnapshot) {
+          if (docSnapshot.exists) {
+            setState(() {
+              userData = docSnapshot.data();
+            });
+            listenToRidesUpdates();
+          }
+        });
   }
 
   void listenToRidesUpdates() async {
     try {
       if (userData == null) return;
       final role = userData?['Role'];
-      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final userId = user.uid;
       final activeVehicleId = userData?['Active Vehicle'] ?? 'Car1';
-      final category = userData?['Category'] ?? "";
+      final category = List<String>.from(userData?['Allowed category'] ?? []);
 
       final vehicleDoc =
           await FirebaseFirestore.instance
@@ -73,8 +76,10 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
               .get();
 
       final seatNumber = vehicleDoc.data()?['Seat Number'];
-      final vehicleType = vehicleDoc.data()?['Vehicle\'s Type'];
-      if (seatNumber == null || vehicleType == null) return;
+      final allowedVehicles = List<String>.from(
+        vehicleDoc.data()?['Allowed Vehicle'] ?? [],
+      );
+      if (seatNumber == null || allowedVehicles.isEmpty) return;
 
       carsSubscription?.cancel();
 
@@ -108,7 +113,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
 
             final matchDriver =
                 isFromCars &&
-                ride.vehicleType == vehicleType &&
+                allowedVehicles.contains(ride.vehicleType) &&
                 ride.numOfGuests <= seatNumber &&
                 tourStartDate.isAfter(userTourEndDate) &&
                 ride.driver == '';
@@ -121,7 +126,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
             final matchGuide =
                 isFromGuide &&
                 hasMatchingLanguage &&
-                ride.category == category &&
+                category.contains(ride.category) &&
                 tourStartDate.isAfter(userTourEndDate) &&
                 ride.guide == '';
 
@@ -214,68 +219,70 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: width * 0.04),
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: height * 0.011),
-              Text(
-                'Rides',
-                style: GoogleFonts.daysOne(
-                  fontSize: width * 0.055,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: height * 0.011),
-              if (userData == null)
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: height * 0.15),
-                    child: CircularProgressIndicator(),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: height * 0.011),
+                Text(
+                  'Rides',
+                  style: GoogleFonts.daysOne(
+                    fontSize: width * 0.055,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              if (userData != null &&
-                  filteredRidesFromCars.isEmpty &&
-                  filteredRidesFromGuide.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: height * 0.15),
-                    child: Text(
-                      'No new rides available',
-                      style: GoogleFonts.notoSans(
-                        fontSize: width * 0.045,
-                        fontWeight: FontWeight.bold,
+                SizedBox(height: height * 0.011),
+                if (userData == null)
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: height * 0.15),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                if (userData != null &&
+                    filteredRidesFromCars.isEmpty &&
+                    filteredRidesFromGuide.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: height * 0.15),
+                      child: Text(
+                        'No new rides available',
+                        style: GoogleFonts.notoSans(
+                          fontSize: width * 0.045,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (filteredRidesFromCars.isNotEmpty) ...[
-                Text(
-                  userData?['Role'] != "Guide" ? 'Ride Tours' : '',
-                  style: GoogleFonts.notoSans(
-                    fontSize: width * 0.045,
-                    fontWeight: FontWeight.bold,
+                if (filteredRidesFromCars.isNotEmpty) ...[
+                  Text(
+                    userData?['Role'] != "Guide" ? 'Ride Tours' : '',
+                    style: GoogleFonts.notoSans(
+                      fontSize: width * 0.045,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                MyRides(
-                  filteredRides: filteredRidesFromCars,
-                  parentScrollController: _scrollController,
-                ),
-                SizedBox(height: height * 0.011),
-              ],
-              if (filteredRidesFromGuide.isNotEmpty) ...[
-                Text(
-                  userData?['Role'] != "Driver" ? 'Guide Tours' : '',
-                  style: GoogleFonts.notoSans(
-                    fontSize: width * 0.045,
-                    fontWeight: FontWeight.bold,
+                  MyRides(
+                    filteredRides: filteredRidesFromCars,
+                    parentScrollController: _scrollController,
                   ),
-                ),
-                MyRides(
-                  filteredRides: filteredRidesFromGuide,
-                  parentScrollController: _scrollController,
-                ),
+                  SizedBox(height: height * 0.011),
+                ],
+                if (filteredRidesFromGuide.isNotEmpty) ...[
+                  Text(
+                    userData?['Role'] != "Driver" ? 'Guide Tours' : '',
+                    style: GoogleFonts.notoSans(
+                      fontSize: width * 0.045,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  MyRides(
+                    filteredRides: filteredRidesFromGuide,
+                    parentScrollController: _scrollController,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

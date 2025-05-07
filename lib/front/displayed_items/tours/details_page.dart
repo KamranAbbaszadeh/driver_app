@@ -30,18 +30,19 @@ class _DetailsPageState extends State<DetailsPage> {
 
   Future<void> fetchUserData() async {
     try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId != null) {
-        final docSnapshot =
-            await FirebaseFirestore.instance
-                .collection('Users')
-                .doc(userId)
-                .get();
-        if (docSnapshot.exists) {
-          setState(() {
-            userData = docSnapshot.data();
-          });
-        }
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final userId = user.uid;
+
+      final docSnapshot =
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(userId)
+              .get();
+      if (docSnapshot.exists) {
+        setState(() {
+          userData = docSnapshot.data();
+        });
       }
     } catch (e) {
       logger.e('Error fetching user\'s data: $e');

@@ -1,26 +1,25 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/back/map_and_location/location_provider.dart';
 import 'package:driver_app/back/map_and_location/ride_flow_provider.dart';
 import 'package:driver_app/front/displayed_items/chat_page.dart';
 import 'package:driver_app/front/displayed_items/intermediate_page.dart';
+import 'package:driver_app/front/displayed_items/ride_map.dart';
 import 'package:driver_app/main.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_animations/flutter_map_animations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sliding_panel/flutter_sliding_panel.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:driver_app/back/ride/ride_state.dart';
 import 'package:map_launcher/map_launcher.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipeable_button_view/swipeable_button_view.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RidePage extends ConsumerStatefulWidget {
   const RidePage({super.key});
@@ -33,9 +32,6 @@ class _RidePageState extends ConsumerState<RidePage>
     with TickerProviderStateMixin {
   final SlidingPanelController _panelController = SlidingPanelController();
   StreamSubscription? _locationSubscription;
-  late final AnimatedMapController _animatedMapController;
-  bool _userInteractingWithMap = false;
-  Timer? _interactionDebounce;
 
   bool isFinished = false;
   bool hasUnreadChat = false;
@@ -44,14 +40,6 @@ class _RidePageState extends ConsumerState<RidePage>
   void initState() {
     super.initState();
 
-    _animatedMapController = AnimatedMapController(vsync: this);
-    _locationSubscription = FlutterBackgroundService()
-        .on('LocationUpdates')
-        .listen((event) {
-          if (event != null) {
-            ref.read(locationProvider.notifier).state = event;
-          }
-        });
     _checkUnreadMessages();
   }
 
@@ -127,34 +115,9 @@ class _RidePageState extends ConsumerState<RidePage>
       );
     }
 
-    LatLng currentLocation = LatLng(
-      position['latitude'],
-      position['longitude'],
-    );
+    final currentLocation = LatLng(position['latitude'], position['longitude']);
 
-    dynamic currentHeading = position['heading'];
-
-    final midPoint = getMidpoint(startLatLng, endLatLng, currentLocation);
-    final distance = Geolocator.distanceBetween(
-      currentLocation.latitude,
-      currentLocation.longitude,
-      endLatLng.latitude,
-      endLatLng.longitude,
-    );
     final rideFlow = ref.watch(rideFlowProvider);
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!_userInteractingWithMap) {
-        if (rideFlow.startRide) {
-          _animatedMapController.animateTo(
-            dest: currentLocation,
-            zoom: width * 0.04,
-            curve: Curves.easeInOut,
-            duration: Duration(milliseconds: 500),
-          );
-        }
-      }
-    });
-    final zoomLvl = getZoomLevel(distance);
     final startArrivedBool = rideState.startArrived;
     final routeKey = rideState.routeKey;
 
@@ -194,152 +157,7 @@ class _RidePageState extends ConsumerState<RidePage>
               nextRoute != null
                   ? Stack(
                     children: [
-                      SizedBox(
-                        child: FlutterMap(
-                          mapController: _animatedMapController.mapController,
-                          options: MapOptions(
-                            initialCenter: LatLng(
-                              midPoint.latitude,
-                              midPoint.longitude,
-                            ),
-                            initialZoom: zoomLvl,
-                            onMapEvent: (event) {
-                              if (event is MapEventWithMove) {
-                                _userInteractingWithMap = true;
-                                _interactionDebounce?.cancel();
-                                _interactionDebounce = Timer(
-                                  const Duration(seconds: 2),
-                                  () {
-                                    _userInteractingWithMap = false;
-                                  },
-                                );
-                              }
-                            },
-                          ),
-                          children: [
-                            TileLayer(
-                              urlTemplate:
-                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'com.example.app',
-                            ),
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: currentLocation,
-                                  rotate: true,
-                                  alignment: Alignment.center,
-                                  width: width * 0.23,
-                                  height: height * 0.106,
-                                  child: Transform.rotate(
-                                    angle: currentHeading * (pi / 180),
-                                    child: Image.asset(
-                                      'assets/car_icons/arrow.png',
-
-                                      fit: BoxFit.fill,
-                                    ),
-                                  ),
-                                ),
-                                Marker(
-                                  point: startLatLng,
-                                  width: width * 0.1,
-                                  height: height * 0.065,
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        width: width * 0.08,
-                                        height: height * 0.035,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            width * 0.02,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.white,
-                                          ),
-                                          color:
-                                              startArrivedBool != null
-                                                  ? startArrivedBool
-                                                      ? const Color.fromARGB(
-                                                        255,
-                                                        103,
-                                                        168,
-                                                        120,
-                                                      )
-                                                      : Colors.black
-                                                  : Colors.black,
-                                        ),
-
-                                        child: Center(
-                                          child: Text(
-                                            '1',
-                                            style: GoogleFonts.cabin(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        width: width * 0.03,
-                                        height: height * 0.03,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                          ),
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Marker(
-                                  point: endLatLng,
-                                  width: width * 0.1,
-                                  height: height * 0.065,
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        width: width * 0.08,
-                                        height: height * 0.035,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            width * 0.02,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.white,
-                                          ),
-                                          color: Colors.black,
-                                        ),
-
-                                        child: Center(
-                                          child: Text(
-                                            '2',
-                                            style: GoogleFonts.cabin(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        width: width * 0.03,
-                                        height: height * 0.03,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                          ),
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                      SizedBox(child: RideMap()),
 
                       Positioned(
                         top: height * 0.017,
@@ -394,6 +212,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                 ),
                                 SizedBox(width: width * 0.203),
                                 FloatingActionButton(
+                                  heroTag: 'panel_toggle_btn',
                                   backgroundColor: const Color.fromARGB(
                                     255,
                                     255,
