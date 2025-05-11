@@ -1,5 +1,7 @@
+import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
 
 class LocationPostApi {
   final String baseUrl = "https://onemoretour.com/version-test/api/1.1/wf";
@@ -17,11 +19,14 @@ class LocationPostApi {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        logger.d('Success');
         return true;
       } else {
+        logger.e(response.statusCode);
         return false;
       }
     } catch (e) {
+      logger.e('Error: $e');
       return false;
     }
   }

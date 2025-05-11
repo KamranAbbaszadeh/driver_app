@@ -1,5 +1,6 @@
 {
     "terminal.integrated.gpuAcceleration": "off",
     "editor.fontLigatures": false,
-    "editor.lineHeight": 22
+    "editor.lineHeight": 22,
+    "cmake.sourceDirectory": "/Users/kamranabbaszadeh/Dev/Projects/Main/driver_app/linux"
 }

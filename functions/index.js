@@ -1,5 +1,3 @@
-const {onSchedule} = require("firebase-functions/v2/scheduler");
-const {getFirestore} = require("firebase-admin/firestore");
 const {onDocumentUpdated} = require("firebase-functions/v2/firestore");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 
@@ -23,13 +21,14 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           notification: {
             title: "Hey There",
             body:
-              `Your application form approved.`,
+              `Your application form has been approved.`,
           },
           token: userToken,
           data: {
             route: "/personal_data_form",
             fullBody:
-              "Your application form approved. Please follow the next steps.",
+            "Your application form has been approved. "+
+              "Please proceed to the next steps.",
           },
         };
 
@@ -46,13 +45,13 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           notification: {
             title: "Congratulations",
             body:
-              `Your application form approved.`,
+              `Your application form has been approved.`,
           },
           token: userToken,
           data: {
             route: "/contract_sign",
             fullBody:
-              "Please follow up next steps to sign a contract.",
+              "Please proceed to the next step to sign the contract.",
           },
         };
 
@@ -115,15 +114,15 @@ exports.sendNotificationOnNewChatMessage = onDocumentCreated(
 
         const message = {
           notification: {
-            title: `New Message for tour ${tourName}`,
-            body: `${messageData.name} sent a message`,
+            title: `New message for the tour ${tourName}`,
+            body: `${messageData.name} has sent a message`,
           },
           data: {
             route: "/chat_page",
             userId,
             tourId,
             name: messageData.name,
-            fullBody: `${messageData.name} sent a message`,
+            fullBody: `${messageData.name} has sent a message`,
           },
           token: fcmToken,
         };
@@ -178,11 +177,11 @@ exports.notifyDriversOnNewCarTour = onDocumentCreated(
           const message = {
             notification: {
               title: "New Tour Available",
-              body: `A new Ride tour has been added.`,
+              body: `A new ride tour has been added.`,
             },
             data: {
               route: "scheduled_tours",
-              fullBody: `A new Ride tour has been added.`,
+              fullBody: `A new ride tour has been added.`,
             },
             token: fcmToken,
           };
@@ -223,11 +222,11 @@ exports.notifyGuidesOnNewGuideTour = onDocumentCreated(
           const message = {
             notification: {
               title: "New Tour Available",
-              body: `A new Guide tour has been added.`,
+              body: `A new guide tour has been added.`,
             },
             data: {
               route: "/new_tours",
-              fullBody: `A new Guide tour has been added.`,
+              fullBody: `A new guide tour has been added.`,
             },
             token: fcmToken,
           };

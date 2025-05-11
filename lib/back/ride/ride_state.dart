@@ -13,6 +13,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:driver_app/front/tools/ride_model.dart';
 import 'package:driver_app/front/tools/get_location_name.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:collection/collection.dart';
 
 class RideState {
   final List<Ride> filteredRides;
@@ -134,20 +136,23 @@ class RideNotifier extends StateNotifier<RideState> {
             });
           }
 
-          state = state.copyWith(
-            filteredRides: filtered,
-            currentRides: updatedRides,
-          );
+          if (state.filteredRides != filtered ||
+              state.currentRides != updatedRides) {
+            state = state.copyWith(
+              filteredRides: filtered,
+              currentRides: updatedRides,
+            );
+          }
 
           if (context.mounted) {
-            _updateNextRoute(updatedRides, context);
+            updateNextRoute(updatedRides, context);
           }
         });
       }
     });
   }
 
-  Future<void> _updateNextRoute(
+  Future<void> updateNextRoute(
     List<Map<String, dynamic>> currentRides,
     BuildContext context,
   ) async {
@@ -168,6 +173,8 @@ class RideNotifier extends StateNotifier<RideState> {
       }
       return;
     }
+
+    if (MapEquality().equals(state.nextRoute, newNext)) return;
 
     final currentNext = state.nextRoute;
     final isNewRoute =
@@ -193,8 +200,7 @@ class RideNotifier extends StateNotifier<RideState> {
     if (isNewRoute ||
         startArrivedChanged ||
         endArrivedChanged ||
-        tourDateChanged ||
-        true) {
+        tourDateChanged) {
       final routeKey = newNext['routeKey'] as String;
       final docId =
           state.filteredRides
@@ -266,6 +272,12 @@ class RideNotifier extends StateNotifier<RideState> {
         startArrived: newNext["Start Arrived"],
         endArrived: newNext["End Arrived"],
       );
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('docId', docId);
+      await prefs.setString('startDate', newNext['StartDate'] ?? '');
+      await prefs.setString('endDate', newNext['EndDate'] ?? '');
+      await prefs.setBool('endArrived', newNext['End Arrived'] ?? true);
     }
     if (newNext.isNotEmpty && context.mounted) {
       startLocationTrackingLoop(context);
@@ -278,14 +290,23 @@ class RideNotifier extends StateNotifier<RideState> {
     required speedKph,
     required heading,
     required timestamp,
-  }) {
+  }) async {
     final locationPostApi = LocationPostApi();
-    locationPostApi.postData({
-      "CarID": state.docId,
-      "Lat": latitude,
-      "Long": longitude,
-      "Speed": speedKph,
-    });
+    if (!hasMovedSignificantly(latitude, longitude, 25)) {
+      logger.d('[headlessTask] ⏩ Skipped (no significant movement)');
+      return;
+    }
+    try {
+      lastLatLng = LatLng(latitude, longitude);
+      await locationPostApi.postData({
+        "CarID": state.docId,
+        "Lat": latitude.toString(),
+        "Long": longitude.toString(),
+        "Speed": speedKph,
+      });
+    } catch (e) {
+      logger.e('Error: $e');
+    }
     ref.read(locationProvider.notifier).state = {
       'latitude': latitude,
       'longitude': longitude,
@@ -293,7 +314,6 @@ class RideNotifier extends StateNotifier<RideState> {
       'heading': heading,
       'timestamp': timestamp,
     };
-    logger.d('Location update ');
   }
 
   void startLocationTrackingLoop(BuildContext context) {

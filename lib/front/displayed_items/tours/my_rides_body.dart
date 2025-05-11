@@ -226,6 +226,7 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                     1: const Color.fromARGB(255, 231, 1, 55),
                     2: const Color.fromARGB(255, 103, 168, 120),
                   },
+
                   onClick: (value) async {
                     await filterRidesbyDate(selectedDate: value);
                     setState(() {
@@ -246,26 +247,32 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                       ),
                     ),
 
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          showAllRides = true;
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color:
-                              darkMode
-                                  ? Color.fromARGB(255, 52, 168, 235)
-                                  : Color.fromARGB(255, 1, 105, 170),
-                          borderRadius: BorderRadius.circular(width * 0.01),
-                        ),
-                        padding: EdgeInsets.all(width * 0.01),
-                        child: Text(
-                          'Show All Rides',
-                          style: GoogleFonts.lexend(
-                            fontWeight: FontWeight.w600,
-                            color: darkMode ? Colors.black : Colors.white,
+                    Material(
+                      color:
+                          showAllRides
+                              ? Colors.grey.shade400
+                              : (darkMode
+                                  ? const Color.fromARGB(255, 52, 168, 235)
+                                  : const Color.fromARGB(255, 1, 105, 170)),
+                      borderRadius: BorderRadius.circular(width * 0.01),
+                      child: InkWell(
+                        onTap:
+                            showAllRides
+                                ? null
+                                : () {
+                                  setState(() {
+                                    showAllRides = true;
+                                  });
+                                },
+                        borderRadius: BorderRadius.circular(width * 0.01),
+                        child: Padding(
+                          padding: EdgeInsets.all(width * 0.01),
+                          child: Text(
+                            'Show All Rides',
+                            style: GoogleFonts.lexend(
+                              fontWeight: FontWeight.w600,
+                              color: darkMode ? Colors.black : Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -303,32 +310,45 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                     ),
                   ],
                 ] else ...[
-                  if (filteredCarRidesByDate.isNotEmpty) ...[
-                    Text(
-                      'Ride Tours',
-                      style: GoogleFonts.lexend(
-                        fontSize: width * 0.045,
-                        fontWeight: FontWeight.bold,
+                  if (filteredCarRidesByDate.isEmpty &&
+                      filteredGuideRidesByDate.isEmpty) ...[
+                    Center(
+                      child: Text(
+                        'No rides available for the selected day',
+                        style: GoogleFonts.cabin(
+                          fontSize: width * 0.045,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    MyRides(
-                      filteredRides: filteredCarRidesByDate,
-                      parentScrollController: _scrollController,
-                    ),
-                    SizedBox(height: height * 0.02),
-                  ],
-                  if (filteredGuideRidesByDate.isNotEmpty) ...[
-                    Text(
-                      'Guide Tours',
-                      style: GoogleFonts.lexend(
-                        fontSize: width * 0.045,
-                        fontWeight: FontWeight.bold,
+                  ] else ...[
+                    if (filteredCarRidesByDate.isNotEmpty) ...[
+                      Text(
+                        'Ride Tours',
+                        style: GoogleFonts.lexend(
+                          fontSize: width * 0.045,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    MyRides(
-                      filteredRides: filteredGuideRidesByDate,
-                      parentScrollController: _scrollController,
-                    ),
+                      MyRides(
+                        filteredRides: filteredCarRidesByDate,
+                        parentScrollController: _scrollController,
+                      ),
+                      SizedBox(height: height * 0.02),
+                    ],
+                    if (filteredGuideRidesByDate.isNotEmpty) ...[
+                      Text(
+                        'Guide Tours',
+                        style: GoogleFonts.lexend(
+                          fontSize: width * 0.045,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      MyRides(
+                        filteredRides: filteredGuideRidesByDate,
+                        parentScrollController: _scrollController,
+                      ),
+                    ],
                   ],
                 ],
               ],

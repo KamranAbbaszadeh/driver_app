@@ -12,6 +12,7 @@ import 'package:driver_app/front/tools/list_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -22,20 +23,25 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   StreamSubscription? _locationSubscription;
+
+  get onLocation => null;
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FirebaseApi.instance.checkAndRequestExactAlarmPermission(context);
     });
-    
   }
 
   @override
-  void didChangeDependencies() {
+  void didChangeDependencies() async {
     super.didChangeDependencies();
-    requestLocationPermissions(context);
-     }
+    if (!mounted) return;
+    await requestLocationPermissions(context);
+    if (!mounted) return;
+    await requestIgnoreBatteryOptimizations(context);
+  }
 
   DateTime parseDate(dynamic value) {
     if (value is DateTime) return value;
@@ -47,6 +53,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void dispose() {
     _locationSubscription?.cancel();
+    WakelockPlus.disable();
     super.dispose();
   }
 

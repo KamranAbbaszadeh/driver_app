@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:collection/collection.dart';
 import 'package:driver_app/back/rides_history/ride_history_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,7 +72,14 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
                 ..sort((a, b) => b.startDate.compareTo(a.startDate));
 
           if (_mounted) {
-            state = state.copyWith(allRides: allRides, filteredRides: filtered);
+            final listEquals = const DeepCollectionEquality().equals;
+            if (!listEquals(state.allRides, allRides) ||
+                !listEquals(state.filteredRides, filtered)) {
+              state = state.copyWith(
+                allRides: allRides,
+                filteredRides: filtered,
+              );
+            }
           }
         });
     guideSubscription?.cancel();
@@ -97,10 +105,14 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
                 ..sort((a, b) => b.startDate.compareTo(a.startDate));
 
           if (_mounted) {
-            state = state.copyWith(
-              allRides: allCombined,
-              filteredRides: filtered,
-            );
+            final listEquals = const DeepCollectionEquality().equals;
+            if (!listEquals(state.allRides, allCombined) ||
+                !listEquals(state.filteredRides, filtered)) {
+              state = state.copyWith(
+                allRides: allCombined,
+                filteredRides: filtered,
+              );
+            }
           }
         });
   }

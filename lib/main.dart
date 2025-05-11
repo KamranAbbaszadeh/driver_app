@@ -26,6 +26,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'firebase_options.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -39,6 +40,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseApi.instance.initializeTimeZone();
   bg.BackgroundGeolocation.registerHeadlessTask(headlessTask);
+  WakelockPlus.enable();
 
   runApp(
     BlocProvider(
