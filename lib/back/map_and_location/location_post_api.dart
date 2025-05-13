@@ -19,7 +19,6 @@ class LocationPostApi {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        logger.d('Success');
         return true;
       } else {
         logger.e(response.statusCode);

@@ -107,7 +107,7 @@ class RideNotifier extends StateNotifier<RideState> {
       }
 
       for (final stream in streams) {
-        stream.listen((snapshot) {
+        stream.listen((snapshot) async {
           final allRides =
               snapshot.docs.map((doc) {
                 return Ride.fromFirestore(
@@ -136,16 +136,30 @@ class RideNotifier extends StateNotifier<RideState> {
             });
           }
 
+          if (updatedRides.isEmpty && context.mounted) {
+            await updateNextRoute([], context);
+            return;
+          }
+
+          final nextRouteCandidate = updatedRides.firstWhereOrNull(
+            (route) =>
+                !(route["Start Arrived"] as bool) ||
+                !(route["End Arrived"] as bool),
+          );
+          final nextRouteChanged =
+              !MapEquality().equals(state.nextRoute, nextRouteCandidate);
+
           if (state.filteredRides != filtered ||
-              state.currentRides != updatedRides) {
+              state.currentRides != updatedRides ||
+              nextRouteChanged) {
             state = state.copyWith(
               filteredRides: filtered,
               currentRides: updatedRides,
             );
-          }
 
-          if (context.mounted) {
-            updateNextRoute(updatedRides, context);
+            if (context.mounted) {
+              updateNextRoute(updatedRides, context);
+            }
           }
         });
       }
@@ -157,7 +171,7 @@ class RideNotifier extends StateNotifier<RideState> {
     BuildContext context,
   ) async {
     if (currentRides.isEmpty) {
-      state = state.copyWith(nextRoute: null);
+      state = RideState();
       return;
     }
 

@@ -7,12 +7,20 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:822889035029:android:085926cd89d3d1480ba51c",
+        "mobilesdk_app_id": "1:822889035029:android:cb22512c28caef280ba51c",
         "android_client_info": {
-          "package_name": "onemoretour.com"
+          "package_name": "com.onemoretour"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "822889035029-rau7jlugmina296gjl65i8oi8gtka518.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.onemoretour",
+            "certificate_hash": "0da09ff1bc90936da0440c5aff2a8016f6670ef0"
+          }
+        },
         {
           "client_id": "822889035029-hsam8gifn3g4gdde3b11sjuhlf381j9c.apps.googleusercontent.com",
           "client_type": 3
@@ -31,10 +39,10 @@
               "client_type": 3
             },
             {
-              "client_id": "822889035029-pojkf72ud17tpgeftr1l18hfv20s9m67.apps.googleusercontent.com",
+              "client_id": "822889035029-lmu13u26cj06rjr0m5r9rjg40aap4cn3.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.example.driverApp"
+                "bundle_id": "com.onemoretour"
               }
             }
           ]

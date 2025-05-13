@@ -1,0 +1,2 @@
+/Users/kamranabbaszadeh/Dev/Projects/Main/driver_app/android/app/.cxx/Debug/1z2h1s2d/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/kamranabbaszadeh/Dev/Projects/Main/driver_app/android/app/.cxx/Debug/1z2h1s2d/armeabi-v7a/CMakeFiles/rebuild_cache.dir

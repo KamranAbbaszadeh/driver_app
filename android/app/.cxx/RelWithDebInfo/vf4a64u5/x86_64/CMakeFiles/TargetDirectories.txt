@@ -1,0 +1,2 @@
+/Users/kamranabbaszadeh/Dev/Projects/Main/driver_app/android/app/.cxx/RelWithDebInfo/vf4a64u5/x86_64/CMakeFiles/edit_cache.dir
+/Users/kamranabbaszadeh/Dev/Projects/Main/driver_app/android/app/.cxx/RelWithDebInfo/vf4a64u5/x86_64/CMakeFiles/rebuild_cache.dir

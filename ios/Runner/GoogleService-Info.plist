@@ -3,9 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>822889035029-pojkf72ud17tpgeftr1l18hfv20s9m67.apps.googleusercontent.com</string>
+	<string>822889035029-lmu13u26cj06rjr0m5r9rjg40aap4cn3.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.822889035029-pojkf72ud17tpgeftr1l18hfv20s9m67</string>
+	<string>com.googleusercontent.apps.822889035029-lmu13u26cj06rjr0m5r9rjg40aap4cn3</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>822889035029-9tigv6nrro9o57q3frbllkaihg8jni8u.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyCQBAt9UhdCRmROs2eqnrzpZlcFTXY6qh0</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.driverApp</string>
+	<string>com.onemoretour</string>
 	<key>PROJECT_ID</key>
 	<string>one-more-tour</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:822889035029:ios:51a8fbeaa81b14180ba51c</string>
+	<string>1:822889035029:ios:4993c17e620718680ba51c</string>
 </dict>
 </plist>

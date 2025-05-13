@@ -124,12 +124,9 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                           'height': height,
                         },
                       );
-                    } else if (route == "/new_tours") {
+                    } else if (route == "/tour_list") {
                       ref.read(selectedIndexProvider.notifier).state = 1;
-                      navigatorKey.currentState?.pushNamedAndRemoveUntil(
-                        "home_page",
-                        (route) => false,
-                      );
+                      navigatorKey.currentState?.pop();
                     } else {
                       registrationCompleted
                           ? navigatorKey.currentState?.pop()

@@ -1,8 +1,7 @@
-const {onDocumentUpdated} = require("firebase-functions/v2/firestore");
-const {onDocumentCreated} = require("firebase-functions/v2/firestore");
-
 const admin = require("firebase-admin");
 const {initializeApp} = require("firebase-admin/app");
+const {onDocumentCreated, onDocumentUpdated} =
+  require("firebase-functions/v2/firestore");
 
 initializeApp();
 
@@ -140,98 +139,212 @@ exports.sendNotificationOnNewChatMessage = onDocumentCreated(
     },
 );
 
-exports.notifyDriversOnNewCarTour = onDocumentCreated(
-    "Cars/{tourId}",
-    async (event) => {
-      const tourData = event.data && event.data.data();
-      if (!tourData) return;
+exports.notifyOnNewTour =
+  onDocumentCreated("Cars/{carId}", async (event) => {
+    const carData = event.data.data();
+    const vehicle = carData.Vehicle;
+    const numberOfGuests = carData.NumberofGuests;
+    const driverField = carData.Driver;
 
-      const usersSnapshot = await admin.firestore().collection("Users").get();
-      for (const userDoc of usersSnapshot.docs) {
-        const userData = userDoc.data();
-        const role = userData.Role;
-        const fcmToken = userData.fcmToken;
-        const userId = userDoc.id;
+    const usersSnap = await admin.firestore().collection("Users").get();
 
-        if (!fcmToken || !(role === "Driver" ||
-            role === "Driver Cum Guide")) continue;
+    for (const userDoc of usersSnap.docs) {
+      const user = userDoc.data();
+      const role = user.Role;
+      const token = user.fcmToken;
 
-        const activeVehicleId = userData["Active Vehicle"];
-        let activeVehicle;
-        if (activeVehicleId) {
-          const vehicleDoc = await admin.firestore()
-              .doc(`Users/${userId}/Vehicles/${activeVehicleId}`)
-              .get();
-          if (vehicleDoc.exists) activeVehicle = vehicleDoc.data();
-        }
+      if (!token) continue;
 
-        const startDate = new Date(tourData.StartDate);
-        const endDate = new Date(tourData.EndDate);
-        if (endDate > startDate) continue;
+      const activeVehicle = user["Active Vehicle"];
+      if (activeVehicle) {
+        const vehicleDoc = await admin.firestore()
+            .collection("Users")
+            .doc(userDoc.id)
+            .collection("Vehicles")
+            .doc(activeVehicle)
+            .get();
+        const allowedVehicles = vehicleDoc.data()["Allowed Vehicle"];
 
-        const matches = activeVehicle &&
-          activeVehicle["Vehicle Type"] === tourData.VehicleType &&
-          activeVehicle["Seat Number"] === tourData.SeatNumber;
-
-        if (matches) {
-          const message = {
-            notification: {
-              title: "New Tour Available",
-              body: `A new ride tour has been added.`,
-            },
-            data: {
-              route: "scheduled_tours",
-              fullBody: `A new ride tour has been added.`,
-            },
-            token: fcmToken,
-          };
-          await admin.messaging().send(message);
-        }
-      }
-    },
-);
-
-exports.notifyGuidesOnNewGuideTour = onDocumentCreated(
-    "Guide/{tourId}",
-    async (event) => {
-      const tourData = event.data && event.data.data();
-      if (!tourData) return;
-
-      const usersSnapshot = await admin.firestore().collection("Users").get();
-      for (const userDoc of usersSnapshot.docs) {
-        const userData = userDoc.data();
-        const role = userData.Role;
-        const fcmToken = userData.fcmToken;
-        if (!fcmToken || !(role === "Guide" ||
-            role === "Driver Cum Guide")) continue;
-
-        const startDate = new Date(tourData.StartDate);
-        const endDate = new Date(tourData.EndDate);
-        if (endDate > startDate) continue;
-
-        const requiredLanguages = tourData.Languages.
-            split(",").map((lang) => lang.trim().toLowerCase()) || [];
-        const spokenLanguages = userData["Language spoken"].
-            split(",").map((lang) => lang.trim().toLowerCase()) || [];
-        const languageMatch = requiredLanguages.
-            every((lang) => spokenLanguages.includes(lang));
-        const matches = userData.Category ===
-            tourData.Category && languageMatch;
-
-        if (matches) {
-          const message = {
-            notification: {
-              title: "New Tour Available",
-              body: `A new guide tour has been added.`,
-            },
-            data: {
-              route: "/new_tours",
-              fullBody: `A new guide tour has been added.`,
-            },
-            token: fcmToken,
-          };
-          await admin.messaging().send(message);
+        if (vehicleDoc.exists) {
+          if ((role === "Driver" || role === "Driver Cum Guide") &&
+              driverField === "" &&
+              allowedVehicles.includes(vehicle) &&
+              vehicleDoc.data()["Seat Number"] >= numberOfGuests) {
+            try {
+              await admin.messaging().send({
+                notification: {
+                  title: "New Tour Available",
+                  body: "A new tour matches your vehicle. Please review.",
+                },
+                token,
+                data: {
+                  route: "/tour_list",
+                  fullBody: "A new tour has been created"+
+                   "matching your vehicle profile.",
+                },
+              });
+            } catch (error) {
+              console.error("🔥 Error while sending notification:", error);
+            }
+          }
         }
       }
-    },
-);
+    }
+  });
+
+exports.notifyOnNewGuideTour =
+  onDocumentCreated("Guide/{guideTourId}", async (event) => {
+    const guideData = event.data.data();
+    const category = guideData.Category;
+    const languagesRequired = guideData.Languages;
+
+    const guideField = guideData.Guide;
+
+    const usersSnap = await admin.firestore().collection("Users").get();
+
+    for (const userDoc of usersSnap.docs) {
+      const user = userDoc.data();
+      const role = user.Role;
+      const token = user.fcmToken;
+
+      if (!token) continue;
+
+      const userLanguages = (user["Language spoken"] || "").
+          split(",").map((l) => l.trim());
+      const userCategories = user["Allowed category"] || [];
+
+
+      if ((role === "Guide" || role === "Driver Cum Guide") &&
+        !guideField &&
+        userCategories.includes(category) &&
+        userLanguages.includes(languagesRequired)) {
+        try {
+          await admin.messaging().send({
+            notification: {
+              title: "Guide Needed",
+              body: "A new guide tour matches your profile.",
+            },
+            token,
+            data: {
+              route: "/tour_list",
+              fullBody: "A guide tour has been added"+
+              "that fits your qualifications.",
+            },
+          });
+        } catch (error) {
+          console.error("🔥 Error while sending notification:", error);
+        }
+      }
+    }
+  });
+
+exports.notifyOnDriverRemoved =
+  onDocumentUpdated("Cars/{carId}", async (event) => {
+    const beforeData = event.data.before.data();
+    const afterData = event.data.after.data();
+
+    if (beforeData.Driver && !afterData.Driver) {
+      const vehicle = afterData.Vehicle;
+      const numberOfGuests = afterData.NumberofGuests;
+
+      const usersSnap = await admin.firestore().collection("Users").get();
+
+      for (const userDoc of usersSnap.docs) {
+        const user = userDoc.data();
+        const token = user.fcmToken;
+
+        if (!token) continue;
+
+        const activeVehicle = user["Active Vehicle"];
+        if (!activeVehicle) continue;
+
+        const vehicleDoc = await admin.firestore()
+            .collection("Users")
+            .doc(userDoc.id)
+            .collection("Vehicles")
+            .doc(activeVehicle)
+            .get();
+        if (!vehicleDoc.exists) continue;
+        const previousUID = beforeData.Driver;
+        const allowedVehicles = vehicleDoc.data()["Allowed Vehicle"];
+
+        if ((user.Role === "Driver" || user.Role === "Driver Cum Guide") &&
+          previousUID !== userDoc.id &&
+          allowedVehicles.includes(vehicle) &&
+          vehicleDoc.data()["Seat Number"] >= numberOfGuests) {
+          try {
+            await admin.messaging().send({
+              notification: {
+                title: "Tour Reopened",
+                body: "A tour is available again for your vehicle.",
+              },
+              token,
+              data: {
+                route: "/tour_list",
+                fullBody: "A tour became available again"+
+                  "that fits your vehicle.",
+              },
+            });
+          } catch (error) {
+            console.error("🔥 Error while sending notification:", error);
+          }
+        } else {
+          console.error("🔥 Error while sending notification:",
+              user.Role, allowedVehicles, vehicleDoc.data()["Seat Number"]);
+        }
+      }
+    }
+  });
+
+exports.notifyOnGuideRemoved =
+  onDocumentUpdated("Guide/{guideTourId}", async (event) => {
+    const beforeData = event.data.before.data();
+    const afterData = event.data.after.data();
+
+    if (beforeData.Guide && !afterData.Guide) {
+      const category = afterData.Category;
+      const languagesRequired = afterData.Languages;
+
+      const usersSnap = await admin.firestore().collection("Users").get();
+
+      for (const userDoc of usersSnap.docs) {
+        const user = userDoc.data();
+        const token = user.fcmToken;
+
+        if (!token) continue;
+
+        const userCategories = user["Allowed category"] || [];
+
+        const userLanguages = (user["Language spoken"] || "").
+            split(",").map((l) => l.trim());
+
+        const previousUID = beforeData.Guide;
+
+        if ((user.Role === "Guide" || user.Role === "Driver Cum Guide") &&
+          previousUID !== userDoc.id &&
+          userCategories.includes(category) &&
+          userLanguages.includes(languagesRequired)) {
+          try {
+            await admin.messaging().send({
+              notification: {
+                title: "Guide Needed Again",
+                body: "A guide is needed for a reopened tour.",
+              },
+              token,
+              data: {
+                route: "/tour_list",
+                fullBody: "A guide tour became available"+
+              "again that matches your profile.",
+              },
+            });
+          } catch (error) {
+            console.error("🔥 Error while sending notification:", error);
+          }
+        } else {
+          console.error("🔥 Error while sending notification:",
+              user.Role, userCategories,
+              userLanguages.includes(languagesRequired));
+        }
+      }
+    }
+  });

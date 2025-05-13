@@ -570,7 +570,6 @@ Future<void> sendLocationToBackend({
       "Long": longitude.toString(),
       "Speed": speedKph,
     });
-    logger.d('[headlessTask] ✅ Location posted successfully');
   } catch (e) {
     logger.e('[headlessTask] ❌ Failed to post location: $e');
   }
