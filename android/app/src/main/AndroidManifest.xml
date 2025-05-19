@@ -32,7 +32,7 @@
         android:icon="@mipmap/launcher_icon"
         android:enableOnBackInvokedCallback="true">
          <!-- flutter_background_geolocation licence -->
-        <meta-data android:name="com.transistorsoft.locationmanager.license" android:value="a23868026e8b8af27abc5cfd1d1f234846cb4febc8d9886acbba886111b4f2c4" />
+        <meta-data android:name="com.transistorsoft.locationmanager.license" android:value="0e55057e130dd310120fe035784cf2fb8247f0776159aa425a44820ad824331b" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -88,6 +88,9 @@
         </receiver>
 
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
+        <service android:name="com.transistorsoft.flutter.backgroundgeolocation.HeadlessTask"
+           android:enabled="true"
+           android:exported="true"/>
         <service
             android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
             android:exported="false"
