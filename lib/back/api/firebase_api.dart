@@ -321,7 +321,7 @@ class FirebaseApi {
       } else if (route == "/new_tours") {
         ref.read(selectedIndexProvider.notifier).state = 1;
         navigatorKey.currentState?.pushNamedAndRemoveUntil(
-          "home_page",
+          "/home_page",
           (route) => false,
         );
       } else {

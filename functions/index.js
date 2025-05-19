@@ -60,6 +60,73 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
         } catch (error) {
           console.error("Error sending notification:", error);
         }
+      } else if (beforeData["Application Form Decline"] === false &&
+             afterData["Application Form Decline"] === true) {
+        const userToken = afterData.fcmToken;
+        const message = {
+          notification: {
+            title: "Application Declined",
+            body: "Unfortunately, your application form was declined.",
+          },
+          token: userToken,
+          data: {
+            route: "/application_status",
+            fullBody: "Your application form has been declined."+
+              "Please contact support or resubmit your application form.",
+          },
+        };
+
+        try {
+          await admin.messaging().send(message);
+          console.log("Decline notification sent successfully");
+        } catch (error) {
+          console.error("Error sending decline notification:", error);
+        }
+      } else if (beforeData["Personal & Car Details Decline"] === false &&
+                afterData["Personal & Car Details Decline"] === true) {
+        const userToken = afterData.fcmToken;
+        const message = {
+          notification: {
+            title: "Details Declined",
+            body: "Your personal and car details were declined.",
+          },
+          token: userToken,
+          data: {
+            route: "/personalinfo_status",
+            fullBody: "Your personal and car details were declined."+
+              "Please resubmit the required information.",
+          },
+        };
+
+        try {
+          await admin.messaging().send(message);
+          console.log("Decline notification sent successfully");
+        } catch (error) {
+          console.error("Error sending decline notification:", error);
+        }
+      } else if (beforeData["Registration Completed"] === false &&
+                 afterData["Registration Completed"] === true) {
+        const userToken = afterData.fcmToken;
+        const message = {
+          notification: {
+            title: "Registration Completed",
+            body: "Congratulations! Your registration is now complete.",
+          },
+          token: userToken,
+          data: {
+            route: "/home",
+            fullBody: "Your registration has been successfully completed."+
+              "Welcome aboard!",
+          },
+        };
+
+        try {
+          await admin.messaging().send(message);
+          console.log("Registration completion notification sent successfully");
+        } catch (error) {
+          console.error("Error sending registration completion notification:",
+              error);
+        }
       }
     },
 );

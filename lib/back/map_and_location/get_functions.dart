@@ -201,7 +201,6 @@ Future<void> _startTrackingService(
       distanceFilter: 30,
       stopOnTerminate: false,
       heartbeatInterval: 60,
-
       startOnBoot: true,
       enableTimestampMeta: true,
       useSignificantChangesOnly: false,

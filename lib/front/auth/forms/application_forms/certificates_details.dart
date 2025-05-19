@@ -5,6 +5,8 @@ import 'package:driver_app/front/auth/forms/application_forms/bank_details_form.
 import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -55,12 +57,43 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   }
 
   Future<void> pickFile(int index) async {
+    // Delete previous file if it exists
+    if (certificates[index]['fileUrl'] != null) {
+      try {
+        final oldRef = FirebaseStorage.instance.refFromURL(certificates[index]['fileUrl']);
+        await oldRef.delete();
+      } catch (_) {}
+    }
+
     FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [
+        'jpg',
+        'jpeg',
+        'png',
+        'pdf',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+        'ppt',
+        'pptx',
+      ],
       withData: true,
     );
 
     if (result != null) {
       PlatformFile doc = result.files.first;
+      final maxSizeInBytes = 5 * 1024 * 1024;
+      if (doc.size > maxSizeInBytes) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('File too large. Max allowed size is 5MB.')),
+          );
+        }
+        return;
+      }
+
       final file = File(doc.path!);
       updateCertificate(index, 'file', file);
       updateCertificate(index, 'file name', doc.name);
@@ -299,25 +332,41 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
 
   Future<void> _loadTempCertificates() async {
     final prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('Users').doc(user.uid).get();
+      final isDeclined = doc.data()?['Personal & Car Details Decline'] == true;
+
+      if (isDeclined) {
+        final certs = List<Map<String, dynamic>>.from(doc.data()?['certificates'] ?? []);
+        setState(() {
+          certificates = certs.map((cert) => {
+            'name': cert['name'],
+            'type': cert['type'],
+            'file': null,
+            'file name': cert['file name'],
+            'fileUrl': cert['fileUrl'],
+          }).toList();
+        });
+        return;
+      }
+    }
+
     final raw = prefs.getString('certificates');
     if (raw != null) {
       final matches = RegExp(r'\{.*?\}').allMatches(raw);
-      final restored =
-          matches.map((m) {
-            final item = m.group(0)!;
-            final name =
-                RegExp(r'name: (.*?),').firstMatch(item)?.group(1)?.trim() ??
-                '';
-            final type =
-                RegExp(r'type: (.*?)\}').firstMatch(item)?.group(1)?.trim();
-            return {
-              'name': name,
-              'type': type == 'null' ? null : type,
-              'file': null,
-              'file name': null,
-            };
-          }).toList();
-
+      final restored = matches.map((m) {
+        final item = m.group(0)!;
+        final name = RegExp(r'name: (.*?),').firstMatch(item)?.group(1)?.trim() ?? '';
+        final type = RegExp(r'type: (.*?)\}').firstMatch(item)?.group(1)?.trim();
+        return {
+          'name': name,
+          'type': type == 'null' ? null : type,
+          'file': null,
+          'file name': null,
+        };
+      }).toList();
       setState(() {
         certificates = restored;
       });
@@ -495,9 +544,9 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                                   ? Color.fromARGB(255, 1, 105, 170)
                                   : Color.fromARGB(255, 0, 134, 179))
                               : (darkMode
-                                  ? Color.fromARGB(128, 52, 168, 235)
-                                  : Color.fromARGB(177, 0, 134, 179)),
-                      borderRadius: BorderRadius.circular(7.5),
+                                  ? Color.fromARGB(40, 52, 168, 235)
+                                  : Color.fromARGB(40, 0, 134, 179)),
+                      borderRadius: BorderRadius.circular(width * 0.019),
                     ),
                     child: Center(
                       child: Text(

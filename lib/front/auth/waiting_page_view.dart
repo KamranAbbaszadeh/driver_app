@@ -640,9 +640,55 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       thickness: height * 0.0005,
                     ),
                     SizedBox(height: height * 0.025),
-                    applicationFormVerified &&
-                            !personalFormVerified &&
-                            userData['Personal & Car Details Form'] == "PENDING"
+                    userData['Application Form Decline'] == true
+                        ? GestureDetector(
+                          onTap: () {
+                            try {
+                              navigatorKey.currentState?.pushNamed(
+                                '/application_form',
+                              );
+                            } on Exception catch (e) {
+                              logger.e(
+                                'Error navigating to personal data form: $e',
+                              );
+                            }
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color:
+                                  darkMode
+                                      ? Color.fromARGB(255, 52, 168, 235)
+                                      : Color.fromARGB(177, 0, 134, 179),
+                              borderRadius: BorderRadius.circular(
+                                width * 0.019,
+                              ),
+                            ),
+                            width: width,
+                            height: height * 0.058,
+                            child: Center(
+                              child: Text(
+                                'Continue',
+                                style: TextStyle(
+                                  color:
+                                      darkMode
+                                          ? const Color.fromARGB(132, 0, 0, 0)
+                                          : const Color.fromARGB(
+                                            187,
+                                            255,
+                                            255,
+                                            255,
+                                          ),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        : (applicationFormVerified &&
+                                !personalFormVerified &&
+                                userData['Personal & Car Details Form'] ==
+                                    "PENDING") ||
+                            userData['Personal & Car Details Decline'] == true
                         ? GestureDetector(
                           onTap: () {
                             try {
@@ -773,6 +819,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                         ),
                       ),
                     ),
+
                     SizedBox(height: height * 0.025),
                   ],
                 ),

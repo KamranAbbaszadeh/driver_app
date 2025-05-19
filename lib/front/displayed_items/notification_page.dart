@@ -127,6 +127,9 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                     } else if (route == "/tour_list") {
                       ref.read(selectedIndexProvider.notifier).state = 1;
                       navigatorKey.currentState?.pop();
+                    } else if (route == "/application_status") {
+                      navigatorKey.currentState?.pushNamed('/application_form');
+                    } else if (route == "/personalinfo_status") {
                     } else {
                       registrationCompleted
                           ? navigatorKey.currentState?.pop()

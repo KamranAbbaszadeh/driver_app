@@ -1,8 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/back/api/firebase_api.dart';
 import 'package:driver_app/back/tools/image_picker.dart';
 import 'package:driver_app/back/upload_files/personal_data/upload_photos_save.dart';
 import 'package:driver_app/db/user_data/store_role.dart';
 import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -42,17 +45,50 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
 
   Future<void> _loadTempPersonalPhotos() async {
     final prefs = await SharedPreferences.getInstance();
-    final personalPhotoPath = prefs.getString('personalPhotoPath');
-    if (personalPhotoPath != null) {
-      personalPhoto = XFile(personalPhotoPath);
+    final user = FirebaseAuth.instance.currentUser;
+    bool loadedFromDecline = false;
+    if (user != null) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(user.uid)
+              .get();
+      final isDeclined = doc.data()?['Personal & Car Details Decline'] == true;
+      if (isDeclined) {
+        final data = doc.data()!;
+        final storage = FirebaseStorage.instance;
+        if (data['personalPhoto'] != null) {
+          final ref =
+              await storage.refFromURL(data['personalPhoto']).getDownloadURL();
+          personalPhoto = XFile(ref);
+        }
+        if (data['idPhotos'] != null) {
+          iDPhoto =
+              List<String>.from(
+                data['idPhotos'],
+              ).map((url) => XFile(url)).toList();
+        }
+        if (data['licensePhotos'] != null) {
+          driverLicensePhoto =
+              List<String>.from(
+                data['licensePhotos'],
+              ).map((url) => XFile(url)).toList();
+        }
+        loadedFromDecline = true;
+        setState(() {});
+      }
     }
-
-    final driverPaths = prefs.getStringList('driverLicensePhotoPaths') ?? [];
-    final idPaths = prefs.getStringList('idPhotoPaths') ?? [];
-
-    driverLicensePhoto = driverPaths.map((path) => XFile(path)).toList();
-    iDPhoto = idPaths.map((path) => XFile(path)).toList();
-    setState(() {});
+    if (!loadedFromDecline) {
+      final personalPhotoPath = prefs.getString('personalPhotoPath');
+      if (personalPhotoPath != null) {
+        personalPhoto = XFile(personalPhotoPath);
+      }
+      final driverPaths = prefs.getStringList('driverLicensePhotoPaths') ?? [];
+      final idPaths = prefs.getStringList('idPhotoPaths') ?? [];
+      driverLicensePhoto = driverPaths.map((path) => XFile(path)).toList();
+      iDPhoto = idPaths.map((path) => XFile(path)).toList();
+      setState(() {});
+    }
   }
 
   Future<void> _clearTempPersonalPhotos() async {
@@ -68,13 +104,29 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
         iDPhoto.isNotEmpty &&
         role != 'Guide') {
       return true;
-    } else if (personalPhoto != null &&
-        driverLicensePhoto.isNotEmpty &&
-        iDPhoto.isNotEmpty &&
-        role == 'Guide') {
+    } else if (personalPhoto != null && iDPhoto.isNotEmpty && role == 'Guide') {
       return true;
     }
     return false;
+  }
+
+  void _checkFields(String role) {
+    if (personalPhoto == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please upload your personal photo')),
+      );
+      return;
+    } else if (iDPhoto.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please upload your ID photo (front and back)')),
+      );
+      return;
+    } else if (role != 'Guide' && driverLicensePhoto.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please upload your driver license photo')),
+      );
+      return;
+    }
   }
 
   @override
@@ -180,23 +232,33 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                   'We\'re almost there! Share a few important details to complete your profile and set the stage for an exciting partnership ahead.',
                 ),
                 SizedBox(height: height * 0.015),
-                Row(
-                  children: [
-                    Text('Please Upload Your Photo'),
-                    Spacer(),
-                    IconButton(
-                      onPressed: () async {
-                        final selected =
-                            await ImagePickerHelper.selectSinglePhoto(
-                              context: context,
-                            );
-                        if (selected == null) return;
-                        setState(() => personalPhoto = selected);
-                        await _saveTempPersonalPhotos();
-                      },
-                      icon: Icon(Icons.add),
-                    ),
-                  ],
+                GestureDetector(
+                  onTap: () async {
+                    final selected = await ImagePickerHelper.selectSinglePhoto(
+                      context: context,
+                    );
+                    if (selected == null) return;
+                    // Delete old photo from Firebase Storage if present
+                    if (personalPhoto != null) {
+                      try {
+                        final oldRef = FirebaseStorage.instance.refFromURL(
+                          personalPhoto.path,
+                        );
+                        await oldRef.delete();
+                      } catch (e) {
+                        logger.e('Error: $e');
+                      }
+                    }
+                    setState(() => personalPhoto = selected);
+                    await _saveTempPersonalPhotos();
+                  },
+                  child: Row(
+                    children: [
+                      Text('Please Upload Your Photo'),
+                      Spacer(),
+                      Icon(Icons.add),
+                    ],
+                  ),
                 ),
                 personalPhoto == null
                     ? SizedBox.shrink()
@@ -211,24 +273,36 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                       child: ImageGrid(images: [personalPhoto]),
                     ),
                 SizedBox(height: height * 0.015),
-                Row(
-                  children: [
-                    Text('Please Upload Your ID Photo (Front and Back)'),
-                    Spacer(),
-                    IconButton(
-                      onPressed: () async {
-                        final images =
-                            await ImagePickerHelper.selectMultiplePhotos(
-                              context: context,
+                GestureDetector(
+                  onTap: () async {
+                    final images = await ImagePickerHelper.selectMultiplePhotos(
+                      context: context,
+                    );
+                    if (images != null) {
+                      // Delete old ID photos from Firebase Storage if present
+                      if (iDPhoto.isNotEmpty) {
+                        for (var file in iDPhoto) {
+                          try {
+                            final oldRef = FirebaseStorage.instance.refFromURL(
+                              file.path,
                             );
-                        if (images != null) {
-                          setState(() => iDPhoto.addAll(images));
-                          await _saveTempPersonalPhotos();
+                            await oldRef.delete();
+                          } catch (e) {
+                            logger.e('Error: $e');
+                          }
                         }
-                      },
-                      icon: Icon(Icons.add),
-                    ),
-                  ],
+                      }
+                      setState(() => iDPhoto = images);
+                      await _saveTempPersonalPhotos();
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      Text('Please Upload Your ID Photo (Front and Back)'),
+                      Spacer(),
+                      Icon(Icons.add),
+                    ],
+                  ),
                 ),
                 iDPhoto.isEmpty
                     ? SizedBox.shrink()
@@ -245,24 +319,35 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                 SizedBox(height: height * 0.025),
                 role == 'Guide'
                     ? SizedBox.shrink()
-                    : Row(
-                      children: [
-                        Text('Please Upload Your Driver License Photo'),
-                        Spacer(),
-                        IconButton(
-                          onPressed: () async {
-                            final images =
-                                await ImagePickerHelper.selectMultiplePhotos(
-                                  context: context,
-                                );
-                            if (images != null) {
-                              setState(() => driverLicensePhoto.addAll(images));
-                              await _saveTempPersonalPhotos();
+                    : GestureDetector(
+                      onTap: () async {
+                        final images =
+                            await ImagePickerHelper.selectMultiplePhotos(
+                              context: context,
+                            );
+                        if (images != null) {
+                          if (driverLicensePhoto.isNotEmpty) {
+                            for (var file in driverLicensePhoto) {
+                              try {
+                                final oldRef = FirebaseStorage.instance
+                                    .refFromURL(file.path);
+                                await oldRef.delete();
+                              } catch (e) {
+                                logger.e('Error: $e');
+                              }
                             }
-                          },
-                          icon: Icon(Icons.add),
-                        ),
-                      ],
+                          }
+                          setState(() => driverLicensePhoto = images);
+                          await _saveTempPersonalPhotos();
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Text('Please Upload Your Driver License Photo'),
+                          Spacer(),
+                          Icon(Icons.add),
+                        ],
+                      ),
                     ),
                 driverLicensePhoto.isEmpty
                     ? SizedBox.shrink()
@@ -295,6 +380,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                           ),
                         ),
                       );
+                    } else {
+                      _checkFields(role);
                     }
                   },
                   child: Container(
@@ -307,9 +394,9 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                                   ? Color.fromARGB(255, 1, 105, 170)
                                   : Color.fromARGB(255, 0, 134, 179))
                               : (darkMode
-                                  ? Color.fromARGB(128, 52, 168, 235)
-                                  : Color.fromARGB(177, 0, 134, 179)),
-                      borderRadius: BorderRadius.circular(7.5),
+                                  ? Color.fromARGB(40, 52, 168, 235)
+                                  : Color.fromARGB(40, 0, 134, 179)),
+                      borderRadius: BorderRadius.circular(width * 0.019),
                     ),
                     child: Center(
                       child: Text(
@@ -340,7 +427,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                     ),
                   ),
                 ),
-                SizedBox(height: height * 0.025),
+                SizedBox(height: height * 0.058),
               ],
             ),
           ),

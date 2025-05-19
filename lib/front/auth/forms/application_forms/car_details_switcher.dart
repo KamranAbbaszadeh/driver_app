@@ -429,6 +429,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                                   'Personal & Car Details Form':
                                       'APPLICATION RECEIVED',
                                   'Active Vehicle': "Car1",
+                                  'Personal & Car Details Decline': false,
                                 });
 
                             final prefs = await SharedPreferences.getInstance();

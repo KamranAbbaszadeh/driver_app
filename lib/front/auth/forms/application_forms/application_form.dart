@@ -4,6 +4,7 @@ import 'package:driver_app/back/tools/gender_picker.dart';
 import 'package:driver_app/back/tools/language_picker.dart';
 import 'package:driver_app/back/tools/role_picker.dart';
 import 'package:driver_app/back/tools/validate_email.dart';
+import 'package:flutter/services.dart';
 import 'package:driver_app/back/tools/vehicle_type_picker.dart';
 import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:flutter/gestures.dart';
@@ -12,6 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ApplicationForm extends ConsumerStatefulWidget {
   const ApplicationForm({super.key});
@@ -21,6 +24,7 @@ class ApplicationForm extends ConsumerStatefulWidget {
 }
 
 class _ApplicationFormState extends ConsumerState<ApplicationForm> {
+  final user = FirebaseAuth.instance.currentUser;
   final ScrollController _scrollController = ScrollController();
 
   final _firstNameController = TextEditingController();
@@ -143,45 +147,81 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   }
 
   bool _allFilledOut() {
-    if (_firstNameController.text.isNotEmpty &&
-        _lastNameController.text.isNotEmpty &&
-        _emailController.text.isNotEmpty &&
-        _phoneNumberController.text.isNotEmpty &&
-        _birthDayController.text.isNotEmpty &&
-        _languageController.text.isNotEmpty &&
-        _experienceController.text.isNotEmpty &&
-        _roleController.text.isNotEmpty &&
-        _fathersNameController.text.isNotEmpty &&
-        _genderController.text.isNotEmpty &&
-        _passwordController.text.isNotEmpty &&
-        _confirmPasswordController.text.isNotEmpty &&
-        _roleController.text == 'Guide' &&
-        isValid &&
-        isPasswordValid &&
-        isPasswordConfirmed &&
-        isChecked) {
-      return true;
-    } else if (_firstNameController.text.isNotEmpty &&
-        _lastNameController.text.isNotEmpty &&
-        _emailController.text.isNotEmpty &&
-        _phoneNumberController.text.isNotEmpty &&
-        _birthDayController.text.isNotEmpty &&
-        _languageController.text.isNotEmpty &&
-        _experienceController.text.isNotEmpty &&
-        _roleController.text.isNotEmpty &&
-        _fathersNameController.text.isNotEmpty &&
-        _genderController.text.isNotEmpty &&
-        _passwordController.text.isNotEmpty &&
-        _confirmPasswordController.text.isNotEmpty &&
-        _roleController.text != 'Guide' &&
-        _vehicleTypeController.text.isNotEmpty &&
-        isValid &&
-        isPasswordValid &&
-        isPasswordConfirmed &&
-        isChecked) {
-      return true;
+    if (user == null) {
+      if (_firstNameController.text.isNotEmpty &&
+          _lastNameController.text.isNotEmpty &&
+          _emailController.text.isNotEmpty &&
+          _phoneNumberController.text.isNotEmpty &&
+          _birthDayController.text.isNotEmpty &&
+          _languageController.text.isNotEmpty &&
+          _experienceController.text.isNotEmpty &&
+          _roleController.text.isNotEmpty &&
+          _fathersNameController.text.isNotEmpty &&
+          _genderController.text.isNotEmpty &&
+          _passwordController.text.isNotEmpty &&
+          _confirmPasswordController.text.isNotEmpty &&
+          _roleController.text == 'Guide' &&
+          isValid &&
+          isPasswordValid &&
+          isPasswordConfirmed &&
+          isChecked) {
+        return true;
+      } else if (_firstNameController.text.isNotEmpty &&
+          _lastNameController.text.isNotEmpty &&
+          _emailController.text.isNotEmpty &&
+          _phoneNumberController.text.isNotEmpty &&
+          _birthDayController.text.isNotEmpty &&
+          _languageController.text.isNotEmpty &&
+          _experienceController.text.isNotEmpty &&
+          _roleController.text.isNotEmpty &&
+          _fathersNameController.text.isNotEmpty &&
+          _genderController.text.isNotEmpty &&
+          _passwordController.text.isNotEmpty &&
+          _confirmPasswordController.text.isNotEmpty &&
+          _roleController.text != 'Guide' &&
+          _vehicleTypeController.text.isNotEmpty &&
+          isValid &&
+          isPasswordValid &&
+          isPasswordConfirmed &&
+          isChecked) {
+        return true;
+      }
+      return false;
+    } else {
+      if (_firstNameController.text.isNotEmpty &&
+          _lastNameController.text.isNotEmpty &&
+          _phoneNumberController.text.isNotEmpty &&
+          _birthDayController.text.isNotEmpty &&
+          _languageController.text.isNotEmpty &&
+          _experienceController.text.isNotEmpty &&
+          _roleController.text.isNotEmpty &&
+          _fathersNameController.text.isNotEmpty &&
+          _genderController.text.isNotEmpty &&
+          _roleController.text == 'Guide' &&
+          isValid &&
+          isPasswordValid &&
+          isPasswordConfirmed &&
+          isChecked) {
+        return true;
+      } else if (_firstNameController.text.isNotEmpty &&
+          _lastNameController.text.isNotEmpty &&
+          _phoneNumberController.text.isNotEmpty &&
+          _birthDayController.text.isNotEmpty &&
+          _languageController.text.isNotEmpty &&
+          _experienceController.text.isNotEmpty &&
+          _roleController.text.isNotEmpty &&
+          _fathersNameController.text.isNotEmpty &&
+          _genderController.text.isNotEmpty &&
+          _roleController.text != 'Guide' &&
+          _vehicleTypeController.text.isNotEmpty &&
+          isValid &&
+          isPasswordValid &&
+          isPasswordConfirmed &&
+          isChecked) {
+        return true;
+      }
+      return false;
     }
-    return false;
   }
 
   void _isEmpty(TextEditingController controller, String fieldName) {
@@ -260,6 +300,53 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
       context: context,
     );
     _clearFormData();
+  }
+
+  void _checkFields() {
+    if (_firstNameController.text.isEmpty) {
+      _firstNameFocusNode.requestFocus();
+      return;
+    } else if (_lastNameController.text.isEmpty) {
+      _lastNameFocusNode.requestFocus();
+      return;
+    } else if (_fathersNameController.text.isEmpty) {
+      _fathersNameFocusNode.requestFocus();
+      return;
+    } else if (_birthDayController.text.isEmpty) {
+      _birthDayFocusNode.requestFocus();
+      return;
+    } else if (_genderController.text.isEmpty) {
+      _genderFocusNode.requestFocus();
+      return;
+    } else if (_emailController.text.isEmpty || !isValid) {
+      _emailFocusNode.requestFocus();
+      return;
+    } else if (_passwordController.text.isEmpty || !isPasswordValid) {
+      _passwordFocusNode.requestFocus();
+      return;
+    } else if (_confirmPasswordController.text.isEmpty ||
+        !isPasswordConfirmed) {
+      _confirmPasswordFocusNode.requestFocus();
+      return;
+    } else if (_phoneNumberController.text.isEmpty || !isPhoneNumberValid) {
+      _phoneNumberFocusNode.requestFocus();
+      return;
+    } else if (_roleController.text.isEmpty) {
+      _roleFocusNode.requestFocus();
+      return;
+    } else if (_experienceController.text.isEmpty) {
+      _experienceFocusNode.requestFocus();
+      return;
+    } else if (_languageController.text.isEmpty) {
+      _languageFocusNode.requestFocus();
+      return;
+    } else if (_roleController.text != 'Guide' &&
+        _vehicleTypeController.text.isEmpty) {
+      _vehicleTypeFocusNode.requestFocus();
+      return;
+    } else if (!isChecked) {
+      return;
+    }
   }
 
   @override
@@ -445,10 +532,13 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     await Future.delayed(Duration(milliseconds: 100));
     if (mounted) {
       await showGenderPicker(context, _genderController);
-
       _isEmpty(_genderController, 'gender');
     }
-    _emailFocusNode.requestFocus();
+    if (user == null) {
+      _emailFocusNode.requestFocus();
+    } else {
+      _phoneNumberFocusNode.requestFocus();
+    }
   }
 
   Future<void> _openRolePicker() async {
@@ -467,7 +557,11 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
       _languageController.text = selectedLanguages.join(', ');
       _isEmpty(_languageController, 'language');
     }
-    _vehicleTypeFocusNode.requestFocus();
+    if (_roleController.text == 'Guide') {
+      _languageFocusNode.unfocus();
+    } else {
+      _vehicleTypeFocusNode.requestFocus();
+    }
   }
 
   Future<void> _openVehicleTypePicker() async {
@@ -509,18 +603,52 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   }
 
   Future<void> _loadFormData() async {
+    final user = this.user;
+    if (user != null) {
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(user.uid)
+              .get();
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        _firstNameController.text = data['First Name'] ?? '';
+        _lastNameController.text = data['Last Name'] ?? '';
+        _emailController.text = data['E-mail'] ?? '';
+        _phoneNumberController.text = data['Phone number'] ?? '';
+        _languageController.text = data['Language spoken'] ?? '';
+        _birthDayController.text = data['Day of Birth'] ?? '';
+        final experienceString = data['Experience'] ?? '';
+        final experienceMatch = RegExp(r'(\d+)').firstMatch(experienceString);
+        _experienceController.text =
+            experienceMatch != null ? experienceMatch.group(1)! : '';
+        _vehicleTypeController.text = data['Vehicle'] ?? '';
+        _roleController.text = data['Role'] ?? '';
+        _fathersNameController.text = data['Father\'s Name'] ?? '';
+        _genderController.text = data['Gender'] ?? '';
+      }
+    }
     final prefs = await SharedPreferences.getInstance();
-    _firstNameController.text = prefs.getString('firstName') ?? '';
-    _lastNameController.text = prefs.getString('lastName') ?? '';
-    _emailController.text = prefs.getString('email') ?? '';
-    _phoneNumberController.text = prefs.getString('phoneNumber') ?? '';
-    _languageController.text = prefs.getString('language') ?? '';
-    _birthDayController.text = prefs.getString('birthDay') ?? '';
-    _experienceController.text = prefs.getString('experience') ?? '';
-    _vehicleTypeController.text = prefs.getString('vehicleType') ?? '';
-    _roleController.text = prefs.getString('role') ?? '';
-    _fathersNameController.text = prefs.getString('fathersName') ?? '';
-    _genderController.text = prefs.getString('gender') ?? '';
+    _firstNameController.text =
+        prefs.getString('firstName') ?? _firstNameController.text;
+    _lastNameController.text =
+        prefs.getString('lastName') ?? _lastNameController.text;
+    _emailController.text = prefs.getString('email') ?? _emailController.text;
+    _phoneNumberController.text =
+        prefs.getString('phoneNumber') ?? _phoneNumberController.text;
+    _languageController.text =
+        prefs.getString('language') ?? _languageController.text;
+    _birthDayController.text =
+        prefs.getString('birthDay') ?? _birthDayController.text;
+    _experienceController.text =
+        prefs.getString('experience') ?? _experienceController.text;
+    _vehicleTypeController.text =
+        prefs.getString('vehicleType') ?? _vehicleTypeController.text;
+    _roleController.text = prefs.getString('role') ?? _roleController.text;
+    _fathersNameController.text =
+        prefs.getString('fathersName') ?? _fathersNameController.text;
+    _genderController.text =
+        prefs.getString('gender') ?? _genderController.text;
     _passwordController.text = prefs.getString('password') ?? '';
     _confirmPasswordController.text = prefs.getString('confirmPassword') ?? '';
   }
@@ -652,15 +780,30 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           _firstNameFocusNode.unfocus();
                         });
                       },
-
                       showCursor: false,
                       focusNode: _firstNameFocusNode,
                       onEditingComplete: () {
                         _firstNameFocusNode.unfocus();
                         FocusScope.of(context).requestFocus(_lastNameFocusNode);
                       },
-
                       controller: _firstNameController,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r"[a-zA-Zа-яА-Я\s]"),
+                        ),
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          final text = newValue.text;
+                          if (text.isEmpty) return newValue;
+                          final capitalized = text.replaceAllMapped(
+                            RegExp(r'(^\w{1}|\s\w{1})'),
+                            (match) => match.group(0)!.toUpperCase(),
+                          );
+                          return TextEditingValue(
+                            text: capitalized,
+                            selection: newValue.selection,
+                          );
+                        }),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             _firstNameFocusNode.hasFocus
@@ -773,6 +916,23 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         ).requestFocus(_fathersNameFocusNode);
                       },
                       controller: _lastNameController,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r"[a-zA-Zа-яА-Я\s]"),
+                        ),
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          final text = newValue.text;
+                          if (text.isEmpty) return newValue;
+                          final capitalized = text.replaceAllMapped(
+                            RegExp(r'(^\w{1}|\s\w{1})'),
+                            (match) => match.group(0)!.toUpperCase(),
+                          );
+                          return TextEditingValue(
+                            text: capitalized,
+                            selection: newValue.selection,
+                          );
+                        }),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             _lastNameFocusNode.hasFocus
@@ -883,6 +1043,23 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         FocusScope.of(context).requestFocus(_birthDayFocusNode);
                       },
                       controller: _fathersNameController,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r"[a-zA-Zа-яА-Я\s]"),
+                        ),
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          final text = newValue.text;
+                          if (text.isEmpty) return newValue;
+                          final capitalized = text.replaceAllMapped(
+                            RegExp(r'(^\w{1}|\s\w{1})'),
+                            (match) => match.group(0)!.toUpperCase(),
+                          );
+                          return TextEditingValue(
+                            text: capitalized,
+                            selection: newValue.selection,
+                          );
+                        }),
+                      ],
                       decoration: InputDecoration(
                         suffixIcon:
                             _fathersNameFocusNode.hasFocus
@@ -1079,7 +1256,13 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                       focusNode: _genderFocusNode,
                       onEditingComplete: () {
                         _genderFocusNode.unfocus();
-                        FocusScope.of(context).requestFocus(_emailFocusNode);
+                        if (user == null) {
+                          FocusScope.of(context).requestFocus(_emailFocusNode);
+                        } else {
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(_phoneNumberFocusNode);
+                        }
                       },
                       controller: _genderController,
                       decoration: InputDecoration(
@@ -1128,385 +1311,435 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                   ),
                 SizedBox(height: height * 0.015),
                 //EMAIL
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isEmailEmpty || !isValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _emailFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom: _emailFocusNode.hasFocus ? 0 : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      onChanged: _validateEmail,
-                      onTap: () {
-                        setState(() {
-                          _emailFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_emailController, 'email');
-                        setState(() {
-                          _emailFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _emailFocusNode,
-                      onEditingComplete: () {
-                        _emailFocusNode.unfocus();
-                        FocusScope.of(context).requestFocus(_passwordFocusNode);
-                      },
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _emailFocusNode.hasFocus
-                                ? (_emailController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _emailController.text = '';
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    ))
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
+                user == null
+                    ? Column(
+                      children: [
+                        Container(
+                          width: width,
+                          height: height * 0.065,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color:
+                                  isEmailEmpty || !isValid
+                                      ? const Color.fromARGB(255, 244, 92, 54)
+                                      : _emailFocusNode.hasFocus
+                                      ? Colors.blue
+                                      : Colors.grey.shade400,
+                            ),
+                            borderRadius: BorderRadius.circular(width * 0.019),
+                          ),
+                          padding: EdgeInsets.only(
+                            bottom:
+                                _emailFocusNode.hasFocus ? 0 : width * 0.025,
+                            left: width * 0.025,
+                            top: width * 0.025,
+                            right: width * 0.025,
+                          ),
+                          child: Center(
+                            child: TextField(
+                              onChanged: _validateEmail,
+                              onTap: () {
+                                setState(() {
+                                  _emailFocusNode.requestFocus();
+                                });
+                              },
+                              onTapOutside: (_) {
+                                _isEmpty(_emailController, 'email');
+                                setState(() {
+                                  _emailFocusNode.unfocus();
+                                });
+                              },
+                              showCursor: false,
+                              focusNode: _emailFocusNode,
+                              onEditingComplete: () {
+                                _emailFocusNode.unfocus();
+                                FocusScope.of(
+                                  context,
+                                ).requestFocus(_passwordFocusNode);
+                              },
+                              controller: _emailController,
+                              decoration: InputDecoration(
+                                suffixIcon:
+                                    _emailFocusNode.hasFocus
+                                        ? (_emailController.text.isEmpty
+                                            ? Icon(
+                                              Icons.cancel_outlined,
+                                              size: width * 0.076,
+                                              color: const Color.fromARGB(
+                                                255,
+                                                158,
+                                                158,
+                                                158,
+                                              ),
+                                            )
+                                            : IconButton(
+                                              onPressed: () {
+                                                _emailController.text = '';
+                                              },
+                                              icon: Icon(Icons.cancel),
+                                              padding: EdgeInsets.zero,
+                                              iconSize: width * 0.076,
+                                            ))
+                                        : null,
+                                errorBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.only(
+                                  top: width * 0.05,
+                                ),
+                                isDense: true,
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                ),
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.auto,
+                                labelText: 'Email',
+                                hintText: 'Email',
+                                hintStyle: TextStyle(
+                                  fontSize: width * 0.038,
+                                  color: Colors.grey.shade500.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                labelStyle: TextStyle(
+                                  fontSize: width * 0.038,
+                                  color:
+                                      isEmailEmpty || !isValid
+                                          ? const Color.fromARGB(
+                                            255,
+                                            244,
+                                            92,
+                                            54,
+                                          )
+                                          : _emailFocusNode.hasFocus
+                                          ? Colors.blue
+                                          : Colors.grey.shade500,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
+                        if (isEmailEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              left: width * 0.027,
+                              top: width * 0.007,
+                            ),
+                            child: Text(
+                              "Required",
+                              style: TextStyle(
+                                fontSize: width * 0.03,
+                                color: const Color.fromARGB(255, 244, 92, 54),
+                              ),
+                            ),
+                          ),
+                        if (!isValid && !isEmailEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              left: width * 0.027,
+                              top: width * 0.007,
+                            ),
+                            child: Text(
+                              "Invalid email adress",
+                              style: TextStyle(
+                                fontSize: width * 0.03,
+                                color: const Color.fromARGB(255, 244, 92, 54),
+                              ),
+                            ),
+                          ),
+                        SizedBox(height: height * 0.015),
+                        //PASSWORD
+                        Container(
+                          width: width,
+                          height: height * 0.065,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color:
+                                  !isPasswordValid
+                                      ? const Color.fromARGB(255, 244, 92, 54)
+                                      : _passwordFocusNode.hasFocus
+                                      ? Colors.blue
+                                      : Colors.grey.shade400,
+                            ),
+                            borderRadius: BorderRadius.circular(width * 0.019),
+                          ),
+                          padding: EdgeInsets.only(
+                            bottom:
+                                _passwordFocusNode.hasFocus ? 0 : width * 0.025,
+                            left: width * 0.025,
+                            top: width * 0.025,
+                            right: width * 0.025,
+                          ),
+                          child: Center(
+                            child: TextField(
+                              onChanged: (value) {
+                                setState(() {
+                                  passwordValidationString =
+                                      validatePassword(value)!;
+                                });
+                              },
+                              onTap: () {
+                                setState(() {
+                                  _passwordFocusNode.requestFocus();
+                                });
+                              },
+                              onTapOutside: (_) {
+                                setState(() {
+                                  _passwordFocusNode.unfocus();
+                                  passwordObscure = true;
+                                });
+                              },
+                              showCursor: false,
+                              focusNode: _passwordFocusNode,
+                              onEditingComplete: () {
+                                _passwordFocusNode.unfocus();
+                                FocusScope.of(
+                                  context,
+                                ).requestFocus(_confirmPasswordFocusNode);
+                              },
+                              obscureText: passwordObscure,
+                              controller: _passwordController,
+                              decoration: InputDecoration(
+                                suffixIcon:
+                                    _passwordFocusNode.hasFocus
+                                        ? (_passwordController.text.isEmpty
+                                            ? Icon(
+                                              Icons.remove_red_eye_outlined,
+                                              size: width * 0.076,
+                                              color: const Color.fromARGB(
+                                                255,
+                                                158,
+                                                158,
+                                                158,
+                                              ),
+                                            )
+                                            : IconButton(
+                                              onPressed: () {
+                                                setState(() {
+                                                  passwordObscure =
+                                                      !passwordObscure;
+                                                });
+                                              },
+                                              icon: Icon(
+                                                Icons.remove_red_eye_outlined,
+                                              ),
+                                              padding: EdgeInsets.zero,
+                                              iconSize: width * 0.076,
+                                            ))
+                                        : null,
+                                errorBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.only(
+                                  top: width * 0.05,
+                                ),
+                                isDense: true,
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                ),
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.auto,
+                                labelText: 'Password',
+                                labelStyle: TextStyle(
+                                  fontSize: width * 0.038,
+                                  color:
+                                      !isPasswordValid
+                                          ? const Color.fromARGB(
+                                            255,
+                                            244,
+                                            92,
+                                            54,
+                                          )
+                                          : _passwordFocusNode.hasFocus
+                                          ? Colors.blue
+                                          : Colors.grey.shade500,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'Email',
-                        hintText: 'Email',
-                        hintStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isEmailEmpty || !isValid
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _emailFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isEmailEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      "Required",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-                if (!isValid && !isEmailEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      "Invalid email adress",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-                SizedBox(height: height * 0.015),
-                //PASSWORD
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          !isPasswordValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _passwordFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom: _passwordFocusNode.hasFocus ? 0 : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      onChanged: (value) {
-                        setState(() {
-                          passwordValidationString = validatePassword(value)!;
-                        });
-                      },
-                      onTap: () {
-                        setState(() {
-                          _passwordFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        setState(() {
-                          _passwordFocusNode.unfocus();
-                          passwordObscure = true;
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _passwordFocusNode,
-                      onEditingComplete: () {
-                        _passwordFocusNode.unfocus();
-                        FocusScope.of(
-                          context,
-                        ).requestFocus(_confirmPasswordFocusNode);
-                      },
-                      obscureText: passwordObscure,
-                      controller: _passwordController,
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _passwordFocusNode.hasFocus
-                                ? (_passwordController.text.isEmpty
-                                    ? Icon(
-                                      Icons.remove_red_eye_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          passwordObscure = !passwordObscure;
-                                        });
-                                      },
-                                      icon: Icon(Icons.remove_red_eye_outlined),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    ))
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'Password',
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              !isPasswordValid
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _passwordFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (!isPasswordValid)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      passwordValidationString,
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
+                        if (!isPasswordValid)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              left: width * 0.027,
+                              top: width * 0.007,
+                            ),
+                            child: Text(
+                              passwordValidationString,
+                              style: TextStyle(
+                                fontSize: width * 0.03,
+                                color: const Color.fromARGB(255, 244, 92, 54),
+                              ),
+                            ),
+                          ),
 
-                SizedBox(height: height * 0.015),
-                //CONFIRM PASSWORD
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isConfirmPasswordEmpty || !isPasswordConfirmed
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _confirmPasswordFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom:
-                        _confirmPasswordFocusNode.hasFocus ? 0 : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      onChanged: (value) {
-                        validateConfirmPassword(value);
-                      },
-                      onTap: () {
-                        setState(() {
-                          _confirmPasswordFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_confirmPasswordController, 'confirmPassword');
-                        setState(() {
-                          _confirmPasswordFocusNode.unfocus();
-                        });
-                        if (confirmPasswordObscure == false ||
-                            !_confirmPasswordFocusNode.hasFocus) {
-                          setState(() {
-                            confirmPasswordObscure = true;
-                          });
-                        }
-                      },
-                      onSubmitted: (_) {
-                        setState(() {
-                          confirmPasswordObscure = true;
-                        });
-                      },
-                      obscureText: confirmPasswordObscure,
-                      showCursor: false,
-                      focusNode: _confirmPasswordFocusNode,
-                      onEditingComplete: () {
-                        _confirmPasswordFocusNode.unfocus();
-                        FocusScope.of(
-                          context,
-                        ).requestFocus(_phoneNumberFocusNode);
-                      },
-                      controller: _confirmPasswordController,
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _confirmPasswordFocusNode.hasFocus
-                                ? _confirmPasswordController.text.isEmpty
-                                    ? Icon(
-                                      Icons.remove_red_eye_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          confirmPasswordObscure =
-                                              !confirmPasswordObscure;
-                                        });
-                                      },
-                                      icon: Icon(Icons.remove_red_eye_outlined),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
+                        SizedBox(height: height * 0.015),
+                        //CONFIRM PASSWORD
+                        Container(
+                          width: width,
+                          height: height * 0.065,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color:
+                                  isConfirmPasswordEmpty || !isPasswordConfirmed
+                                      ? const Color.fromARGB(255, 244, 92, 54)
+                                      : _confirmPasswordFocusNode.hasFocus
+                                      ? Colors.blue
+                                      : Colors.grey.shade400,
+                            ),
+                            borderRadius: BorderRadius.circular(width * 0.019),
+                          ),
+                          padding: EdgeInsets.only(
+                            bottom:
+                                _confirmPasswordFocusNode.hasFocus
+                                    ? 0
+                                    : width * 0.025,
+                            left: width * 0.025,
+                            top: width * 0.025,
+                            right: width * 0.025,
+                          ),
+                          child: Center(
+                            child: TextField(
+                              onChanged: (value) {
+                                validateConfirmPassword(value);
+                              },
+                              onTap: () {
+                                setState(() {
+                                  _confirmPasswordFocusNode.requestFocus();
+                                });
+                              },
+                              onTapOutside: (_) {
+                                _isEmpty(
+                                  _confirmPasswordController,
+                                  'confirmPassword',
+                                );
+                                setState(() {
+                                  _confirmPasswordFocusNode.unfocus();
+                                });
+                                if (confirmPasswordObscure == false ||
+                                    !_confirmPasswordFocusNode.hasFocus) {
+                                  setState(() {
+                                    confirmPasswordObscure = true;
+                                  });
+                                }
+                              },
+                              onSubmitted: (_) {
+                                setState(() {
+                                  confirmPasswordObscure = true;
+                                });
+                              },
+                              obscureText: confirmPasswordObscure,
+                              showCursor: false,
+                              focusNode: _confirmPasswordFocusNode,
+                              onEditingComplete: () {
+                                _confirmPasswordFocusNode.unfocus();
+                                FocusScope.of(
+                                  context,
+                                ).requestFocus(_phoneNumberFocusNode);
+                              },
+                              controller: _confirmPasswordController,
+                              decoration: InputDecoration(
+                                suffixIcon:
+                                    _confirmPasswordFocusNode.hasFocus
+                                        ? _confirmPasswordController
+                                                .text
+                                                .isEmpty
+                                            ? Icon(
+                                              Icons.remove_red_eye_outlined,
+                                              size: width * 0.076,
+                                              color: const Color.fromARGB(
+                                                255,
+                                                158,
+                                                158,
+                                                158,
+                                              ),
+                                            )
+                                            : IconButton(
+                                              onPressed: () {
+                                                setState(() {
+                                                  confirmPasswordObscure =
+                                                      !confirmPasswordObscure;
+                                                });
+                                              },
+                                              icon: Icon(
+                                                Icons.remove_red_eye_outlined,
+                                              ),
+                                              padding: EdgeInsets.zero,
+                                              iconSize: width * 0.076,
+                                            )
+                                        : null,
+                                errorBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.only(
+                                  top: width * 0.05,
+                                ),
+                                isDense: true,
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                ),
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.auto,
+                                labelText: 'Confirm password',
+                                labelStyle: TextStyle(
+                                  fontSize: width * 0.038,
+                                  color:
+                                      isConfirmPasswordEmpty ||
+                                              !isPasswordConfirmed
+                                          ? const Color.fromARGB(
+                                            255,
+                                            244,
+                                            92,
+                                            54,
+                                          )
+                                          : _confirmPasswordFocusNode.hasFocus
+                                          ? Colors.blue
+                                          : Colors.grey.shade500,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'Confirm password',
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isConfirmPasswordEmpty || !isPasswordConfirmed
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _confirmPasswordFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isConfirmPasswordEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      "Required",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
+                        if (isConfirmPasswordEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              left: width * 0.027,
+                              top: width * 0.007,
+                            ),
+                            child: Text(
+                              "Required",
+                              style: TextStyle(
+                                fontSize: width * 0.03,
+                                color: const Color.fromARGB(255, 244, 92, 54),
+                              ),
+                            ),
+                          ),
 
-                if (!isPasswordConfirmed)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      'Passwords do not match',
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-                SizedBox(height: height * 0.015),
+                        if (!isPasswordConfirmed)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              left: width * 0.027,
+                              top: width * 0.007,
+                            ),
+                            child: Text(
+                              'Passwords do not match',
+                              style: TextStyle(
+                                fontSize: width * 0.03,
+                                color: const Color.fromARGB(255, 244, 92, 54),
+                              ),
+                            ),
+                          ),
+                        SizedBox(height: height * 0.015),
+                      ],
+                    )
+                    : SizedBox.shrink(),
                 //PHONE NUMBER
                 Container(
                   width: width,
@@ -1872,11 +2105,16 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                       showCursor: false,
                       readOnly: true,
                       focusNode: _languageFocusNode,
+
                       onEditingComplete: () {
-                        _languageFocusNode.unfocus();
-                        FocusScope.of(
-                          context,
-                        ).requestFocus(_vehicleTypeFocusNode);
+                        if (_roleController.text == 'Guide') {
+                          FocusScope.of(context).unfocus();
+                        } else {
+                          _languageFocusNode.unfocus();
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(_vehicleTypeFocusNode);
+                        }
                       },
                       controller: _languageController,
                       decoration: InputDecoration(
@@ -2112,6 +2350,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           ),
                         ),
                       );
+                    } else {
+                      _checkFields();
                     }
                   },
                   child: Container(
@@ -2124,9 +2364,9 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                                   ? Color.fromARGB(255, 1, 105, 170)
                                   : Color.fromARGB(255, 0, 134, 179))
                               : (darkMode
-                                  ? Color.fromARGB(128, 52, 168, 235)
-                                  : Color.fromARGB(177, 0, 134, 179)),
-                      borderRadius: BorderRadius.circular(7.5),
+                                  ? Color.fromARGB(40, 52, 168, 235)
+                                  : Color.fromARGB(40, 0, 134, 179)),
+                      borderRadius: BorderRadius.circular(width * 0.019),
                     ),
                     child: Center(
                       child: Text(
@@ -2157,7 +2397,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                     ),
                   ),
                 ),
-                SizedBox(height: height * 0.015),
+                SizedBox(height: height * 0.058),
               ],
             ),
           ),

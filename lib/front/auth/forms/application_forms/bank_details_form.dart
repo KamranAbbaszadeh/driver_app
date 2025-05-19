@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iban/iban.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BankDetailsForm extends ConsumerStatefulWidget {
   const BankDetailsForm({super.key});
@@ -108,6 +109,30 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
   Future<void> _loadTempData() async {
     final prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(user.uid)
+              .get();
+      final isDeclined = doc.data()?['Personal & Car Details Decline'] == true;
+
+      if (isDeclined) {
+        final data = doc.data()!;
+        _addressController.text = data['Address'] ?? '';
+        _finCodeController.text = data['FIN'] ?? '';
+        _vATnumberController.text = data['VAT'] ?? '';
+        _bankNameController.text = data['Bank Name'] ?? '';
+        _bankCodeController.text = data['Bank Code'] ?? '';
+        _mHController.text = data['M.H'] ?? '';
+        _sWIFTController.text = data['SWIFT'] ?? '';
+        _iBANController.text = data['IBAN'] ?? '';
+        return;
+      }
+    }
+
     _addressController.text = prefs.getString('address') ?? '';
     _finCodeController.text = prefs.getString('fin') ?? '';
     _vATnumberController.text = prefs.getString('vat') ?? '';
@@ -326,7 +351,14 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
         _bankNameController.text.isNotEmpty &&
         _mHController.text.isNotEmpty &&
         _sWIFTController.text.isNotEmpty &&
-        _iBANController.text.isNotEmpty) {
+        _iBANController.text.isNotEmpty &&
+        isIbanValid &&
+        isBankCodeValid &&
+        isFINCodeValid &&
+        isIbanValid &&
+        isMHValid &&
+        isSWIFTValid &&
+        isVATnumberValid) {
       return true;
     }
     return false;
@@ -336,21 +368,43 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     final userId = user.uid;
-    Map<String, dynamic> bankDetails = {
-      'Address': _addressController.text,
-      'FIN': _finCodeController.text,
-      'VAT': _vATnumberController.text,
-      'Bank Name': _bankNameController.text,
-      'Bank Code': _bankCodeController.text,
-      'M.H': _mHController.text,
-      'SWIFT': _sWIFTController.text,
-      'IBAN': _iBANController.text,
-    };
-    await uploadBankDetails(
-      bankDetails: bankDetails,
-      userId: userId,
-      context: context,
-    );
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(user.uid)
+            .get();
+    final role = doc.data()?['Role'];
+
+    Map<String, dynamic> bankDetails =
+        role == "Guide"
+            ? {
+              'Address': _addressController.text,
+              'FIN': _finCodeController.text,
+              'VAT': _vATnumberController.text,
+              'Bank Name': _bankNameController.text,
+              'Bank Code': _bankCodeController.text,
+              'M.H': _mHController.text,
+              'SWIFT': _sWIFTController.text,
+              'IBAN': _iBANController.text,
+              'Personal & Car Details Decline': false,
+            }
+            : {
+              'Address': _addressController.text,
+              'FIN': _finCodeController.text,
+              'VAT': _vATnumberController.text,
+              'Bank Name': _bankNameController.text,
+              'Bank Code': _bankCodeController.text,
+              'M.H': _mHController.text,
+              'SWIFT': _sWIFTController.text,
+              'IBAN': _iBANController.text,
+            };
+    if (mounted) {
+      await uploadBankDetails(
+        bankDetails: bankDetails,
+        userId: userId,
+        context: context,
+      );
+    }
     await _clearTempData();
   }
 
@@ -380,6 +434,42 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     _bankCodeController.dispose();
     _bankCodeFocusNode.dispose();
     super.dispose();
+  }
+
+  void _checkFields() {
+    if (_addressController.text.isEmpty) {
+      _isEmpty(_addressController, 'Address');
+      _addressFocusNode.requestFocus();
+      return;
+    } else if (_finCodeController.text.isEmpty || !isFINCodeValid) {
+      _isEmpty(_finCodeController, 'FIN');
+      _finCodeFocusNode.requestFocus();
+      return;
+    } else if (_vATnumberController.text.isEmpty || !isVATnumberValid) {
+      _isEmpty(_vATnumberController, 'VAT Number');
+      _vATnumberFocusNode.requestFocus();
+      return;
+    } else if (_bankNameController.text.isEmpty) {
+      _isEmpty(_bankNameController, 'Bank Name');
+      _bankNameFocusNode.requestFocus();
+      return;
+    } else if (_bankCodeController.text.isEmpty || !isBankCodeValid) {
+      _isEmpty(_bankCodeController, 'Bank Code');
+      _bankCodeFocusNode.requestFocus();
+      return;
+    } else if (_mHController.text.isEmpty || !isMHValid) {
+      _isEmpty(_mHController, 'MH');
+      _mHFocusNode.requestFocus();
+      return;
+    } else if (_sWIFTController.text.isEmpty || !isSWIFTValid) {
+      _isEmpty(_sWIFTController, 'SWIFT');
+      _sWIFTFocusNode.requestFocus();
+      return;
+    } else if (_iBANController.text.isEmpty || !isIbanValid) {
+      _isEmpty(_iBANController, 'IBAN');
+      _iBANFocusNode.requestFocus();
+      return;
+    }
   }
 
   @override
@@ -1449,6 +1539,8 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                           ),
                         ),
                       );
+                    } else {
+                      _checkFields();
                     }
                   },
                   child: Container(
@@ -1461,8 +1553,8 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                                   ? Color.fromARGB(255, 1, 105, 170)
                                   : Color.fromARGB(255, 0, 134, 179))
                               : (darkMode
-                                  ? Color.fromARGB(128, 52, 168, 235)
-                                  : Color.fromARGB(177, 0, 134, 179)),
+                                  ? Color.fromARGB(40, 52, 168, 235)
+                                  : Color.fromARGB(40, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(width * 0.019),
                     ),
                     child: Center(

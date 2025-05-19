@@ -7,6 +7,7 @@ import 'package:driver_app/front/auth/waiting_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:page_transition/page_transition.dart';
 
@@ -54,6 +55,8 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
   Widget build(BuildContext context) {
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final height = MediaQuery.of(context).size.height;
+    final width = MediaQuery.of(context).size.width;
     final isLoading = ref.watch(loadingProvider);
     final roleDetails = ref.watch(roleProvider);
     final role = roleDetails?['Role'] ?? '';
@@ -64,12 +67,31 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
           duration: Duration(milliseconds: 300),
           child:
               isLoading
-                  ? SpinKitThreeBounce(
-                    color:
-                        darkMode
-                            ? const Color(0xFF0169AA)
-                            : const Color(0xFF34A8EB),
-                    key: const ValueKey('spinner'),
+                  ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SpinKitSpinningLines(
+                        size: width * 0.45,
+                        color:
+                            darkMode
+                                ? const Color(0xFF0169AA)
+                                : const Color(0xFF34A8EB),
+                        key: const ValueKey('spinner'),
+                      ),
+                      SizedBox(height: height * 0.025),
+                      Text(
+                        "Processing your information...",
+                        style: GoogleFonts.cabin(
+                          color:
+                              darkMode
+                                  ? const Color(0xFF0169AA)
+                                  : const Color(0xFF34A8EB),
+                          fontSize: width * 0.061,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   )
                   : Lottie.asset(
                     darkMode
