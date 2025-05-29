@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/tools/image_picker.dart';
-import 'package:driver_app/back/upload_files/personal_data/upload_photos_save.dart';
-import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/tools/image_picker.dart';
+import 'package:onemoretour/back/upload_files/personal_data/upload_photos_save.dart';
+import 'package:onemoretour/db/user_data/store_role.dart';
+import 'package:onemoretour/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -233,12 +233,12 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                 ),
                 SizedBox(height: height * 0.015),
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () async {
                     final selected = await ImagePickerHelper.selectSinglePhoto(
                       context: context,
                     );
                     if (selected == null) return;
-                    // Delete old photo from Firebase Storage if present
                     if (personalPhoto != null) {
                       try {
                         final oldRef = FirebaseStorage.instance.refFromURL(
@@ -270,16 +270,22 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: ImageGrid(images: [personalPhoto]),
+                      child: ImageGrid(
+                        images: [personalPhoto],
+                        onRemove: (_) async {
+                          setState(() => personalPhoto = null);
+                          await _saveTempPersonalPhotos();
+                        },
+                      ),
                     ),
                 SizedBox(height: height * 0.015),
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () async {
                     final images = await ImagePickerHelper.selectMultiplePhotos(
                       context: context,
                     );
                     if (images != null) {
-                      // Delete old ID photos from Firebase Storage if present
                       if (iDPhoto.isNotEmpty) {
                         for (var file in iDPhoto) {
                           try {
@@ -298,7 +304,12 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                   },
                   child: Row(
                     children: [
-                      Text('Please Upload Your ID Photo (Front and Back)'),
+                      Expanded(
+                        child: Text(
+                          'Please Upload Your ID Photo (Front and Back)',
+                          softWrap: true,
+                        ),
+                      ),
                       Spacer(),
                       Icon(Icons.add),
                     ],
@@ -314,12 +325,19 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: ImageGrid(images: iDPhoto),
+                      child: ImageGrid(
+                        images: iDPhoto,
+                        onRemove: (index) async {
+                          setState(() => iDPhoto.removeAt(index));
+                          await _saveTempPersonalPhotos();
+                        },
+                      ),
                     ),
                 SizedBox(height: height * 0.025),
                 role == 'Guide'
                     ? SizedBox.shrink()
                     : GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () async {
                         final images =
                             await ImagePickerHelper.selectMultiplePhotos(
@@ -359,7 +377,13 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: ImageGrid(images: driverLicensePhoto),
+                      child: ImageGrid(
+                        images: driverLicensePhoto,
+                        onRemove: (index) async {
+                          setState(() => driverLicensePhoto.removeAt(index));
+                          await _saveTempPersonalPhotos();
+                        },
+                      ),
                     ),
                 SizedBox(height: height * 0.025),
                 GestureDetector(

@@ -1,12 +1,7 @@
 import Flutter
 import UIKit
 import GoogleMaps
-
-func registerPlugins(registry: FlutterPluginRegistry) {
-    if (!registry.hasPlugin("BackgroundLocatorPlugin")) {
-        GeneratedPluginRegistrant.register(with: registry)
-    }
-}
+import flutter_local_notifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -14,8 +9,26 @@ func registerPlugins(registry: FlutterPluginRegistry) {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GMSServices.provideAPIKey("AIzaSyB6JYD0lrlzp85gUDB1LMU6CVkNi6EdR6Y")
+      FlutterLocalNotificationsPlugin.setPluginRegistrantCallback { registrar in
+          GeneratedPluginRegistrant.register(with: registrar)
+      }
+      GMSServices.provideAPIKey("AIzaSyB6JYD0lrlzp85gUDB1LMU6CVkNi6EdR6Y")
     GeneratedPluginRegistrant.register(with: self)
+      
+      if #available(iOS 10.0, *) {
+          UNUserNotificationCenter.current().delegate = self
+      }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+}
+
+import UserNotifications
+
+extension AppDelegate {
+  // This method will be called when the app receives a notification in the foreground
+  override func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              willPresent notification: UNNotification,
+                              withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    completionHandler([.alert, .badge, .sound]) // Show alert, badge, and play sound
   }
 }

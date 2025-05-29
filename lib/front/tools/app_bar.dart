@@ -1,9 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/tools/firebase_service.dart';
-import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/tools/notification_notifier.dart';
-import 'package:driver_app/main.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/tools/firebase_service.dart';
+import 'package:onemoretour/db/user_data/store_role.dart';
+import 'package:onemoretour/front/tools/notification_notifier.dart';
+import 'package:onemoretour/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,10 +28,14 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
 
   @override
   void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.watch(notificationsProvider.notifier).refresh();
-    });
+    try {
+      super.initState();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.watch(notificationsProvider.notifier).refresh();
+      });
+    } catch (e) {
+      logger.e('Error to initialize appBar: $e');
+    }
   }
 
   @override
@@ -58,7 +63,11 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
 
     var userData = ref.watch(usersDataProvider);
     if (userData == null) {
-      return CircularProgressIndicator();
+      return SizedBox(
+        width: width * 0.11,
+        height: height * 0.052,
+        child: CircularProgressIndicator(),
+      );
     }
 
     String profilePicture = userData['personalPhoto'];
@@ -87,6 +96,7 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
               fontSize: width * 0.066,
               fontWeight: FontWeight.bold,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
           Spacer(),
 

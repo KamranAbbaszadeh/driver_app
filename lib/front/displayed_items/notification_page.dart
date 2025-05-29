@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/bloc/notification_bloc.dart';
-import 'package:driver_app/back/bloc/notification_event.dart';
-import 'package:driver_app/back/bloc/notification_state.dart';
-import 'package:driver_app/front/tools/bottom_bar_provider.dart';
-import 'package:driver_app/front/tools/notification_notifier.dart';
-import 'package:driver_app/main.dart';
+import 'package:onemoretour/back/bloc/notification_bloc.dart';
+import 'package:onemoretour/back/bloc/notification_event.dart';
+import 'package:onemoretour/back/bloc/notification_state.dart';
+import 'package:onemoretour/front/tools/bottom_bar_provider.dart';
+import 'package:onemoretour/front/tools/notification_notifier.dart';
+import 'package:onemoretour/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

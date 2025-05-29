@@ -1,4 +1,4 @@
-import 'package:driver_app/back/tools/language_list.dart';
+import 'package:onemoretour/back/tools/language_list.dart';
 import 'package:flutter/material.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 

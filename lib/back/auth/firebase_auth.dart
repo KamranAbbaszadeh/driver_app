@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/auth/post_api.dart';
-import 'package:driver_app/front/auth/waiting_page.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/auth/post_api.dart';
+import 'package:onemoretour/front/auth/waiting_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';

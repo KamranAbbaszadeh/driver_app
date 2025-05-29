@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/front/displayed_items/tours/my_rides.dart';
-import 'package:driver_app/front/tools/ride_model.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/front/displayed_items/tours/my_rides.dart';
+import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
@@ -307,6 +307,17 @@ class _MyRidesBodyState extends State<MyRidesBody> {
                     MyRides(
                       filteredRides: guideRides,
                       parentScrollController: _scrollController,
+                    ),
+                  ] else if (guideRides.isEmpty && carRides.isEmpty) ...[
+                    Center(
+                      child: Text(
+                        'No tours available. Press the "Rides" and grab a ride!',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.cabin(
+                          fontSize: width * 0.04,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ] else ...[

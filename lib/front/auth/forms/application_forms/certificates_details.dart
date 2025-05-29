@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:driver_app/back/upload_files/certificates/upload_certificate_save.dart';
-import 'package:driver_app/front/auth/forms/application_forms/bank_details_form.dart';
-import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
+import 'package:onemoretour/back/upload_files/certificates/upload_certificate_save.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/bank_details_form.dart';
+import 'package:onemoretour/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -27,12 +27,16 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   bool _showTitle = false;
   List<Map<String, dynamic>> certificates = [];
   bool _allFilledOut() {
-    if (certificates.isEmpty) {
-      return false;
-    }
+    if (certificates.isEmpty) return false;
 
-    for (Map<String, dynamic> certificate in certificates) {
-      if (certificate.values.any((value) => value == null)) {
+    for (var cert in certificates) {
+      if (cert['name'] == null || cert['name'].toString().trim().isEmpty) {
+        return false;
+      }
+      if (cert['type'] == null) {
+        return false;
+      }
+      if (cert['file'] == null) {
         return false;
       }
     }
@@ -49,6 +53,20 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     });
   }
 
+  Future<void> deleteFile(int index) async {
+    setState(() {
+      certificates[index]['file'] = null;
+      certificates[index]['file name'] = null;
+      certificates[index]['fileUrl'] = null;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('File removed')));
+    }
+  }
+
   void updateCertificate(int index, String key, dynamic value) {
     setState(() {
       certificates[index][key] = value;
@@ -57,10 +75,11 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   }
 
   Future<void> pickFile(int index) async {
-    // Delete previous file if it exists
     if (certificates[index]['fileUrl'] != null) {
       try {
-        final oldRef = FirebaseStorage.instance.refFromURL(certificates[index]['fileUrl']);
+        final oldRef = FirebaseStorage.instance.refFromURL(
+          certificates[index]['fileUrl'],
+        );
         await oldRef.delete();
       } catch (_) {}
     }
@@ -277,15 +296,26 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                 size: width * 0.101,
               ),
               SizedBox(width: width * 0.025),
-              Text(
-                certificates[index]['file name'] ?? 'Upload Certificate',
-                style: TextStyle(
-                  color:
-                      certificates[index]['file'] != null
-                          ? Theme.of(context).textTheme.bodyMedium?.color!
-                          : Colors.grey,
+              Expanded(
+                child: Text(
+                  certificates[index]['file name'] ?? 'Upload Certificate',
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color:
+                        certificates[index]['file'] != null
+                            ? Theme.of(context).textTheme.bodyMedium?.color!
+                            : Colors.grey,
+                  ),
                 ),
               ),
+              Spacer(),
+              certificates[index]['file name'] == null
+                  ? SizedBox.shrink()
+                  : IconButton(
+                    icon: Icon(Icons.cancel),
+                    onPressed: () => deleteFile(index),
+                  ),
             ],
           ),
         ),
@@ -335,19 +365,30 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      final doc = await FirebaseFirestore.instance.collection('Users').doc(user.uid).get();
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(user.uid)
+              .get();
       final isDeclined = doc.data()?['Personal & Car Details Decline'] == true;
 
       if (isDeclined) {
-        final certs = List<Map<String, dynamic>>.from(doc.data()?['certificates'] ?? []);
+        final certs = List<Map<String, dynamic>>.from(
+          doc.data()?['certificates'] ?? [],
+        );
         setState(() {
-          certificates = certs.map((cert) => {
-            'name': cert['name'],
-            'type': cert['type'],
-            'file': null,
-            'file name': cert['file name'],
-            'fileUrl': cert['fileUrl'],
-          }).toList();
+          certificates =
+              certs
+                  .map(
+                    (cert) => {
+                      'name': cert['name'],
+                      'type': cert['type'],
+                      'file': null,
+                      'file name': cert['file name'],
+                      'fileUrl': cert['fileUrl'],
+                    },
+                  )
+                  .toList();
         });
         return;
       }
@@ -356,17 +397,21 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     final raw = prefs.getString('certificates');
     if (raw != null) {
       final matches = RegExp(r'\{.*?\}').allMatches(raw);
-      final restored = matches.map((m) {
-        final item = m.group(0)!;
-        final name = RegExp(r'name: (.*?),').firstMatch(item)?.group(1)?.trim() ?? '';
-        final type = RegExp(r'type: (.*?)\}').firstMatch(item)?.group(1)?.trim();
-        return {
-          'name': name,
-          'type': type == 'null' ? null : type,
-          'file': null,
-          'file name': null,
-        };
-      }).toList();
+      final restored =
+          matches.map((m) {
+            final item = m.group(0)!;
+            final name =
+                RegExp(r'name: (.*?),').firstMatch(item)?.group(1)?.trim() ??
+                '';
+            final type =
+                RegExp(r'type: (.*?)\}').firstMatch(item)?.group(1)?.trim();
+            return {
+              'name': name,
+              'type': type == 'null' ? null : type,
+              'file': null,
+              'file name': null,
+            };
+          }).toList();
       setState(() {
         certificates = restored;
       });

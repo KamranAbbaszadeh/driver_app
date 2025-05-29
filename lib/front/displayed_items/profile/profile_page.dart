@@ -1,20 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/auth/is_deleting_profile_provider.dart';
-import 'package:driver_app/back/map_and_location/ride_flow_provider.dart';
-import 'package:driver_app/back/ride/ride_state.dart';
-import 'package:driver_app/back/rides_history/rides_provider.dart';
-import 'package:driver_app/back/tools/firebase_service.dart';
-import 'package:driver_app/back/user/delete_user_post_api.dart';
-import 'package:driver_app/back/user/user_data_provider.dart';
-import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/auth/waiting_page.dart';
-import 'package:driver_app/front/displayed_items/profile/profile_data.dart';
-import 'package:driver_app/front/displayed_items/profile/rides_history.dart';
-import 'package:driver_app/front/displayed_items/profile/vehicle_list.dart';
-import 'package:driver_app/front/intro/welcome_page.dart';
-import 'package:driver_app/front/tools/notification_notifier.dart';
+import 'package:onemoretour/back/rides_history/rides_provider.dart';
+import 'package:onemoretour/db/user_data/store_role.dart';
+import 'package:onemoretour/front/auth/waiting_page.dart';
+import 'package:onemoretour/front/displayed_items/profile/deleting_account_page.dart';
+import 'package:onemoretour/front/displayed_items/profile/profile_data.dart';
+import 'package:onemoretour/front/displayed_items/profile/rides_history.dart';
+import 'package:onemoretour/front/displayed_items/profile/vehicle_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,12 +14,6 @@ import 'package:intl/intl.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
-  Future<void> _deleteCollection(CollectionReference collectionRef) async {
-    final querySnapshot = await collectionRef.get();
-    for (final doc in querySnapshot.docs) {
-      await doc.reference.delete();
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -476,174 +461,13 @@ class ProfilePage extends ConsumerWidget {
                           ),
                     );
 
-                    if (confirmDelete == true) {
-                      try {
-                        ref.read(isDeletingProfileProvider.notifier).state =
-                            true;
-                        if (context.mounted) {
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder:
-                                (_) => Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      CircularProgressIndicator(
-                                        color: Color(0xFFE70137),
-                                      ),
-                                      SizedBox(height: height * 0.018),
-                                      Text(
-                                        'Deleting your profile...',
-                                        style: GoogleFonts.cabin(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: width * 0.045,
-                                          color:
-                                              darkMode
-                                                  ? Colors.white
-                                                  : Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                          );
-                        }
-
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user == null) {
-                          return;
-                        }
-                        final userId = user.uid;
-
-                        final firestore = FirebaseFirestore.instance;
-                        final storage = FirebaseStorage.instance;
-                        final deleteUserPostApi = DeleteUserPostApi();
-
-                        await deleteUserPostApi.postData({
-                          'user_id': userId,
-                          "email": user.email,
-                        });
-                        final storageRef = storage
-                            .ref()
-                            .child('Users')
-                            .child(userId);
-                        await _deleteAllFilesUnderRef(storageRef);
-
-                        final docRef = firestore
-                            .collection('Users')
-                            .doc(userId);
-                        final docSnapshot = await docRef.get();
-                        if (docSnapshot.exists) {
-                          final vehicleCollection = docRef.collection(
-                            'Vehicles',
-                          );
-                          await _deleteCollection(vehicleCollection);
-                          await docRef.delete();
-                        }
-
-                        try {
-                          ref.invalidate(roleProvider);
-                          ref.invalidate(ridesHistoryProvider);
-                          ref.invalidate(usersDataProvider);
-                          ref.invalidate(authStateChangesProvider);
-                          ref.invalidate(firestoreServiceProvider);
-                          ref.invalidate(notificationsProvider);
-                          ref.invalidate(vehiclesProvider);
-                          ref.invalidate(rideFlowProvider);
-                          ref.invalidate(rideProvider);
-                          ref.invalidate(ridesHistoryProvider);
-
-                          await user.delete();
-                          ref.read(isDeletingProfileProvider.notifier).state =
-                              false;
-                        } on FirebaseAuthException catch (e) {
-                          if (e.code == 'requires-recent-login') {
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: const Color.fromARGB(
-                                    255,
-                                    231,
-                                    1,
-                                    55,
-                                  ),
-                                  content: Text(
-                                    'Session expired. Please log in again and try deleting your profile.',
-                                    style: GoogleFonts.cabin(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              );
-                              await FirebaseAuth.instance.signOut();
-                              if (context.mounted) {
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const WelcomePage(),
-                                  ),
-                                  (route) => false,
-                                );
-                              }
-                            }
-                            return;
-                          } else {
-                            rethrow;
-                          }
-                        }
-
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: const Color.fromARGB(
-                                255,
-                                103,
-                                168,
-                                120,
-                              ),
-                              content: Text(
-                                'Profile deleted successfully.',
-                                style: GoogleFonts.cabin(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          );
-                          await Future.delayed(const Duration(seconds: 1));
-                          if (context.mounted) {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const WelcomePage(),
-                              ),
-                              (route) => false,
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: const Color.fromARGB(
-                                255,
-                                231,
-                                1,
-                                55,
-                              ),
-                              content: Text(
-                                'Failed to delete profile. Please re-login and try again.',
-                                style: GoogleFonts.cabin(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                      }
+                    if (confirmDelete == true && context.mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DeletingAccountPage(),
+                        ),
+                      );
                     }
                   },
                   child: Column(
@@ -672,17 +496,5 @@ class ProfilePage extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _deleteAllFilesUnderRef(Reference ref) async {
-    final listResult = await ref.listAll();
-
-    for (final item in listResult.items) {
-      await item.delete();
-    }
-
-    for (final folder in listResult.prefixes) {
-      await _deleteAllFilesUnderRef(folder);
-    }
   }
 }

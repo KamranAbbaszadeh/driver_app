@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/map_and_location/location_provider.dart';
-import 'package:driver_app/back/map_and_location/ride_flow_provider.dart';
-import 'package:driver_app/back/ride/ride_state.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/map_and_location/location_provider.dart';
+import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
+import 'package:onemoretour/back/ride/ride_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -191,7 +191,7 @@ class _RideMapState extends ConsumerState<RideMap> {
           onMapCreated: (controller) {
             _mapController = controller;
           },
-
+          myLocationButtonEnabled: false,
           style: darkMode ? _mapStyleDarkString : _mapStyleLightString,
           fortyFiveDegreeImageryEnabled: false,
           trafficEnabled: false,

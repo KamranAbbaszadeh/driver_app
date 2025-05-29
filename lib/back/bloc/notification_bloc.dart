@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'package:driver_app/back/bloc/notification_event.dart';
-import 'package:driver_app/back/bloc/notification_state.dart';
+import 'package:onemoretour/back/bloc/notification_event.dart';
+import 'package:onemoretour/back/bloc/notification_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:driver_app/back/api/get_stored_message.dart';
+import 'package:onemoretour/back/api/get_stored_message.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {

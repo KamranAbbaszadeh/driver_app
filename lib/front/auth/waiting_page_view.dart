@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/front/intro/welcome_page.dart';
-import 'package:driver_app/front/tools/notification_notifier.dart';
-import 'package:driver_app/main.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/certificates_details.dart';
+import 'package:onemoretour/front/intro/welcome_page.dart';
+import 'package:onemoretour/front/tools/notification_notifier.dart';
+import 'package:onemoretour/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -237,7 +238,6 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                         ),
                         Expanded(
                           child: SizedBox(
-                            height: height * 0.14,
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,7 +278,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   height: height * 0.03,
-                                  width: width * 0.4,
+                                  width: width * 0.5,
                                   child: Center(
                                     child: Text(
                                       userData['Application Form'],
@@ -776,7 +776,14 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                     SizedBox(height: height * 0.01),
                     GestureDetector(
                       onTap: () {
-                        // FirebaseAuth.instance.signOut();
+                        navigatorKey.currentState?.push(
+                          MaterialPageRoute(
+                            builder:
+                                (context) => CertificatesDetails(
+                                  role: "Driver Cum Guide",
+                                ),
+                          ),
+                        );
                       },
                       child: Container(
                         decoration: BoxDecoration(

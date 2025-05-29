@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/front/auth/forms/contracts/contract_body_driver.dart';
-import 'package:driver_app/front/auth/forms/contracts/contract_body_guide.dart';
-import 'package:driver_app/front/intro/welcome_page.dart';
+import 'package:onemoretour/front/auth/forms/contracts/contract_body_driver.dart';
+import 'package:onemoretour/front/auth/forms/contracts/contract_body_guide.dart';
+import 'package:onemoretour/front/intro/welcome_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';

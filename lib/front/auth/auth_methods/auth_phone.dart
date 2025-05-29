@@ -1,6 +1,6 @@
 import 'package:country_picker/country_picker.dart';
-import 'package:driver_app/front/auth/auth_methods/auth_phone_alternative.dart';
-// import 'package:driver_app/back/tools/remove_emojis.dart';
+import 'package:onemoretour/front/auth/auth_methods/auth_phone_alternative.dart';
+// import 'package:onemoretour/back/tools/remove_emojis.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 

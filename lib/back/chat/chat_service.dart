@@ -1,14 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/chat/message_model.dart';
-import 'package:driver_app/back/chat/message_send_api.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/chat/message_model.dart';
+import 'package:onemoretour/back/chat/message_send_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<void> sendMessage({required message, required String tourID}) async {
+  Future<void> sendMessage({required dynamic message, required String tourID}) async {
     final String currentUserId = _auth.currentUser!.uid;
     final Timestamp timestamp = Timestamp.now();
     DocumentSnapshot userSnapshot =

@@ -1,17 +1,17 @@
 import 'dart:async';
 
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/map_and_location/get_functions.dart';
-import 'package:driver_app/back/map_and_location/location_post_api.dart';
-import 'package:driver_app/back/map_and_location/location_provider.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/map_and_location/get_functions.dart';
+import 'package:onemoretour/back/map_and_location/location_post_api.dart';
+import 'package:onemoretour/back/map_and_location/location_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
     as bg;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:driver_app/front/tools/ride_model.dart';
-import 'package:driver_app/front/tools/get_location_name.dart';
+import 'package:onemoretour/front/tools/ride_model.dart';
+import 'package:onemoretour/front/tools/get_location_name.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
@@ -299,7 +299,7 @@ class RideNotifier extends StateNotifier<RideState> {
   }
 
   void updateCurrentLocation({
-    required latitude,
+    required dynamic latitude,
     required longitude,
     required speedKph,
     required heading,

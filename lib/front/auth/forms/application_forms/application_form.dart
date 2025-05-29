@@ -1,12 +1,13 @@
-import 'package:driver_app/back/auth/firebase_auth.dart';
-import 'package:driver_app/back/tools/date_picker.dart';
-import 'package:driver_app/back/tools/gender_picker.dart';
-import 'package:driver_app/back/tools/language_picker.dart';
-import 'package:driver_app/back/tools/role_picker.dart';
-import 'package:driver_app/back/tools/validate_email.dart';
+import 'package:onemoretour/back/auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
+import 'package:onemoretour/back/tools/date_picker.dart';
+import 'package:onemoretour/back/tools/gender_picker.dart';
+import 'package:onemoretour/back/tools/language_picker.dart';
+import 'package:onemoretour/back/tools/role_picker.dart';
+import 'package:onemoretour/back/tools/validate_email.dart';
 import 'package:flutter/services.dart';
-import 'package:driver_app/back/tools/vehicle_type_picker.dart';
-import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
+import 'package:onemoretour/back/tools/vehicle_type_picker.dart';
+import 'package:onemoretour/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -146,6 +147,32 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     return 'confirmed';
   }
 
+  bool _isAtLeastYearsOld(
+    String dateString, {
+    int minAge = 18,
+    DateTime? referenceDate,
+  }) {
+    if (dateString != "") {
+      try {
+        final format = DateFormat('d/M/yyyy');
+        final birthDate = format.parse(dateString);
+        final today = referenceDate ?? DateTime.now();
+        final age =
+            today.year -
+            birthDate.year -
+            (today.month < birthDate.month ||
+                    (today.month == birthDate.month &&
+                        today.day < birthDate.day)
+                ? 1
+                : 0);
+        return age >= minAge;
+      } catch (e) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   bool _allFilledOut() {
     if (user == null) {
       if (_firstNameController.text.isNotEmpty &&
@@ -164,7 +191,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
           isValid &&
           isPasswordValid &&
           isPasswordConfirmed &&
-          isChecked) {
+          isChecked &&
+          _isAtLeastYearsOld(_birthDayController.text)) {
         return true;
       } else if (_firstNameController.text.isNotEmpty &&
           _lastNameController.text.isNotEmpty &&
@@ -183,7 +211,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
           isValid &&
           isPasswordValid &&
           isPasswordConfirmed &&
-          isChecked) {
+          isChecked &&
+          _isAtLeastYearsOld(_birthDayController.text)) {
         return true;
       }
       return false;
@@ -523,7 +552,10 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     await Future.delayed(Duration(milliseconds: 100));
     if (mounted) {
       await selectDate(context: context, controller: _birthDayController);
+
       _isEmpty(_birthDayController, 'birthDay');
+
+      _isAtLeastYearsOld(_birthDayController.text);
     }
     _genderFocusNode.requestFocus();
   }
@@ -995,6 +1027,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                     ),
                     child: Text(
                       "Required",
+                      textAlign: TextAlign.start,
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -1136,7 +1169,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color:
-                          isBirthDayEmpty
+                          isBirthDayEmpty ||
+                                  !_isAtLeastYearsOld(_birthDayController.text)
                               ? const Color.fromARGB(255, 244, 92, 54)
                               : _birthDayFocusNode.hasFocus
                               ? Colors.blue
@@ -1170,7 +1204,6 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         _birthDayFocusNode.unfocus();
                         FocusScope.of(context).requestFocus(_genderFocusNode);
                       },
-
                       controller: _birthDayController,
                       decoration: InputDecoration(
                         suffixIcon: Icon(
@@ -1191,7 +1224,10 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         labelStyle: TextStyle(
                           fontSize: width * 0.038,
                           color:
-                              isBirthDayEmpty
+                              isBirthDayEmpty ||
+                                      !_isAtLeastYearsOld(
+                                        _birthDayController.text,
+                                      )
                                   ? const Color.fromARGB(255, 244, 92, 54)
                                   : _birthDayFocusNode.hasFocus
                                   ? Colors.blue
@@ -1202,14 +1238,17 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                     ),
                   ),
                 ),
-                if (isBirthDayEmpty)
+                if (isBirthDayEmpty ||
+                    !_isAtLeastYearsOld(_birthDayController.text))
                   Padding(
                     padding: EdgeInsets.only(
                       left: width * 0.027,
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      isBirthDayEmpty
+                          ? "Required"
+                          : "You must be at least 18 years old to apply.",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -1313,6 +1352,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                 //EMAIL
                 user == null
                     ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
                           width: width,
@@ -1444,6 +1484,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                             ),
                             child: Text(
                               "Invalid email adress",
+
                               style: TextStyle(
                                 fontSize: width * 0.03,
                                 color: const Color.fromARGB(255, 244, 92, 54),

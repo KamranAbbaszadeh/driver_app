@@ -1,7 +1,7 @@
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/tools/loading_notifier.dart';
-import 'package:driver_app/front/auth/waiting_page.dart';
-import 'package:driver_app/back/tools/validate_email.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/tools/loading_notifier.dart';
+import 'package:onemoretour/front/auth/waiting_page.dart';
+import 'package:onemoretour/back/tools/validate_email.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

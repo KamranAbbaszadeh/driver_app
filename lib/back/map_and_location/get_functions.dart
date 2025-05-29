@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/map_and_location/location_post_api.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/map_and_location/location_post_api.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -15,7 +16,7 @@ LatLng? lastLatLng;
 bool hasMovedSignificantly(double lat, double lng, double thresholdMeters) {
   if (lastLatLng == null) return true;
 
-  final double earthRadius = 6371000; 
+  final double earthRadius = 6371000;
   final double dLat = _degreesToRadians(lat - lastLatLng!.latitude);
   final double dLng = _degreesToRadians(lng - lastLatLng!.longitude);
 
@@ -62,7 +63,10 @@ void headlessTask(bg.HeadlessEvent headlessEvent) async {
             now.isAfter(startDate) &&
             now.isBefore(endDate) &&
             !endArrived) {
-          final bg.Location location = headlessEvent.event;
+          final location = await bg.BackgroundGeolocation.getCurrentPosition(
+            persist: false,
+            samples: 1,
+          );
           await sendLocationToBackend(
             docId: docId,
             latitude: location.coords.latitude,
@@ -248,6 +252,7 @@ Future<void> _startTrackingService(
 }
 
 Future<void> requestIgnoreBatteryOptimizations(BuildContext context) async {
+  if (!Platform.isAndroid) return;
   final width = MediaQuery.of(context).size.width;
   final height = MediaQuery.of(context).size.height;
   final darkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
@@ -367,7 +372,7 @@ Future<void> requestLocationPermissions(BuildContext context) async {
   if (foregroundStatus.isGranted) {
     final PermissionStatus backgroundStatus =
         await Permission.locationAlways.status;
-    if (backgroundStatus.isGranted) return;
+    if (backgroundStatus.isGranted && !Platform.isAndroid) return;
 
     bool shouldOpenSettings =
         context.mounted

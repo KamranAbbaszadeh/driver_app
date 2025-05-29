@@ -1,14 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/map_and_location/get_functions.dart';
-import 'package:driver_app/back/ride/ride_state.dart';
-import 'package:driver_app/front/displayed_items/ride_page.dart';
-import 'package:driver_app/front/tools/app_bar.dart';
-import 'package:driver_app/front/tools/bottom_bar_provider.dart';
-import 'package:driver_app/front/tools/bottom_nav_bar.dart';
-import 'package:driver_app/front/tools/list_nav_bar.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/map_and_location/get_functions.dart';
+import 'package:onemoretour/back/ride/ride_state.dart';
+import 'package:onemoretour/front/displayed_items/ride_page.dart';
+import 'package:onemoretour/front/tools/app_bar.dart';
+import 'package:onemoretour/front/tools/bottom_bar_provider.dart';
+import 'package:onemoretour/front/tools/bottom_nav_bar.dart';
+import 'package:onemoretour/front/tools/list_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,14 +26,18 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage> {
   StreamSubscription? _locationSubscription;
 
-  get onLocation => null;
+  dynamic get onLocation => null;
   @override
   void initState() {
-    super.initState();
-    WakelockPlus.enable();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      FirebaseApi.instance.checkAndRequestExactAlarmPermission(context);
-    });
+    try {
+      super.initState();
+      WakelockPlus.enable();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        FirebaseApi.instance.checkAndRequestExactAlarmPermission(context);
+      });
+    } catch (e) {
+      logger.e('Error to initialize: $e');
+    }
   }
 
   @override
@@ -40,7 +45,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.didChangeDependencies();
     if (!mounted) return;
     await requestLocationPermissions(context);
-    if (!mounted) return;
+    if (!mounted && !Platform.isAndroid) return;
     await requestIgnoreBatteryOptimizations(context);
   }
 
@@ -86,11 +91,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         FirebaseApi.instance.cancelTourReminders(tourId);
       }
     });
-    
+
     final selectedIndex = ref.watch(selectedIndexProvider);
     final height = MediaQuery.of(context).size.height;
-
-    
 
     return Scaffold(
       appBar: PreferredSize(
@@ -115,7 +118,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 tourStartDate.subtract(const Duration(hours: 2)),
               ) &&
               currentDate.isBefore(tourEndDate.add(const Duration(hours: 1)));
-
 
           if (isTourStarted && index == 0) {
             final width = MediaQuery.of(context).size.width;

@@ -143,26 +143,72 @@ class ImagePickerHelper {
   }
 }
 
-class ImageGrid extends StatelessWidget {
+class ImageGrid extends StatefulWidget {
   final List<XFile> images;
+  final void Function(int index)? onRemove;
 
-  const ImageGrid({super.key, required this.images});
+  const ImageGrid({super.key, required this.images, required this.onRemove});
 
   @override
+  State<ImageGrid> createState() => _ImageGridState();
+}
+
+class _ImageGridState extends State<ImageGrid> {
+  @override
   Widget build(BuildContext context) {
+    final darkMode =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+    final images = widget.images;
     return GridView.builder(
       itemCount: images.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      padding: EdgeInsets.all(width * 0.02),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        crossAxisSpacing: width * 0.02,
+        mainAxisSpacing: width * 0.02,
       ),
       itemBuilder: (_, index) {
         final image = images[index];
-        return Image.file(File(image.path), fit: BoxFit.cover);
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(width * 0.01),
+                child: Image.file(File(image.path), fit: BoxFit.cover),
+              ),
+            ),
+            Positioned(
+              top: -height * 0.009,
+              right: -width * 0.02,
+              child: GestureDetector(
+                onTap: () {
+                  if (widget.onRemove != null) {
+                    widget.onRemove!(index);
+                  }
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                  ),
+                  child: Icon(
+                    Icons.cancel,
+                    color:
+                        darkMode
+                            ? Color.fromARGB(255, 1, 105, 170)
+                            : Color.fromARGB(255, 52, 168, 235),
+                    size: width * 0.05,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
       },
     );
   }

@@ -1,7 +1,7 @@
-import 'package:driver_app/front/auth/forms/application_forms/application_form.dart';
-import 'package:driver_app/front/auth/auth_methods/auth_phone.dart';
-import 'package:driver_app/front/intro/terms.dart';
-import 'package:driver_app/main.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/application_form.dart';
+import 'package:onemoretour/front/intro/terms.dart';
+import 'package:onemoretour/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,37 +23,41 @@ class _WelcomePageState extends State<WelcomePage>
   @override
   @override
   void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: 5),
-    );
+    try {
+      super.initState();
+      _controller = AnimationController(
+        vsync: this,
+        duration: Duration(seconds: 5),
+      );
 
-    _logoAnimation = Tween<Offset>(
-      begin: Offset(0, -1),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(0.0, 0.5, curve: Curves.easeOut),
-      ),
-    );
+      _logoAnimation = Tween<Offset>(
+        begin: Offset(0, -1),
+        end: Offset.zero,
+      ).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: Interval(0.0, 0.5, curve: Curves.easeOut),
+        ),
+      );
 
-    _contentAnimation = Tween<Offset>(
-      begin: Offset(0, 1),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(0.5, 1.0, curve: Curves.easeOut),
-      ),
-    );
+      _contentAnimation = Tween<Offset>(
+        begin: Offset(0, 1),
+        end: Offset.zero,
+      ).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: Interval(0.5, 1.0, curve: Curves.easeOut),
+        ),
+      );
 
-    Future.delayed(Duration(milliseconds: 1), () {
-      if (mounted) {
-        _controller.forward();
-      }
-    });
+      Future.delayed(Duration(milliseconds: 1), () {
+        if (mounted) {
+          _controller.forward();
+        }
+      });
+    } catch (e) {
+      logger.e('Error: $e');
+    }
   }
 
   @override
@@ -122,6 +126,7 @@ class _WelcomePageState extends State<WelcomePage>
                             Column(
                               mainAxisAlignment: MainAxisAlignment.start,
                               children: [
+                                SizedBox(height: height * 0.027),
                                 GestureDetector(
                                   onTap: () {
                                     navigatorKey.currentState?.pushNamed(
@@ -183,59 +188,7 @@ class _WelcomePageState extends State<WelcomePage>
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: height * 0.009),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => AuthPhone(),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    height: height * 0.058,
-                                    width: width * 0.923,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Colors.grey.shade400,
-                                        width: 0.5,
-                                      ),
-                                      borderRadius: BorderRadius.circular(
-                                        width * 0.019,
-                                      ),
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: width * 0.030,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Image.asset(
-                                          'assets/welcome/smartphone.png',
-                                          color:
-                                              darkMode
-                                                  ? Colors.grey.shade300
-                                                  : Colors.black87,
-                                          width: width * 0.127,
-                                          height: height * 0.035,
-                                        ),
-                                        SizedBox(width: width * 0.050),
-                                        Text(
-                                          'Sign in with phone number',
-                                          style: TextStyle(
-                                            color:
-                                                darkMode
-                                                    ? Colors.grey.shade300
-                                                    : Colors.black87,
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: width * 0.04,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: height * 0.027),
+                                SizedBox(height: height * 0.057),
                                 Text(
                                   'Want to become a driver or a tour guide?',
                                   style: GoogleFonts.roboto(

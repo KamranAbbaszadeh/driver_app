@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/user_assign.dart/user_assign.dart';
-import 'package:driver_app/front/tools/date_picker.dart';
-import 'package:driver_app/front/displayed_items/tours/ride_routes.dart';
-import 'package:driver_app/front/tools/ride_model.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/user_assign.dart/user_assign.dart';
+import 'package:onemoretour/front/tools/date_picker.dart';
+import 'package:onemoretour/front/displayed_items/tours/ride_routes.dart';
+import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -52,6 +52,7 @@ class _DetailsPageState extends State<DetailsPage> {
   void updateSelectedDay(DateTime day) {
     setState(() {
       selectedDay = day;
+      logger.e(selectedDay);
     });
   }
 
@@ -84,7 +85,7 @@ class _DetailsPageState extends State<DetailsPage> {
               darkMode: darkMode,
             ),
             Container(
-              height: height * 0.797,
+              height: height * 0.74,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(width * 0.076),

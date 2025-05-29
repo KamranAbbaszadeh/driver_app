@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
-import 'package:driver_app/front/auth/forms/application_forms/car_details_form.dart';
-import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
-import 'package:driver_app/front/displayed_items/profile/vehicle_card.dart';
+import 'package:onemoretour/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/car_details_form.dart';
+import 'package:onemoretour/front/displayed_items/intermediate_page_for_forms.dart';
+import 'package:onemoretour/front/displayed_items/profile/vehicle_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';

@@ -1,7 +1,7 @@
-import 'package:driver_app/back/upload_files/bank_details/upload_bank_details.dart';
-import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/auth/forms/application_forms/upper_case_text_formatter.dart';
-import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
+import 'package:onemoretour/back/upload_files/bank_details/upload_bank_details.dart';
+import 'package:onemoretour/db/user_data/store_role.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/upper_case_text_formatter.dart';
+import 'package:onemoretour/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -61,38 +61,56 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
   bool isIbanValid = true;
 
   bool isValidCorrespondentAccount(String account) {
-    account = account.replaceAll(' ', '');
-    final regex = RegExp(r'^[A-Z0-9]{20,34}$');
-    return regex.hasMatch(account);
+    if (account.isNotEmpty) {
+      account = account.replaceAll(' ', '');
+      final regex = RegExp(r'^[A-Z0-9]{20,34}$');
+      return regex.hasMatch(account);
+    }
+    return true;
   }
 
   bool isValidSWIFT(String swift) {
-    swift = swift.replaceAll(' ', '');
-    return swift.length == 8 || swift.length == 11
-        ? RegExp(r'^[A-Z0-9]+$').hasMatch(swift)
-        : false;
+    if (swift.isNotEmpty) {
+      swift = swift.replaceAll(' ', '');
+      return swift.length == 8 || swift.length == 11
+          ? RegExp(r'^[A-Z0-9]+$').hasMatch(swift)
+          : false;
+    }
+    return true;
   }
 
   bool isValidIban(String iban) {
-    return isValid(iban);
+    if (iban.isNotEmpty) {
+      return isValid(iban);
+    }
+    return true;
   }
 
   bool isValidBankCode(String code) {
-    code = code.replaceAll(' ', '');
-    final regex = RegExp(r'^\d{5,8}$');
-    return regex.hasMatch(code);
+    if (code.isNotEmpty) {
+      code = code.replaceAll(' ', '');
+      final regex = RegExp(r'^\d{5,8}$');
+      return regex.hasMatch(code);
+    }
+    return true;
   }
 
   bool isValidFINCode(String fin) {
-    fin = fin.replaceAll(' ', '');
-    final regex = RegExp(r'^[A-Z0-9]{7}$');
-    return regex.hasMatch(fin);
+    if (fin.isNotEmpty) {
+      fin = fin.replaceAll(' ', '');
+      final regex = RegExp(r'^[A-Z0-9]{7}$');
+      return regex.hasMatch(fin);
+    }
+    return true;
   }
 
   bool isValidVATNumber(String vat) {
-    vat = vat.replaceAll(' ', '');
-    final regex = RegExp(r'^\d{10}$');
-    return regex.hasMatch(vat);
+    if (vat.isNotEmpty) {
+      vat = vat.replaceAll(' ', '');
+      final regex = RegExp(r'^\d{10}$');
+      return regex.hasMatch(vat);
+    }
+    return true;
   }
 
   Future<void> _saveTempData() async {

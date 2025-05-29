@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/front/displayed_items/tours/my_rides.dart';
-import 'package:driver_app/front/tools/ride_model.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/front/displayed_items/tours/my_rides.dart';
+import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';

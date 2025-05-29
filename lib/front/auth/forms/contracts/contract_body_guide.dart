@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
-import 'package:driver_app/back/upload_files/upload_signature/upload_signature_save.dart';
-import 'package:driver_app/front/auth/forms/contracts/build_section_tile.dart';
-import 'package:driver_app/front/auth/forms/contracts/build_subsection.dart';
-import 'package:driver_app/front/auth/forms/contracts/save_signature.dart';
-import 'package:driver_app/main.dart';
+import 'package:onemoretour/back/upload_files/upload_signature/upload_signature_save.dart';
+import 'package:onemoretour/front/auth/forms/contracts/build_section_tile.dart';
+import 'package:onemoretour/front/auth/forms/contracts/build_subsection.dart';
+import 'package:onemoretour/front/auth/forms/contracts/save_signature.dart';
+import 'package:onemoretour/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_signaturepad/signaturepad.dart';

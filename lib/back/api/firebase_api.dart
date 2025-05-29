@@ -4,9 +4,9 @@ import 'dart:typed_data';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:driver_app/front/tools/bottom_bar_provider.dart';
-import 'package:driver_app/front/tools/notification_notifier.dart';
-import 'package:driver_app/main.dart';
+import 'package:onemoretour/front/tools/bottom_bar_provider.dart';
+import 'package:onemoretour/front/tools/notification_notifier.dart';
+import 'package:onemoretour/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -61,17 +61,30 @@ class FirebaseApi {
   bool isFlutterLocalNotificationsInitialized = false;
 
   Future<void> initialize(WidgetRef ref) async {
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    final userID = FirebaseAuth.instance.currentUser?.uid;
+    try {
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
 
-    await _requestNotificationPermissions();
-    await initializeNotifications(ref);
-    if (userID != null) {
-      await saveFCMToken(userID);
-      setupTokenRefresh(userID);
+      final userID = FirebaseAuth.instance.currentUser?.uid;
+      logger.i("User ID: $userID");
+
+      await _requestNotificationPermissions();
+
+      await initializeNotifications(ref);
+
+      if (userID != null) {
+        await saveFCMToken(userID);
+
+        setupTokenRefresh(userID);
+      }
+
+      await _setupMessageHandlers(ref);
+    } catch (e, st) {
+      logger.e("🔥 FirebaseApi.initialize failed", error: e, stackTrace: st);
     }
 
-    await _setupMessageHandlers(ref);
+    logger.i("FirebaseApi.initialize - complete ");
   }
 
   Future<void> _requestNotificationPermissions() async {
@@ -87,12 +100,37 @@ class FirebaseApi {
   }
 
   Future<void> saveFCMToken(String userId) async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    if (Platform.isIOS) {
+      String? apnsToken = await _firebaseMessaging.getAPNSToken();
+      if (apnsToken != null) {
+        await _firebaseMessaging.subscribeToTopic(userId);
+      } else {
+        await Future<void>.delayed(const Duration(seconds: 3));
+        apnsToken = await _firebaseMessaging.getAPNSToken();
+        if (apnsToken != null) {
+          await _firebaseMessaging.subscribeToTopic(userId);
+        }
+      }
+    } else {
+      await _firebaseMessaging.subscribeToTopic(userId);
+    }
+
     try {
-      String? token = await _firebaseMessaging.getToken();
+      String? token = await messaging.getToken().timeout(
+        Duration(seconds: 5),
+        onTimeout: () {
+          return null;
+        },
+      );
+
       if (token != null) {
         await FirebaseFirestore.instance.collection('Users').doc(userId).update(
           {'fcmToken': token},
         );
+      } else {
+        logger.w("⚠️ Token was null, not saving to Firestore");
       }
     } catch (e) {
       logger.e("Error saving FCM token: $e");
@@ -130,7 +168,11 @@ class FirebaseApi {
     final InitializationSettings initializationSettings =
         InitializationSettings(
           android: const AndroidInitializationSettings('@mipmap/launcher_icon'),
-          iOS: const DarwinInitializationSettings(),
+          iOS: DarwinInitializationSettings(
+            requestSoundPermission: true,
+            requestBadgePermission: true,
+            requestAlertPermission: true,
+          ),
         );
 
     await _localNotifications.initialize(
@@ -171,6 +213,13 @@ class FirebaseApi {
         }
       },
     );
+
+    // Request iOS permissions after initialization
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
 
     isFlutterLocalNotificationsInitialized = true;
   }
@@ -239,10 +288,13 @@ class FirebaseApi {
                     importance: Importance.high,
                     icon: '@mipmap/launcher_icon',
                   ),
-                  iOS: const DarwinNotificationDetails(
+                  iOS: DarwinNotificationDetails(
+                    interruptionLevel: InterruptionLevel.timeSensitive,
+                    presentSound: true,
+                    presentList: true,
                     presentAlert: true,
                     presentBadge: true,
-                    presentSound: true,
+                    presentBanner: true,
                   ),
                 ),
                 payload: jsonEncode(message.data),
@@ -263,10 +315,13 @@ class FirebaseApi {
                 importance: Importance.high,
                 icon: '@mipmap/launcher_icon',
               ),
-              iOS: const DarwinNotificationDetails(
+              iOS: DarwinNotificationDetails(
+                interruptionLevel: InterruptionLevel.timeSensitive,
+                presentSound: true,
+                presentList: true,
                 presentAlert: true,
                 presentBadge: true,
-                presentSound: true,
+                presentBanner: true,
               ),
             ),
             payload: jsonEncode(message.data),
@@ -334,6 +389,9 @@ class FirebaseApi {
 
   Future<void> _setupMessageHandlers(WidgetRef ref) async {
     FirebaseMessaging.onMessage.listen((message) async {
+      logger.i(
+        "📩 Foreground message received: ${message.notification?.title}",
+      );
       await handleMessage(message);
 
       ref.read(notificationsProvider.notifier).refresh();
@@ -450,7 +508,14 @@ class FirebaseApi {
             .doc('Ride')
             .get();
 
-    final List<dynamic> periods = detailsDoc['Notification Period'] ?? [];
+    final data = detailsDoc.data();
+    if (data == null || !data.containsKey('Notification Period')) {
+      logger.w(
+        "⚠️ 'Notification Period' field missing in 'Details/Ride'. Skipping reminders.",
+      );
+      return;
+    }
+    final List<dynamic> periods = data['Notification Period'];
     final notificationTimes =
         periods.map((minutes) => Duration(minutes: minutes as int)).toList();
 
@@ -476,7 +541,14 @@ class FirebaseApi {
               icon: '@mipmap/launcher_icon',
               additionalFlags: Int32List.fromList(<int>[4]),
             ),
-            iOS: DarwinNotificationDetails(),
+            iOS: DarwinNotificationDetails(
+              interruptionLevel: InterruptionLevel.timeSensitive,
+              presentSound: true,
+              presentList: true,
+              presentAlert: true,
+              presentBadge: true,
+              presentBanner: true,
+            ),
           ),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           matchDateTimeComponents: DateTimeComponents.dateAndTime,

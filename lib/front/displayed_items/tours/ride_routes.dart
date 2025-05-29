@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:driver_app/back/map_and_location/google_map_controllers.dart';
-import 'package:driver_app/front/tools/consts.dart';
-import 'package:driver_app/front/tools/get_location_name.dart';
+import 'package:onemoretour/back/map_and_location/google_map_controllers.dart';
+import 'package:onemoretour/front/tools/consts.dart';
+import 'package:onemoretour/front/tools/get_location_name.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -313,11 +313,11 @@ class _RideRoutesState extends State<RideRoutes> {
           SizedBox(
             height: heigt * 0.469,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(7.5),
+              borderRadius: BorderRadius.circular(width * 0.019),
               child: GoogleMap(
                 initialCameraPosition: initialCameraPosition!,
                 mapType: MapType.normal,
-
+                myLocationButtonEnabled: false,
                 style: darkMode ? _mapStyleDarkString : _mapStyleLightString,
                 gestureRecognizers: {
                   Factory<OneSequenceGestureRecognizer>(

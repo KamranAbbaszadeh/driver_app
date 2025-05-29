@@ -1,14 +1,14 @@
 import 'dart:convert';
-import 'package:driver_app/back/api/firebase_api.dart';
-import 'package:driver_app/back/upload_files/vehicle_details/vehicle_details_provider.dart';
-import 'package:driver_app/front/displayed_items/intermediate_page_for_forms.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/upload_files/vehicle_details/vehicle_details_provider.dart';
+import 'package:onemoretour/front/displayed_items/intermediate_page_for_forms.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
-import 'package:driver_app/db/user_data/vehicle_type_provider.dart';
-import 'package:driver_app/front/auth/forms/application_forms/car_details_form.dart';
+import 'package:onemoretour/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
+import 'package:onemoretour/db/user_data/vehicle_type_provider.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/car_details_form.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,7 +22,8 @@ class CarDetailsSwitcher extends ConsumerStatefulWidget {
 }
 
 class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
-  late Map<String, GlobalKey<CarDetailsFormState>> formKeys;
+  final Map<String, GlobalKey<CarDetailsFormState>> formKeys = {};
+  bool _formKeysInitialized = false;
   @override
   void initState() {
     super.initState();
@@ -34,6 +35,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
             .state = Map<String, dynamic>.from(jsonDecode(stored));
       }
     });
+    // Do not initialize formKeys here; will do it in build when data is available.
   }
 
   bool isVehicleFullyFilled(String vehicleType) {
@@ -85,9 +87,12 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
     };
     return vehicleTypes.maybeWhen(
       data: (types) {
-        formKeys = {
-          for (final type in types) type: GlobalKey<CarDetailsFormState>(),
-        };
+        if (!_formKeysInitialized) {
+          for (final type in types) {
+            formKeys.putIfAbsent(type, () => GlobalKey<CarDetailsFormState>());
+          }
+          _formKeysInitialized = true;
+        }
         if (types.length == 1) {
           final formKey = formKeys[types[0]]!;
           return CarDetailsForm(
@@ -95,6 +100,11 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
             key: formKey,
             onFormSubmit: (formData) async {
               if (context.mounted) {
+                ref.read(vehicleDetailsProvider.notifier).update((state) {
+                  final updated = Map<String, dynamic>.from(state);
+                  updated[types[0]] = formData;
+                  return updated;
+                });
                 await Navigator.push(
                   context,
                   PageTransition(
@@ -186,7 +196,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                             .doc(userId)
                             .update({
                               'Personal & Car Details Form':
-                                  'APPLICATION RECEIVED',
+                                  'APPLICATION SUBMITTED',
                               'Active Vehicle': "Car1",
                             });
                       },
@@ -427,7 +437,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                                 .doc(userId)
                                 .update({
                                   'Personal & Car Details Form':
-                                      'APPLICATION RECEIVED',
+                                      'APPLICATION SUBMITTED',
                                   'Active Vehicle': "Car1",
                                   'Personal & Car Details Decline': false,
                                 });
@@ -453,8 +463,8 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                               ? Color.fromARGB(255, 1, 105, 170)
                               : Color.fromARGB(255, 0, 134, 179))
                           : (darkMode
-                              ? Color.fromARGB(128, 52, 168, 235)
-                              : Color.fromARGB(177, 0, 134, 179)),
+                              ? Color.fromARGB(40, 52, 168, 235)
+                              : Color.fromARGB(40, 0, 134, 179)),
                   borderRadius: BorderRadius.circular(7.5),
                 ),
                 child: Center(

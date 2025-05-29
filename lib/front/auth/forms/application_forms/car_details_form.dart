@@ -1,8 +1,8 @@
-import 'package:driver_app/back/tools/image_picker.dart';
-import 'package:driver_app/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
-import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/back/tools/vehicle_type_picker.dart';
-import 'package:driver_app/front/auth/forms/application_forms/upper_case_text_formatter.dart';
+import 'package:onemoretour/back/tools/image_picker.dart';
+import 'package:onemoretour/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
+import 'package:onemoretour/db/user_data/store_role.dart';
+import 'package:onemoretour/back/tools/vehicle_type_picker.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/upper_case_text_formatter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -625,24 +625,24 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                   ),
                 SizedBox(height: height * 0.015),
                 //Car photos picker
-                Row(
-                  children: [
-                    Text('Please Upload Photos of vehicle'),
-                    Spacer(),
-                    IconButton(
-                      onPressed: () async {
-                        final images =
-                            await ImagePickerHelper.selectMultiplePhotos(
-                              context: context,
-                            );
-                        if (images != null) {
-                          setState(() => carsPhoto.addAll(images));
-                          await _saveTempPhotos();
-                        }
-                      },
-                      icon: Icon(Icons.add),
-                    ),
-                  ],
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    final images = await ImagePickerHelper.selectMultiplePhotos(
+                      context: context,
+                    );
+                    if (images != null) {
+                      setState(() => carsPhoto.addAll(images));
+                      await _saveTempPhotos();
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      Text('Please Upload Photos of vehicle'),
+                      Spacer(),
+                      Icon(Icons.add),
+                    ],
+                  ),
                 ),
                 //Car photos display
                 carsPhoto.isEmpty
@@ -655,7 +655,13 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: ImageGrid(images: carsPhoto),
+                      child: ImageGrid(
+                        images: carsPhoto,
+                        onRemove: (index) async {
+                          setState(() => carsPhoto.removeAt(index));
+                          await _saveTempPhotos();
+                        },
+                      ),
                     ),
                 SizedBox(height: height * 0.015),
                 //Technical Passport Number
@@ -774,26 +780,30 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                   ),
                 SizedBox(height: height * 0.015),
                 //Technical Passport photos picker
-                Row(
-                  children: [
-                    Text('Please Upload Photos of Technical Passport'),
-                    Spacer(),
-                    IconButton(
-                      onPressed: () async {
-                        final images =
-                            await ImagePickerHelper.selectMultiplePhotos(
-                              context: context,
-                            );
-                        if (images != null) {
-                          setState(
-                            () => technicalPassportNumberPhoto.addAll(images),
-                          );
-                          await _saveTempPhotos();
-                        }
-                      },
-                      icon: Icon(Icons.add),
-                    ),
-                  ],
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    final images = await ImagePickerHelper.selectMultiplePhotos(
+                      context: context,
+                    );
+                    if (images != null) {
+                      setState(
+                        () => technicalPassportNumberPhoto.addAll(images),
+                      );
+                      await _saveTempPhotos();
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Please Upload Photos of Technical Passport',
+                        ),
+                      ),
+                      Spacer(),
+                      Icon(Icons.add),
+                    ],
+                  ),
                 ),
                 //Technical passport photos display
                 technicalPassportNumberPhoto.isEmpty
@@ -806,7 +816,15 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: ImageGrid(images: technicalPassportNumberPhoto),
+                      child: ImageGrid(
+                        images: technicalPassportNumberPhoto,
+                        onRemove: (index) async {
+                          setState(
+                            () => technicalPassportNumberPhoto.removeAt(index),
+                          );
+                          await _saveTempPhotos();
+                        },
+                      ),
                     ),
                 SizedBox(height: height * 0.015),
                 //Chassis Number
@@ -918,24 +936,29 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                   ),
                 SizedBox(height: height * 0.015),
                 //Chasis Number photos picker
-                Row(
-                  children: [
-                    Text('Please Upload Photos of Chassis Number'),
-                    Spacer(),
-                    IconButton(
-                      onPressed: () async {
-                        final selected =
-                            await ImagePickerHelper.selectSinglePhoto(
-                              context: context,
-                            );
-                        if (selected == null) return;
+                GestureDetector(
+                  onTap: () async {
+                    final selected = await ImagePickerHelper.selectSinglePhoto(
+                      context: context,
+                    );
+                    if (selected == null) return;
 
-                        setState(() => chassisNumberPhoto = selected);
-                        await _saveTempPhotos();
-                      },
-                      icon: Icon(Icons.add),
-                    ),
-                  ],
+                    setState(() => chassisNumberPhoto = selected);
+                    await _saveTempPhotos();
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Please Upload Photos of Chassis Number',
+                          softWrap: true,
+                        ),
+                      ),
+                      Spacer(),
+                      Icon(Icons.add),
+                    ],
+                  ),
                 ),
                 //Chassis Number photos display
                 chassisNumberPhoto == null
@@ -948,7 +971,13 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         borderRadius: BorderRadius.circular(width * 0.019),
                       ),
                       padding: EdgeInsets.all(width * 0.02),
-                      child: ImageGrid(images: [chassisNumberPhoto]),
+                      child: ImageGrid(
+                        images: [chassisNumberPhoto],
+                        onRemove: (index) async {
+                          setState(() => chassisNumberPhoto = null);
+                          await _saveTempPhotos();
+                        },
+                      ),
                     ),
                 SizedBox(height: height * 0.015),
                 //Vehicle Registration Number
@@ -1426,8 +1455,8 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                                   ? Color.fromARGB(255, 1, 105, 170)
                                   : Color.fromARGB(255, 0, 134, 179))
                               : (darkMode
-                                  ? Color.fromARGB(128, 52, 168, 235)
-                                  : Color.fromARGB(177, 0, 134, 179)),
+                                  ? Color.fromARGB(40, 52, 168, 235)
+                                  : Color.fromARGB(40, 0, 134, 179)),
                       borderRadius: BorderRadius.circular(width * 0.019),
                     ),
                     child: Center(

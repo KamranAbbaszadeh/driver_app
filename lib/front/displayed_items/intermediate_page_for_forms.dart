@@ -1,9 +1,9 @@
-import 'package:driver_app/back/tools/loading_notifier.dart';
-import 'package:driver_app/db/user_data/store_role.dart';
-import 'package:driver_app/front/auth/forms/application_forms/bank_details_form.dart';
-import 'package:driver_app/front/auth/forms/application_forms/car_details_switcher.dart';
-import 'package:driver_app/front/auth/forms/application_forms/certificates_details.dart';
-import 'package:driver_app/front/auth/waiting_page.dart';
+import 'package:onemoretour/back/tools/loading_notifier.dart';
+import 'package:onemoretour/db/user_data/store_role.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/bank_details_form.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/car_details_switcher.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/certificates_details.dart';
+import 'package:onemoretour/front/auth/waiting_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';

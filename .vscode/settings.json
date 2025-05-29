@@ -1,6 +1,3 @@
 {
-    "terminal.integrated.gpuAcceleration": "off",
-    "editor.fontLigatures": false,
-    "editor.lineHeight": 22,
-    "cmake.sourceDirectory": "/Users/kamranabbaszadeh/Dev/Projects/Main/driver_app/linux"
+    "workbench.colorTheme": "One Dark Pro Darker"
 }

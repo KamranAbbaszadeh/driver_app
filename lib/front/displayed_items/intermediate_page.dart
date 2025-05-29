@@ -1,4 +1,4 @@
-import 'package:driver_app/front/displayed_items/home_page.dart';
+import 'package:onemoretour/front/displayed_items/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:page_transition/page_transition.dart';

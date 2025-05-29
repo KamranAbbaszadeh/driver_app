@@ -1,4 +1,4 @@
-name: driver_app
+name: onemoretour
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -63,7 +63,7 @@ dependencies:
   syncfusion_flutter_signaturepad: ^29.1.33
   google_maps_flutter: ^2.10.0
   flutter_polyline_points: ^2.1.0
-  geocoding: ^3.0.0
+  geocoding: ^4.0.0
   cached_network_image: ^3.4.1
   table_calendar: ^3.2.0
   expandable_section: ^0.0.3
@@ -124,7 +124,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -165,6 +165,7 @@ flutter:
     - assets/car_icons/arrow.png
     - assets/int_p_check_dark.json
     - assets/int_p_check_light.json
+    - assets/logo/app_icon.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

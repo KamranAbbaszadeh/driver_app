@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/back/auth/is_deleting_profile_provider.dart';
-import 'package:driver_app/front/auth/waiting_page_view.dart';
-import 'package:driver_app/front/intro/welcome_page.dart';
-import 'package:driver_app/front/displayed_items/home_page.dart';
+import 'package:onemoretour/back/auth/is_deleting_profile_provider.dart';
+import 'package:onemoretour/front/auth/waiting_page_view.dart';
+import 'package:onemoretour/front/intro/welcome_page.dart';
+import 'package:onemoretour/front/displayed_items/home_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

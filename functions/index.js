@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const functions = require("firebase-functions");
 const {initializeApp} = require("firebase-admin/app");
 const {onDocumentCreated, onDocumentUpdated} =
   require("firebase-functions/v2/firestore");
@@ -16,6 +17,10 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
       if (beforeData[firstStageApplicationForm] === false &&
           afterData[firstStageApplicationForm] === true) {
         const userToken = afterData.fcmToken;
+        if (!userToken || typeof userToken !== "string") {
+          console.error("❌ Invalid or missing FCM token:", userToken);
+          return;
+        }
         const message = {
           notification: {
             title: "Hey There",
@@ -415,3 +420,46 @@ exports.notifyOnGuideRemoved =
       }
     }
   });
+
+
+exports.deleteUserAccount = functions.https.onRequest(async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).send({error: "Unauthorized: No token provided."});
+  }
+
+  const idToken = authHeader.split("Bearer ")[1];
+  let uid;
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    uid = decodedToken.uid;
+  } catch (error) {
+    return res.status(401).send({error: "Unauthorized: Invalid token."});
+  }
+
+  try {
+    const firestore = admin.firestore();
+    const storage = admin.storage().bucket();
+
+    const userDocRef = firestore.collection("Users").doc(uid);
+    const subcollections = await userDocRef.listCollections();
+    for (const sub of subcollections) {
+      const subDocs = await sub.listDocuments();
+      for (const doc of subDocs) {
+        await doc.delete();
+      }
+    }
+    await userDocRef.delete();
+
+    const [files] = await storage.getFiles({prefix: `Users/${uid}/`});
+    const deleteOps = files.map((file) => file.delete());
+    await Promise.all(deleteOps);
+
+    await admin.auth().deleteUser(uid);
+
+    res.send({success: true});
+  } catch (error) {
+    console.error("Failed to fully delete user:", error);
+    res.status(500).send({error: "Failed to fully delete user."});
+  }
+});

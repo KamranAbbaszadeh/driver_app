@@ -1,5 +1,5 @@
-import 'package:driver_app/front/displayed_items/tours/details_page.dart';
-import 'package:driver_app/front/tools/ride_model.dart';
+import 'package:onemoretour/front/displayed_items/tours/details_page.dart';
+import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:expandable_section/expandable_section.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';

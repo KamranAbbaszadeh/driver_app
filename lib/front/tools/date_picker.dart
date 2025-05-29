@@ -1,4 +1,4 @@
-import 'package:driver_app/front/tools/ride_model.dart';
+import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:table_calendar/table_calendar.dart';
