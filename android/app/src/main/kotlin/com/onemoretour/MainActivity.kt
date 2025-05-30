@@ -1,4 +1,4 @@
-package com.driver_app
+package com.onemoretour
 
 import io.flutter.embedding.android.FlutterActivity
 

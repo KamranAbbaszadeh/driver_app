@@ -4,7 +4,6 @@ import 'package:onemoretour/back/auth/post_api.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 Future<void> signUp({
@@ -158,32 +157,7 @@ Future<void> signUp({
       );
     }
   } catch (e) {
-    final darkMode =
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor:
-                darkMode
-                    ? const Color.fromARGB(255, 62, 62, 62)
-                    : const Color.fromARGB(255, 214, 213, 213),
-            title: const Text('Invalid Input'),
-            content: Text('Error signing up: ${e.toString()}'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(
-                  'Got it',
-                  style: GoogleFonts.cabin(
-                    fontWeight: FontWeight.w600,
-                    color: darkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-              ),
-            ],
-          ),
-    );
+   rethrow;
   }
 }
 

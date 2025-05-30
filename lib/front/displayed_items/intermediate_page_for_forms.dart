@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
+import 'package:onemoretour/front/intro/welcome_page.dart';
 import 'package:page_transition/page_transition.dart';
 
 class IntermediateFormPage extends ConsumerStatefulWidget {
@@ -107,70 +108,159 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                         ..reset();
 
                       ref.read(loadingProvider.notifier).startLoading();
-                      await widget.backgroundProcess();
-                      ref.read(loadingProvider.notifier).stopLoading();
+                      try {
+                        await widget.backgroundProcess();
+                        ref.read(loadingProvider.notifier).stopLoading();
 
-                      await _controller.forward();
+                        await _controller.forward();
 
-                      if (context.mounted) {
-                        if (widget.isFromBankDetailsForm) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            PageTransition(
-                              type: PageTransitionType.fade,
-                              child:
-                                  role == 'Guide'
-                                      ? WaitingPage()
-                                      : CarDetailsSwitcher(),
-                            ),
-                            (route) => false,
-                          );
-                        } else if (widget.isFromPersonalDataForm) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            PageTransition(
-                              type: PageTransitionType.fade,
-                              child: CertificatesDetails(role: role),
-                            ),
-                            (route) => false,
-                          );
-                        } else if (widget.isFromCertificateDetailsForm) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            PageTransition(
-                              type: PageTransitionType.fade,
-                              child: BankDetailsForm(),
-                            ),
-                            (route) => false,
-                          );
-                        } else if (widget.isFromCarDetailsForm) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            PageTransition(
-                              type: PageTransitionType.fade,
-                              child: WaitingPage(),
-                            ),
-                            (route) => false,
-                          );
-                        } else if (widget.isFromCarDetailsSwitcher) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            PageTransition(
-                              type: PageTransitionType.fade,
-                              child: WaitingPage(),
-                            ),
-                            (route) => false,
-                          );
-                        } else if (widget.isFromProfilePage) {
-                          void popMultiple(BuildContext context, int count) {
-                            for (int i = 0; i < count; i++) {
-                              if (Navigator.canPop(context)) {
-                                Navigator.pop(context);
+                        if (context.mounted) {
+                          if (widget.isFromBankDetailsForm) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              PageTransition(
+                                type: PageTransitionType.fade,
+                                child:
+                                    role == 'Guide'
+                                        ? WaitingPage()
+                                        : CarDetailsSwitcher(),
+                              ),
+                              (route) => false,
+                            );
+                          } else if (widget.isFromPersonalDataForm) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              PageTransition(
+                                type: PageTransitionType.fade,
+                                child: CertificatesDetails(role: role),
+                              ),
+                              (route) => false,
+                            );
+                          } else if (widget.isFromCertificateDetailsForm) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              PageTransition(
+                                type: PageTransitionType.fade,
+                                child: BankDetailsForm(),
+                              ),
+                              (route) => false,
+                            );
+                          } else if (widget.isFromCarDetailsForm) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              PageTransition(
+                                type: PageTransitionType.fade,
+                                child: WaitingPage(),
+                              ),
+                              (route) => false,
+                            );
+                          } else if (widget.isFromCarDetailsSwitcher) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              PageTransition(
+                                type: PageTransitionType.fade,
+                                child: WaitingPage(),
+                              ),
+                              (route) => false,
+                            );
+                          } else if (widget.isFromProfilePage) {
+                            void popMultiple(BuildContext context, int count) {
+                              for (int i = 0; i < count; i++) {
+                                if (Navigator.canPop(context)) {
+                                  Navigator.pop(context);
+                                }
                               }
                             }
-                          }
 
-                          popMultiple(context, 2);
+                            popMultiple(context, 2);
+                          }
+                        }
+                      } catch (e) {
+                        ref.read(loadingProvider.notifier).stopLoading();
+                        if (context.mounted) {
+                          await showDialog(
+                            context: context,
+                            builder:
+                                (ctx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  backgroundColor:
+                                      darkMode
+                                          ? const Color(0xFF1C1C1E)
+                                          : Colors.white,
+                                  title: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.error_outline,
+                                        color: Colors.redAccent,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Operation Failed',
+                                        style: GoogleFonts.cabin(
+                                          color:
+                                              darkMode
+                                                  ? Colors.white
+                                                  : Colors.black87,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  content: Text(
+                                    'An unexpected error occurred:\n\n${e.toString()}',
+                                    style: GoogleFonts.cabin(
+                                      color:
+                                          darkMode
+                                              ? Colors.white70
+                                              : Colors.black87,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        backgroundColor:
+                                            darkMode
+                                                ? Colors.redAccent.shade100
+                                                : Colors.redAccent,
+                                        foregroundColor: Colors.white,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                      },
+                                      child: Text(
+                                        'Return',
+                                        style: GoogleFonts.cabin(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                          );
+
+                          if (context.mounted) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              PageTransition(
+                                type: PageTransitionType.fade,
+                                child: WelcomePage(),
+                              ),
+                              (route) => false,
+                            );
+                          }
                         }
                       }
                     },

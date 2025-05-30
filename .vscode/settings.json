@@ -1,3 +1,10 @@
 {
-    "workbench.colorTheme": "One Dark Pro Darker"
+    "workbench.colorTheme": "Developers Theme - Slack Dark",
+    "workbench.preferredDarkColorTheme": "Developers Theme - Slack Dark",
+    "workbench.preferredHighContrastColorTheme": "Developers Theme - Slack Dark",
+    "workbench.iconTheme": "developer-icon-theme",
+    "dart.devToolsTheme": "dark",
+    "git-graph.tabIconColourTheme": "colour",
+    "oneDarkPro.editorTheme": "One Dark Pro",
+    "workbench.productIconTheme": "developer-icons"
 }
