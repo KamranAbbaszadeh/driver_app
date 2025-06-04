@@ -520,26 +520,21 @@ class FirebaseApi {
   }
 
   Future<void> scheduleTourReminders(DateTime startDate, String tourId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final scheduled = prefs.getStringList('scheduledTours') ?? [];
 
-    if (scheduled.contains(tourId)) return;
+    int baseId = tourId.hashCode;
 
-    scheduled.add(tourId);
-    await prefs.setStringList('scheduledTours', scheduled);
-
-    _localNotifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
-
+    final pending = await _localNotifications.pendingNotificationRequests();
     final detailsDoc =
         await FirebaseFirestore.instance
             .collection('Details')
             .doc('Ride')
             .get();
-
     final data = detailsDoc.data();
     if (data == null || !data.containsKey('Notification Period')) {
       logger.w(
@@ -551,7 +546,23 @@ class FirebaseApi {
     final notificationTimes =
         periods.map((minutes) => Duration(minutes: minutes as int)).toList();
 
-    int baseId = tourId.hashCode;
+    final alreadyScheduled = pending.any(
+      (n) => n.id >= baseId && n.id < baseId + notificationTimes.length,
+    );
+    if (alreadyScheduled) {
+      return;
+    }
+
+    if (!scheduled.contains(tourId)) {
+      scheduled.add(tourId);
+      await prefs.setStringList('scheduledTours', scheduled);
+    }
+
+    _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
 
     for (int i = 0; i < notificationTimes.length; i++) {
       final scheduledTime = startDate.subtract(notificationTimes[i]);
@@ -586,7 +597,6 @@ class FirebaseApi {
           matchDateTimeComponents: DateTimeComponents.dateAndTime,
         );
       }
-      logger.e("Scheduled notification for tour $tourId at $scheduledTime");
     }
   }
 

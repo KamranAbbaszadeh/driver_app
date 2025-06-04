@@ -1,4 +1,7 @@
+import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
 import 'package:onemoretour/back/rides_history/rides_provider.dart';
+import 'package:onemoretour/back/tools/firebase_service.dart';
+import 'package:onemoretour/back/user/user_data_provider.dart';
 import 'package:onemoretour/db/user_data/store_role.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
 import 'package:onemoretour/front/displayed_items/profile/deleting_account_page.dart';
@@ -11,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:onemoretour/front/tools/notification_notifier.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -330,6 +334,14 @@ class ProfilePage extends ConsumerWidget {
                                   ),
                                 ),
                                 onPressed: () async {
+                                  ref.invalidate(roleProvider);
+                                  ref.invalidate(usersDataProvider);
+                                  ref.invalidate(authStateChangesProvider);
+                                  ref.invalidate(firestoreServiceProvider);
+                                  ref.invalidate(notificationsProvider);
+                                  ref.invalidate(vehiclesProvider);
+                                  ref.invalidate(rideFlowProvider);
+                                  ref.invalidate(ridesHistoryProvider);
                                   await FirebaseAuth.instance.signOut();
                                   if (context.mounted) {
                                     Navigator.pushAndRemoveUntil(

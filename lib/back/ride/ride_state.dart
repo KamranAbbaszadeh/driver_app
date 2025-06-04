@@ -10,6 +10,7 @@ import 'package:flutter_background_geolocation/flutter_background_geolocation.da
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:onemoretour/db/user_data/store_role.dart';
 import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:onemoretour/front/tools/get_location_name.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -73,6 +74,7 @@ class RideState {
 }
 
 class RideNotifier extends StateNotifier<RideState> {
+  final List<StreamSubscription<QuerySnapshot>> _subscriptions = [];
   Timer? _refreshTimer;
   final Ref ref;
   final BuildContext context;
@@ -85,7 +87,15 @@ class RideNotifier extends StateNotifier<RideState> {
   StreamSubscription<QuerySnapshot>? carsSubscription;
   Timer? locationTrackingTImer;
 
-  void _startListeningToRides() {
+  void _startListeningToRides() async {
+    final subsCopy = List<StreamSubscription<QuerySnapshot>>.from(
+      _subscriptions,
+    );
+    _subscriptions.clear();
+    for (var sub in subsCopy) {
+      await sub.cancel();
+    }
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     final userId = user.uid;
@@ -107,7 +117,7 @@ class RideNotifier extends StateNotifier<RideState> {
       }
 
       for (final stream in streams) {
-        stream.listen((snapshot) async {
+        final sub = stream.listen((snapshot) async {
           final allRides =
               snapshot.docs.map((doc) {
                 return Ride.fromFirestore(
@@ -141,27 +151,22 @@ class RideNotifier extends StateNotifier<RideState> {
             return;
           }
 
-          final nextRouteCandidate = updatedRides.firstWhereOrNull(
-            (route) =>
-                !(route["Start Arrived"] as bool) ||
-                !(route["End Arrived"] as bool),
-          );
-          final nextRouteChanged =
-              !MapEquality().equals(state.nextRoute, nextRouteCandidate);
+          final shouldUpdateState =
+              state.filteredRides != filtered ||
+              state.currentRides != updatedRides;
 
-          if (state.filteredRides != filtered ||
-              state.currentRides != updatedRides ||
-              nextRouteChanged) {
+          if (shouldUpdateState) {
             state = state.copyWith(
               filteredRides: filtered,
               currentRides: updatedRides,
             );
+          }
 
-            if (context.mounted) {
-              updateNextRoute(updatedRides, context);
-            }
+          if (context.mounted) {
+            await updateNextRoute(updatedRides, context);
           }
         });
+        _subscriptions.add(sub);
       }
     });
   }
@@ -175,11 +180,24 @@ class RideNotifier extends StateNotifier<RideState> {
       return;
     }
 
-    final newNext = currentRides.firstWhere(
-      (route) =>
-          !(route["Start Arrived"] as bool) || !(route["End Arrived"] as bool),
-      orElse: () => {},
-    );
+    final now = DateTime.now();
+
+    final validRides =
+        currentRides.where((route) {
+          final endDate =
+              DateTime.tryParse(route['EndDate'] ?? '') ?? DateTime(1970);
+          return (!(route["Start Arrived"] as bool) ||
+                  !(route["End Arrived"] as bool)) &&
+              endDate.isAfter(now);
+        }).toList();
+
+    validRides.sort((a, b) {
+      final aStart = DateTime.tryParse(a['StartDate'] ?? '') ?? DateTime(1970);
+      final bStart = DateTime.tryParse(b['StartDate'] ?? '') ?? DateTime(1970);
+      return aStart.compareTo(bStart);
+    });
+
+    final newNext = validRides.firstWhereOrNull((_) => true) ?? {};
 
     if (newNext.isEmpty) {
       if (state.nextRoute != null) {
@@ -187,8 +205,6 @@ class RideNotifier extends StateNotifier<RideState> {
       }
       return;
     }
-
-    if (MapEquality().equals(state.nextRoute, newNext)) return;
 
     final currentNext = state.nextRoute;
     final isNewRoute =
@@ -307,7 +323,6 @@ class RideNotifier extends StateNotifier<RideState> {
   }) async {
     final locationPostApi = LocationPostApi();
     if (!hasMovedSignificantly(latitude, longitude, 25)) {
-      logger.d('[headlessTask] ⏩ Skipped (no significant movement)');
       return;
     }
     try {
@@ -335,14 +350,15 @@ class RideNotifier extends StateNotifier<RideState> {
     locationTrackingTImer = Timer.periodic(Duration(seconds: 5), (_) async {
       final next = state.nextRoute;
       if (next == null || !mounted) return;
-      final startDateString = next['StartDate'];
-      final endDateString = next['EndDate'];
-      final startDate = DateTime.parse(startDateString);
-      final endDate = DateTime.parse(endDateString);
+      final startDate = DateTime.parse(next['StartDate']);
+      final endDate = DateTime.parse(next['EndDate']);
+
+      final trackingStartTime = startDate.subtract(const Duration(hours: 2));
+      final trackingEndTime = endDate.add(const Duration(hours: 5));
+
       final now = DateTime.now();
 
-      if (now.isAfter(startDate.subtract(Duration(hours: 2))) &&
-          now.isBefore(endDate.add(Duration(hours: 5)))) {
+      if (now.isAfter(trackingStartTime) && now.isBefore(trackingEndTime)) {
         final endArrived = next['End Arrived'] as bool;
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null && endArrived == false) {
@@ -395,17 +411,30 @@ class RideNotifier extends StateNotifier<RideState> {
   }
 
   @override
-  void dispose() {
+  void dispose() async {
     carsSubscription?.cancel();
     locationTrackingTImer?.cancel();
     _refreshTimer?.cancel();
+    for (var sub in _subscriptions) {
+      await sub.cancel();
+    }
+    _subscriptions.clear();
     super.dispose();
   }
 }
 
 final rideProvider = StateNotifierProvider<RideNotifier, RideState>((ref) {
   final context = ref.read(appContextProvider);
-  return RideNotifier(ref, context);
+  final rideNotifier = RideNotifier(ref, context);
+  ref.listen<AsyncValue<User?>>(authStateChangesProvider, (previous, next) {
+    final user = next.value;
+    if (user != null) {
+      rideNotifier._startListeningToRides();
+    } else {
+      rideNotifier.dispose();
+    }
+  });
+  return rideNotifier;
 });
 
 final appContextProvider = Provider<BuildContext>((ref) {

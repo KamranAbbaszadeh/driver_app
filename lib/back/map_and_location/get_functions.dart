@@ -173,6 +173,19 @@ Future<void> initializeForegroundTracking({
   onLocation,
 }) async {
   await _startTrackingService(onLocation);
+  final location = await bg.BackgroundGeolocation.getCurrentPosition(
+    persist: false,
+    samples: 1,
+  );
+
+  final coords = location.coords;
+  onLocation(
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+    speedKph: coords.speed * 3.6,
+    heading: coords.heading,
+    timestamp: location.timestamp,
+  );
 }
 
 /// Initialize background geolocation

@@ -45,7 +45,11 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
 
   Future<void> _fetchData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || !_mounted) return;
+    if (user == null || !_mounted) {
+      carsSubscription?.cancel();
+      guideSubscription?.cancel();
+      return;
+    }
     final userId = user.uid;
     carsSubscription?.cancel();
     carsSubscription = FirebaseFirestore.instance

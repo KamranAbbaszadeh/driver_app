@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:onemoretour/back/map_and_location/get_functions.dart';
 import 'package:onemoretour/back/map_and_location/location_provider.dart';
 import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
 import 'package:onemoretour/front/displayed_items/chat_page.dart';
@@ -35,12 +36,35 @@ class _RidePageState extends ConsumerState<RidePage>
 
   bool isFinished = false;
   bool hasUnreadChat = false;
+  bool _isMounted = false;
 
   @override
   void initState() {
     super.initState();
+    _isMounted = true;
 
     _checkUnreadMessages();
+
+    initializeForegroundTracking(
+      context: context,
+      onLocation: ({
+        required double latitude,
+        required double longitude,
+        required double speedKph,
+        required double heading,
+        required String timestamp,
+      }) {
+        if (!_isMounted) return;
+
+        ref.read(locationProvider.notifier).state = {
+          'latitude': latitude,
+          'longitude': longitude,
+          'speed': speedKph,
+          'heading': heading,
+          'timestamp': timestamp,
+        };
+      },
+    );
   }
 
   LatLng getMidpoint(LatLng? start, LatLng? end, LatLng? current) {
