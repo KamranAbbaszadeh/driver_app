@@ -90,13 +90,15 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
             ),
           ),
           SizedBox(width: width * 0.025),
-          Text(
-            'Hi, $firstName!',
-            style: GoogleFonts.ptSans(
-              fontSize: width * 0.066,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Text(
+              'Hi, $firstName!',
+              style: GoogleFonts.ptSans(
+                fontSize: width * 0.066,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.visible,
             ),
-            overflow: TextOverflow.ellipsis,
           ),
           Spacer(),
 

@@ -41,11 +41,20 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   @override
-  void didChangeDependencies() async {
+  void didChangeDependencies() {
     super.didChangeDependencies();
+
+    _initAsyncTasks();
+  }
+
+  Future<void> _initAsyncTasks() async {
     if (!mounted) return;
+
     await requestLocationPermissions(context);
-    if (!mounted && !Platform.isAndroid) return;
+    if (!mounted) return;
+
+    if (!Platform.isAndroid) return;
+
     await requestIgnoreBatteryOptimizations(context);
   }
 

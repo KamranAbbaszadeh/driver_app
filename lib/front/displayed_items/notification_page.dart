@@ -85,6 +85,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
             if (state.messages.isEmpty) {
               return const Center(child: Text('No notifications available'));
             }
+
             return ListView.builder(
               itemCount: state.messages.length,
               itemBuilder: (context, index) {
@@ -130,6 +131,11 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                     } else if (route == "/application_status") {
                       navigatorKey.currentState?.pushNamed('/application_form');
                     } else if (route == "/personalinfo_status") {
+                      navigatorKey.currentState?.pushNamed(
+                        '/personal_data_form',
+                      );
+                    } else if (route == "/contract_sign") {
+
                     } else {
                       registrationCompleted
                           ? navigatorKey.currentState?.pop()

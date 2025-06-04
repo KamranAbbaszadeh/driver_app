@@ -85,6 +85,18 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   bool passwordObscure = true;
   bool confirmPasswordObscure = true;
 
+  bool validateName(String value) {
+    return RegExp(r"^[a-zA-Zа-яА-Я\s]+$").hasMatch(value);
+  }
+
+  bool validatePhoneNumber(String value) {
+    return RegExp(r"^\+\d{12,}$").hasMatch(value);
+  }
+
+  bool validateExperience(String value) {
+    return RegExp(r"^\d+$").hasMatch(value) && int.parse(value) > 0;
+  }
+
   void _validateEmail(String value) {
     setState(() {
       isEmailEmpty = value.isEmpty;
@@ -120,7 +132,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
       });
       return 'Password must include at least one number';
     }
-    if (!RegExp(r'[!@#\$&*~]').hasMatch(value)) {
+    if (!RegExp(r'[^\w]').hasMatch(value)) {
       setState(() {
         isPasswordValid = false;
       });
@@ -176,77 +188,55 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   bool _allFilledOut() {
     if (user == null) {
       if (_firstNameController.text.isNotEmpty &&
+          validateName(_firstNameController.text) &&
           _lastNameController.text.isNotEmpty &&
+          validateName(_lastNameController.text) &&
           _emailController.text.isNotEmpty &&
+          isValid &&
           _phoneNumberController.text.isNotEmpty &&
+          validatePhoneNumber(_phoneNumberController.text) &&
           _birthDayController.text.isNotEmpty &&
+          _isAtLeastYearsOld(_birthDayController.text) &&
           _languageController.text.isNotEmpty &&
           _experienceController.text.isNotEmpty &&
+          validateExperience(_experienceController.text) &&
           _roleController.text.isNotEmpty &&
           _fathersNameController.text.isNotEmpty &&
+          validateName(_fathersNameController.text) &&
           _genderController.text.isNotEmpty &&
           _passwordController.text.isNotEmpty &&
-          _confirmPasswordController.text.isNotEmpty &&
-          _roleController.text == 'Guide' &&
-          isValid &&
           isPasswordValid &&
+          _confirmPasswordController.text.isNotEmpty &&
           isPasswordConfirmed &&
           isChecked &&
-          _isAtLeastYearsOld(_birthDayController.text)) {
-        return true;
-      } else if (_firstNameController.text.isNotEmpty &&
-          _lastNameController.text.isNotEmpty &&
-          _emailController.text.isNotEmpty &&
-          _phoneNumberController.text.isNotEmpty &&
-          _birthDayController.text.isNotEmpty &&
-          _languageController.text.isNotEmpty &&
-          _experienceController.text.isNotEmpty &&
-          _roleController.text.isNotEmpty &&
-          _fathersNameController.text.isNotEmpty &&
-          _genderController.text.isNotEmpty &&
-          _passwordController.text.isNotEmpty &&
-          _confirmPasswordController.text.isNotEmpty &&
-          _roleController.text != 'Guide' &&
-          _vehicleTypeController.text.isNotEmpty &&
-          isValid &&
-          isPasswordValid &&
-          isPasswordConfirmed &&
-          isChecked &&
-          _isAtLeastYearsOld(_birthDayController.text)) {
+          ((_roleController.text == 'Guide') ||
+              (_roleController.text != 'Guide' &&
+                  _vehicleTypeController.text.isNotEmpty))) {
         return true;
       }
       return false;
     } else {
       if (_firstNameController.text.isNotEmpty &&
+          validateName(_firstNameController.text) &&
           _lastNameController.text.isNotEmpty &&
+          validateName(_lastNameController.text) &&
           _phoneNumberController.text.isNotEmpty &&
+          validatePhoneNumber(_phoneNumberController.text) &&
           _birthDayController.text.isNotEmpty &&
+          _isAtLeastYearsOld(_birthDayController.text) &&
           _languageController.text.isNotEmpty &&
           _experienceController.text.isNotEmpty &&
+          validateExperience(_experienceController.text) &&
           _roleController.text.isNotEmpty &&
           _fathersNameController.text.isNotEmpty &&
+          validateName(_fathersNameController.text) &&
           _genderController.text.isNotEmpty &&
-          _roleController.text == 'Guide' &&
-          isValid &&
           isPasswordValid &&
           isPasswordConfirmed &&
-          isChecked) {
-        return true;
-      } else if (_firstNameController.text.isNotEmpty &&
-          _lastNameController.text.isNotEmpty &&
-          _phoneNumberController.text.isNotEmpty &&
-          _birthDayController.text.isNotEmpty &&
-          _languageController.text.isNotEmpty &&
-          _experienceController.text.isNotEmpty &&
-          _roleController.text.isNotEmpty &&
-          _fathersNameController.text.isNotEmpty &&
-          _genderController.text.isNotEmpty &&
-          _roleController.text != 'Guide' &&
-          _vehicleTypeController.text.isNotEmpty &&
-          isValid &&
-          isPasswordValid &&
-          isPasswordConfirmed &&
-          isChecked) {
+          isChecked &&
+          ((_roleController.text == 'Guide') ||
+              (_roleController.text != 'Guide' &&
+                  _vehicleTypeController.text.isNotEmpty))) {
         return true;
       }
       return false;
@@ -255,59 +245,36 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
 
   void _isEmpty(TextEditingController controller, String fieldName) {
     setState(() {
-      if (controller.text.isEmpty) {
-        if (fieldName == 'firstName') {
-          isFirstNameEmpty = true;
-        } else if (fieldName == 'lastName') {
-          isLastNameEmpty = true;
-        } else if (fieldName == 'email') {
-          isEmailEmpty = true;
-        } else if (fieldName == 'phoneNumber') {
-          isPhoneNumberEmpty = true;
-          isPhoneNumberValid = false;
-        } else if (fieldName == 'language') {
-          isLanguageEmpty = true;
-        } else if (fieldName == 'birthDay') {
-          isBirthDayEmpty = true;
-        } else if (fieldName == 'experience') {
-          isExperienceEmpty = true;
-        } else if (fieldName == 'vehicleType') {
-          isVehicleTypeEmpty = true;
-        } else if (fieldName == 'role') {
-          isRoleEmpty = true;
-        } else if (fieldName == 'fathersName') {
-          isFathersNameEmpty = true;
-        } else if (fieldName == 'gender') {
-          isGenderEmpty = true;
-        } else if (fieldName == 'confirmPassword') {
-          isConfirmPasswordEmpty = true;
-        }
-      } else {
-        if (fieldName == 'firstName') {
-          isFirstNameEmpty = false;
-        } else if (fieldName == 'lastName') {
-          isLastNameEmpty = false;
-        } else if (fieldName == 'email') {
-          isEmailEmpty = false;
-        } else if (fieldName == 'phoneNumber') {
-          isPhoneNumberEmpty = false;
-        } else if (fieldName == 'language') {
-          isLanguageEmpty = false;
-        } else if (fieldName == 'birthDay') {
-          isBirthDayEmpty = false;
-        } else if (fieldName == 'experience') {
-          isExperienceEmpty = false;
-        } else if (fieldName == 'vehicleType') {
-          isVehicleTypeEmpty = false;
-        } else if (fieldName == 'role') {
-          isRoleEmpty = false;
-        } else if (fieldName == 'fathersName') {
-          isFathersNameEmpty = false;
-        } else if (fieldName == 'gender') {
-          isGenderEmpty = false;
-        } else if (fieldName == 'confirmPassword') {
-          isConfirmPasswordEmpty = false;
-        }
+      if (fieldName == 'firstName') {
+        isFirstNameEmpty =
+            controller.text.isEmpty || !validateName(controller.text);
+      } else if (fieldName == 'lastName') {
+        isLastNameEmpty =
+            controller.text.isEmpty || !validateName(controller.text);
+      } else if (fieldName == 'email') {
+        isEmailEmpty = controller.text.isEmpty;
+        isValid = validateEmail(controller.text);
+      } else if (fieldName == 'phoneNumber') {
+        isPhoneNumberEmpty = controller.text.isEmpty;
+        isPhoneNumberValid = validatePhoneNumber(controller.text);
+      } else if (fieldName == 'language') {
+        isLanguageEmpty = controller.text.isEmpty;
+      } else if (fieldName == 'birthDay') {
+        isBirthDayEmpty = controller.text.isEmpty;
+      } else if (fieldName == 'experience') {
+        isExperienceEmpty =
+            controller.text.isEmpty || !validateExperience(controller.text);
+      } else if (fieldName == 'vehicleType') {
+        isVehicleTypeEmpty = controller.text.isEmpty;
+      } else if (fieldName == 'role') {
+        isRoleEmpty = controller.text.isEmpty;
+      } else if (fieldName == 'fathersName') {
+        isFathersNameEmpty =
+            controller.text.isEmpty || !validateName(controller.text);
+      } else if (fieldName == 'gender') {
+        isGenderEmpty = controller.text.isEmpty;
+      } else if (fieldName == 'confirmPassword') {
+        isConfirmPasswordEmpty = controller.text.isEmpty;
       }
     });
   }
@@ -492,22 +459,27 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
 
     _firstNameController.addListener(() {
       setState(() {});
+      _isEmpty(_firstNameController, 'firstName');
       _saveFormData();
     });
     _lastNameController.addListener(() {
       setState(() {});
+      _isEmpty(_lastNameController, 'lastName');
       _saveFormData();
     });
     _fathersNameController.addListener(() {
       setState(() {});
+      _isEmpty(_fathersNameController, 'fathersName');
       _saveFormData();
     });
     _birthDayController.addListener(() {
       setState(() {});
+      _isEmpty(_birthDayController, 'birthDay');
       _saveFormData();
     });
     _genderController.addListener(() {
       setState(() {});
+      _isEmpty(_genderController, 'gender');
       _saveFormData();
     });
     _emailController.addListener(() {
@@ -525,23 +497,28 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     _phoneNumberController.addListener(() {
       setState(() {
         characterCount = _phoneNumberController.text.length;
+        _isEmpty(_phoneNumberController, 'phoneNumber');
       });
       _saveFormData();
     });
     _roleController.addListener(() {
       setState(() {});
+      _isEmpty(_roleController, 'role');
       _saveFormData();
     });
     _experienceController.addListener(() {
       setState(() {});
+      _isEmpty(_experienceController, 'experience');
       _saveFormData();
     });
     _languageController.addListener(() {
       setState(() {});
+      _isEmpty(_languageController, 'language');
       _saveFormData();
     });
     _vehicleTypeController.addListener(() {
       setState(() {});
+      _isEmpty(_vehicleTypeController, 'vehicleType');
       _saveFormData();
     });
 
@@ -654,7 +631,14 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
         final experienceMatch = RegExp(r'(\d+)').firstMatch(experienceString);
         _experienceController.text =
             experienceMatch != null ? experienceMatch.group(1)! : '';
-        _vehicleTypeController.text = data['Vehicle'] ?? '';
+        _vehicleTypeController.text = data['Vehicle Type'] ?? '';
+        selectedVehicleType =
+            _vehicleTypeController.text.isNotEmpty
+                ? _vehicleTypeController.text
+                    .split(',')
+                    .map((e) => e.trim())
+                    .toSet()
+                : {};
         _roleController.text = data['Role'] ?? '';
         _fathersNameController.text = data['Father\'s Name'] ?? '';
         _genderController.text = data['Gender'] ?? '';
@@ -806,8 +790,10 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           _firstNameFocusNode.requestFocus();
                         });
                       },
-                      onTapOutside: (_) {
+                      onChanged: (value) {
                         _isEmpty(_firstNameController, 'firstName');
+                      },
+                      onTapOutside: (_) {
                         setState(() {
                           _firstNameFocusNode.unfocus();
                         });
@@ -897,7 +883,9 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      _firstNameController.text.isEmpty
+                          ? "Required"
+                          : "Only letters allowed",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -933,8 +921,10 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           _lastNameFocusNode.requestFocus();
                         });
                       },
-                      onTapOutside: (_) {
+                      onChanged: (value) {
                         _isEmpty(_lastNameController, 'lastName');
+                      },
+                      onTapOutside: (_) {
                         setState(() {
                           _lastNameFocusNode.unfocus();
                         });
@@ -1026,8 +1016,9 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
-                      textAlign: TextAlign.start,
+                      _lastNameController.text.isEmpty
+                          ? "Required"
+                          : "Only letters allowed",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -1154,7 +1145,9 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      _fathersNameController.text.isEmpty
+                          ? "Required"
+                          : "Only letters allowed",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),
@@ -2098,7 +2091,9 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                       top: width * 0.007,
                     ),
                     child: Text(
-                      "Required",
+                      _experienceController.text.isEmpty
+                          ? "Required"
+                          : "Must be a positive number",
                       style: TextStyle(
                         fontSize: width * 0.03,
                         color: const Color.fromARGB(255, 244, 92, 54),

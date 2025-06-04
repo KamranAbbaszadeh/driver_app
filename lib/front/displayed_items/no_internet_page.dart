@@ -1,4 +1,4 @@
-import 'package:onemoretour/front/displayed_items/restart_widget.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -41,8 +41,17 @@ class NoInternetPage extends StatelessWidget {
                 ),
                 SizedBox(height: height * 0.037),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    RestartWidget.restartApp(context);
+                  onPressed: () async {
+                    var connectivityResult =
+                        await Connectivity().checkConnectivity();
+                    if (!connectivityResult.contains(ConnectivityResult.none)) {
+                      if (context.mounted) {
+                        Navigator.pushReplacementNamed(
+                          context,
+                          '/waiting_screen',
+                        );
+                      }
+                    }
                   },
                   icon: Icon(
                     Icons.refresh,

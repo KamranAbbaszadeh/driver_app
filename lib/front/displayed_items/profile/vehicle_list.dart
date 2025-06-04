@@ -165,6 +165,8 @@ class _VehicleListState extends ConsumerState<VehicleList> {
                     multiSelection: false,
                     vehicleType: '',
                     key: formKey,
+                    isDeclined: false,
+                    onDeleteRemotePhoto: (url) async {},
                     onFormSubmit: (formData) async {
                       final user = FirebaseAuth.instance.currentUser;
                       if (user == null) return;

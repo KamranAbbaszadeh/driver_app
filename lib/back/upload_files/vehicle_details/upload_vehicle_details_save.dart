@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/upload_files/vehicle_details/vehicle_details_post_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -21,20 +22,45 @@ Future<void> uploadVehicleDetailsAndSave({
   final vehiclesSnapshot = await vehiclesCollection.get();
 
   final existingIds = vehiclesSnapshot.docs.map((doc) => doc.id).toList();
-  int lastId = existingIds.where((id) => id.startsWith('Car')).fold<int>(0, (
-    prev,
-    id,
-  ) {
-    final number = int.tryParse(id.replaceFirst('Car', '')) ?? 0;
-    return number > prev ? number : prev;
-  });
 
-  lastId += 1;
-  String vehicleId = 'Car$lastId';
+  // Check if car with same Vehicle Registration Number already exists
+  String? existingVehicleId;
+  for (final doc in vehiclesSnapshot.docs) {
+    final data = doc.data();
+    final existingRegNumber = data['Vehicle Registration Number'] ?? '';
+    if (existingRegNumber == vehicleDetails['Vehicle Registration Number']) {
+      existingVehicleId = doc.id;
+      break;
+    }
+  }
 
-  await vehiclesCollection
-      .doc(vehicleId)
-      .set(vehicleDetails, SetOptions(merge: true));
+  String vehicleId;
+  if (existingVehicleId != null) {
+    // Update existing car
+    await vehiclesCollection
+        .doc(existingVehicleId)
+        .set(vehicleDetails, SetOptions(merge: true));
+    vehicleId = existingVehicleId;
+    logger.i('Updated existing vehicle: $vehicleId');
+  } else {
+    // Create new car
+    int lastId = existingIds.where((id) => id.startsWith('Car')).fold<int>(0, (
+      prev,
+      id,
+    ) {
+      final number = int.tryParse(id.replaceFirst('Car', '')) ?? 0;
+      return number > prev ? number : prev;
+    });
+
+    lastId += 1;
+    String newVehicleId = 'Car$lastId';
+
+    await vehiclesCollection
+        .doc(newVehicleId)
+        .set(vehicleDetails, SetOptions(merge: true));
+    vehicleId = newVehicleId;
+    logger.i('Created new vehicle: $vehicleId');
+  }
 
   final userRef = firestore.collection('Users').doc(userId);
   final userDoc = await userRef.get();
@@ -66,7 +92,22 @@ Future<void> uploadVehicleDetailsAndSave({
 
   if (currentUserEmail != null) {
     final VehicleDetailsPostApi vehicleDetailsPostApi = VehicleDetailsPostApi();
-    final success = await vehicleDetailsPostApi.postData(vehicleDetails);
+    Map<String, dynamic> vehicleDetailsforPos = {
+      "image": vehicleDetails['Vehicle Photos'],
+      "CarName": vehicleDetails['Vehicle Name'],
+      "TechnicalPassport": vehicleDetails['Technical Passport Number'],
+      "Year": vehicleDetails['Vehicle\'s Year'],
+      "Category": vehicleDetails['Vehicle\'s Type'],
+      "SeatNumber": vehicleDetails['Seat Number'],
+      "User": currentUserEmail,
+      "VehicleRegistrationNumber":
+          vehicleDetails['Vehicle Registration Number'],
+      "TechnicalPassportImages": vehicleDetails['Technical Passport Photos'],
+      "ChasisNumber": vehicleDetails['Chassis Number'],
+      "ChasisNumberImage": vehicleDetails['Chassis Number Photo'],
+      "DocName": vehicleId,
+    };
+    final success = await vehicleDetailsPostApi.postData(vehicleDetailsforPos);
     if (success && context.mounted) {
       ScaffoldMessenger.of(
         context,
@@ -126,14 +167,20 @@ Future<List<String>> uploadMultiplePhotosFromPaths(
 ) async {
   List<String> uploadedUrls = [];
   for (final path in paths) {
-    final file = File(path);
-    final uploadRef = storageRef
-        .child(vehicleRegisterNum)
-        .child(folderName)
-        .child('${DateTime.now().millisecondsSinceEpoch}');
-    final uploadTask = await uploadRef.putFile(file);
-    final url = await uploadTask.ref.getDownloadURL();
-    uploadedUrls.add(url);
+    if (path.isNotEmpty && !path.startsWith('https://')) {
+      final file = File(path);
+      if (file.existsSync()) {
+        final uploadRef = storageRef
+            .child(vehicleRegisterNum)
+            .child(folderName)
+            .child('${DateTime.now().millisecondsSinceEpoch}');
+        final uploadTask = await uploadRef.putFile(file);
+        final url = await uploadTask.ref.getDownloadURL();
+        uploadedUrls.add(url);
+      }
+    } else if (path.startsWith('https://')) {
+      uploadedUrls.add(path);
+    }
   }
   return uploadedUrls;
 }
@@ -145,11 +192,21 @@ Future<String> uploadSinglePhotoFromPath(
   String folderName,
   String vehicleRegisterNum,
 ) async {
-  final file = File(path);
-  final uploadRef = storageRef
-      .child(vehicleRegisterNum)
-      .child(folderName)
-      .child('${DateTime.now().millisecondsSinceEpoch}');
-  final uploadTask = await uploadRef.putFile(file);
-  return await uploadTask.ref.getDownloadURL();
+  if (path.isNotEmpty && !path.startsWith('https://')) {
+    final file = File(path);
+    if (file.existsSync()) {
+      final uploadRef = storageRef
+          .child(vehicleRegisterNum)
+          .child(folderName)
+          .child('${DateTime.now().millisecondsSinceEpoch}');
+      final uploadTask = await uploadRef.putFile(file);
+      return await uploadTask.ref.getDownloadURL();
+    } else {
+      return '';
+    }
+  } else if (path.startsWith('https://')) {
+    return path;
+  } else {
+    return '';
+  }
 }

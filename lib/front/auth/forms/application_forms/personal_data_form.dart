@@ -27,6 +27,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
   List<XFile> driverLicensePhoto = <XFile>[];
   List<XFile> iDPhoto = <XFile>[];
   String error = "No Error Detected";
+  late bool isDeclined;
 
   Future<void> _saveTempPersonalPhotos() async {
     final prefs = await SharedPreferences.getInstance();
@@ -53,7 +54,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
               .collection('Users')
               .doc(user.uid)
               .get();
-      final isDeclined = doc.data()?['Personal & Car Details Decline'] == true;
+      isDeclined = doc.data()?['Personal & Car Details Decline'] == true;
       if (isDeclined) {
         final data = doc.data()!;
         final storage = FirebaseStorage.instance;
@@ -271,6 +272,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                       ),
                       padding: EdgeInsets.all(width * 0.02),
                       child: ImageGrid(
+                        isDeclined: isDeclined,
                         images: [personalPhoto],
                         onRemove: (_) async {
                           setState(() => personalPhoto = null);
@@ -326,6 +328,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                       ),
                       padding: EdgeInsets.all(width * 0.02),
                       child: ImageGrid(
+                        isDeclined: isDeclined,
                         images: iDPhoto,
                         onRemove: (index) async {
                           setState(() => iDPhoto.removeAt(index));
@@ -378,6 +381,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                       ),
                       padding: EdgeInsets.all(width * 0.02),
                       child: ImageGrid(
+                        isDeclined: isDeclined,
                         images: driverLicensePhoto,
                         onRemove: (index) async {
                           setState(() => driverLicensePhoto.removeAt(index));

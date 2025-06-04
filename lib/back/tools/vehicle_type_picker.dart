@@ -14,7 +14,7 @@ Future<void> showVehicleTypePicker(
   final vehicleTypes = ['Sedan', 'Minivan', 'SUV', 'Premium SUV', 'Bus'];
 
   final Set<String> currentSelection = Set<String>.from(selectedVehicles);
-
+ 
   await WoltModalSheet.show(
     context: context,
     pageListBuilder:

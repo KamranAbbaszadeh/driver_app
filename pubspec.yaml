@@ -139,11 +139,6 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/intro_screen/Animation1.json
-    - assets/intro_screen/Animation2.json
-    - assets/intro_screen/Animation3.json
-    - assets/intro_screen/Animation4.json
-    - assets/intro_screen/Animation5.json
     - assets/welcome/Animation_Welcome.json
     - assets/welcome/smartphone.png
     - assets/splash/onemoretour.png

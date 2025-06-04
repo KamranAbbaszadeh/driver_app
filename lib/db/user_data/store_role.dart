@@ -21,7 +21,9 @@ class RoleDataProvider extends StateNotifier<Map<String, dynamic>?> {
           (snapshot) {
             final newData = snapshot.data();
 
-            if (newData != null && newData.containsKey('Role')) {
+            if (newData != null &&
+                newData.containsKey('Role') &&
+                FirebaseAuth.instance.currentUser != null) {
               state = {
                 "Role": newData['Role'],
                 "isRegistered": newData['Registration Completed'] ?? false,

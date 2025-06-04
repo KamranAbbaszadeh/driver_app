@@ -385,7 +385,6 @@ class ProfilePage extends ConsumerWidget {
                   ),
                 ),
               ),
-
               Spacer(),
               Padding(
                 padding: EdgeInsets.only(top: height * 0.02),

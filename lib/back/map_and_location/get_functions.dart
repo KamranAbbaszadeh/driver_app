@@ -252,7 +252,8 @@ Future<void> _startTrackingService(
 }
 
 Future<void> requestIgnoreBatteryOptimizations(BuildContext context) async {
-  if (!Platform.isAndroid) return;
+  if (!Platform.isAndroid && context.mounted) return;
+
   final width = MediaQuery.of(context).size.width;
   final height = MediaQuery.of(context).size.height;
   final darkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
@@ -349,19 +350,10 @@ Future<void> requestIgnoreBatteryOptimizations(BuildContext context) async {
 
   if (confirm) {
     final request = await bg.DeviceSettings.showIgnoreBatteryOptimizations();
-
-    if (request.seen) {
-      logger.i(
-        '[BatteryOptimizations] Screen already shown on ${request.lastSeenAt}',
-      );
-      return;
-    }
-
     await bg.DeviceSettings.show(request);
   }
 }
 
-/// Request permissions with dialogs
 Future<void> requestLocationPermissions(BuildContext context) async {
   final width = MediaQuery.of(context).size.width;
   final height = MediaQuery.of(context).size.height;
@@ -373,6 +365,10 @@ Future<void> requestLocationPermissions(BuildContext context) async {
     final PermissionStatus backgroundStatus =
         await Permission.locationAlways.status;
     if (backgroundStatus.isGranted && !Platform.isAndroid) return;
+
+    if (backgroundStatus.isGranted) {
+      return;
+    }
 
     bool shouldOpenSettings =
         context.mounted

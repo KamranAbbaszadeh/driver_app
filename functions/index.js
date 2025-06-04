@@ -27,6 +27,26 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
             body:
               `Your application form has been approved.`,
           },
+          apns: {
+            payload: {
+              aps: {
+                alert: {
+                  title: "Hey There",
+                  body: `Your application form has been approved.`,
+                },
+                sound: "default",
+                badge: 1,
+              },
+            },
+            headers: {
+              "apns-push-type": "alert",
+              "apns-priority": "10",
+              "apns-topic": "io.flutter.plugins.firebase.messaging",
+            },
+          },
+          android: {
+            priority: "high",
+          },
           token: userToken,
           data: {
             route: "/personal_data_form",
@@ -51,6 +71,26 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
             body:
               `Your application form has been approved.`,
           },
+          apns: {
+            payload: {
+              aps: {
+                alert: {
+                  title: "Congratulations",
+                  body: `Your application form has been approved.`,
+                },
+                sound: "default",
+                badge: 1,
+              },
+            },
+            headers: {
+              "apns-push-type": "alert",
+              "apns-priority": "10",
+              "apns-topic": "io.flutter.plugins.firebase.messaging",
+            },
+          },
+          android: {
+            priority: "high",
+          },
           token: userToken,
           data: {
             route: "/contract_sign",
@@ -72,6 +112,26 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           notification: {
             title: "Application Declined",
             body: "Unfortunately, your application form was declined.",
+          },
+          apns: {
+            payload: {
+              aps: {
+                alert: {
+                  title: "Application Declined",
+                  body: "Unfortunately, your application form was declined.",
+                },
+                sound: "default",
+                badge: 1,
+              },
+            },
+            headers: {
+              "apns-push-type": "alert",
+              "apns-priority": "10",
+              "apns-topic": "io.flutter.plugins.firebase.messaging",
+            },
+          },
+          android: {
+            priority: "high",
           },
           token: userToken,
           data: {
@@ -95,6 +155,26 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
             title: "Details Declined",
             body: "Your personal and car details were declined.",
           },
+          apns: {
+            payload: {
+              aps: {
+                alert: {
+                  title: "Details Declined",
+                  body: "Your personal and car details were declined.",
+                },
+                sound: "default",
+                badge: 1,
+              },
+            },
+            headers: {
+              "apns-push-type": "alert",
+              "apns-priority": "10",
+              "apns-topic": "io.flutter.plugins.firebase.messaging",
+            },
+          },
+          android: {
+            priority: "high",
+          },
           token: userToken,
           data: {
             route: "/personalinfo_status",
@@ -116,6 +196,26 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           notification: {
             title: "Registration Completed",
             body: "Congratulations! Your registration is now complete.",
+          },
+          apns: {
+            payload: {
+              aps: {
+                alert: {
+                  title: "Registration Completed",
+                  body: "Congratulations! Your registration is now complete.",
+                },
+                sound: "default",
+                badge: 1,
+              },
+            },
+            headers: {
+              "apns-push-type": "alert",
+              "apns-priority": "10",
+              "apns-topic": "io.flutter.plugins.firebase.messaging",
+            },
+          },
+          android: {
+            priority: "high",
           },
           token: userToken,
           data: {
@@ -187,6 +287,26 @@ exports.sendNotificationOnNewChatMessage = onDocumentCreated(
           notification: {
             title: `New message for the tour ${tourName}`,
             body: `${messageData.name} has sent a message`,
+          },
+          apns: {
+            payload: {
+              aps: {
+                alert: {
+                  title: `New message for the tour ${tourName}`,
+                  body: `${messageData.name} has sent a message`,
+                },
+                sound: "default",
+                badge: 1,
+              },
+            },
+            headers: {
+              "apns-push-type": "alert",
+              "apns-priority": "10",
+              "apns-topic": "io.flutter.plugins.firebase.messaging",
+            },
+          },
+          android: {
+            priority: "high",
           },
           data: {
             route: "/chat_page",

@@ -27,6 +27,7 @@ String? currentChatTourId;
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  logger.i("📩 Background message received: ${message.toMap()}");
 
   try {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -70,6 +71,11 @@ class FirebaseApi {
       logger.i("User ID: $userID");
 
       await _requestNotificationPermissions();
+      await _firebaseMessaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
 
       await initializeNotifications(ref);
 
@@ -80,6 +86,16 @@ class FirebaseApi {
       }
 
       await _setupMessageHandlers(ref);
+
+      // Handle app launch from terminated state via notification
+      RemoteMessage? initialMessage =
+          await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMessage != null) {
+        logger.i(
+          "📩 App launched from terminated state via notification: ${initialMessage.toMap()}",
+        );
+        _handleNotificationTap(initialMessage, ref);
+      }
     } catch (e, st) {
       logger.e("🔥 FirebaseApi.initialize failed", error: e, stackTrace: st);
     }
@@ -178,7 +194,10 @@ class FirebaseApi {
     await _localNotifications.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) async {
+        // Log the notification tap for local notifications
+        logger.i("📩 Notification tapped (local): ${details.payload}");
         if (details.payload != null) {
+          logger.i("📩 Notification tapped with payload: ${details.payload}");
           final Map<String, dynamic> data = jsonDecode(details.payload!);
           final String? type = data['route'];
           if (type == '/chat_page') {
@@ -233,15 +252,20 @@ class FirebaseApi {
     }
 
     try {
-      String? messageId = message.messageId;
+      logger.i("📩 Full foreground message: ${message.toMap()}");
+      String? messageId =
+          message.messageId ??
+          message.sentTime?.millisecondsSinceEpoch.toString() ??
+          DateTime.now().millisecondsSinceEpoch.toString();
 
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? messagesString = prefs.getString('notification_messages');
       List<dynamic> messages =
           messagesString != null ? jsonDecode(messagesString) : [];
-
-      if (messageId != null &&
-          messages.any((m) => m['messageId'] == messageId)) {
+      if (messages.any((m) => m['messageId'] == messageId)) {
+        logger.i(
+          "📩 Duplicate message detected — skipping store for messageId: $messageId",
+        );
         return;
       }
 
@@ -258,6 +282,9 @@ class FirebaseApi {
               await prefs.setString(
                 'notification_messages',
                 jsonEncode(messages),
+              );
+              logger.i(
+                "✅ Stored messageId $messageId — messages count now: ${messages.length}",
               );
               return;
             }
@@ -335,6 +362,9 @@ class FirebaseApi {
         'messageId': messageId,
       });
       await prefs.setString('notification_messages', jsonEncode(messages));
+      logger.i(
+        "✅ Stored messageId $messageId — messages count now: ${messages.length}",
+      );
     } catch (e) {
       logger.e("Error handling message: $e");
     }
@@ -388,10 +418,11 @@ class FirebaseApi {
   }
 
   Future<void> _setupMessageHandlers(WidgetRef ref) async {
+    logger.i(
+      "✅ Setting up message handlers — subscribing to onMessage and onMessageOpenedApp",
+    );
     FirebaseMessaging.onMessage.listen((message) async {
-      logger.i(
-        "📩 Foreground message received: ${message.notification?.title}",
-      );
+      logger.i("📩 Foreground message received: ${message.toMap()}");
       await handleMessage(message);
 
       ref.read(notificationsProvider.notifier).refresh();
@@ -399,6 +430,7 @@ class FirebaseApi {
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       try {
+        logger.i("📩 App opened from notification: ${message.toMap()}");
         _handleNotificationTap(message, ref);
       } catch (e) {
         logger.e("Error handling message opened app: $e");

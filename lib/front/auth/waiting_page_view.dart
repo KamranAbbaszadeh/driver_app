@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
-import 'package:onemoretour/front/auth/forms/application_forms/certificates_details.dart';
 import 'package:onemoretour/front/intro/welcome_page.dart';
 import 'package:onemoretour/front/tools/notification_notifier.dart';
 import 'package:onemoretour/main.dart';
@@ -775,16 +774,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                         : SizedBox.shrink(),
                     SizedBox(height: height * 0.01),
                     GestureDetector(
-                      onTap: () {
-                        navigatorKey.currentState?.push(
-                          MaterialPageRoute(
-                            builder:
-                                (context) => CertificatesDetails(
-                                  role: "Driver Cum Guide",
-                                ),
-                          ),
-                        );
-                      },
+                      onTap: () {},
                       child: Container(
                         decoration: BoxDecoration(
                           color:

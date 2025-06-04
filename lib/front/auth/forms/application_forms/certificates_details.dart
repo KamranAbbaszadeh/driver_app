@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/upload_files/certificates/upload_certificate_save.dart';
 import 'package:onemoretour/front/auth/forms/application_forms/bank_details_form.dart';
 import 'package:onemoretour/front/displayed_items/intermediate_page_for_forms.dart';
@@ -12,6 +13,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// Validator for Certificate Name
+bool validateCertificateName(String value) {
+  return RegExp(r"^[A-Za-z0-9\s\-,.]{2,100}$").hasMatch(value);
+}
 
 class CertificatesDetails extends ConsumerStatefulWidget {
   final String role;
@@ -26,11 +32,13 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   final ScrollController _scrollController = ScrollController();
   bool _showTitle = false;
   List<Map<String, dynamic>> certificates = [];
+  List<bool> isCertificateNameEmpty = [];
   bool _allFilledOut() {
     if (certificates.isEmpty) return false;
 
     for (var cert in certificates) {
-      if (cert['name'] == null || cert['name'].toString().trim().isEmpty) {
+      if (cert['name'] == null ||
+          !validateCertificateName(cert['name'].toString().trim())) {
         return false;
       }
       if (cert['type'] == null) {
@@ -44,16 +52,39 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     return true;
   }
 
-  late FocusNode _certificateNameFocusNode;
-  late FocusNode _certificateTypeFocusNode;
+  List<FocusNode> certificateNameFocusNodes = [];
+  List<FocusNode> certificateTypeFocusNodes = [];
 
   void addCertificate() {
     setState(() {
       certificates.add({'name': '', 'type': null, 'file': null});
+      certificateNameFocusNodes.add(FocusNode());
+      certificateTypeFocusNodes.add(FocusNode());
+      isCertificateNameEmpty.add(false);
+      certificateNameFocusNodes.last.addListener(() {
+        setState(() {
+          if (!certificateNameFocusNodes.last.hasFocus) {
+            final name = certificates.last['name']?.toString() ?? '';
+            isCertificateNameEmpty[isCertificateNameEmpty.length - 1] =
+                name.isEmpty ? true : !validateCertificateName(name);
+          }
+        });
+      });
     });
   }
 
   Future<void> deleteFile(int index) async {
+    if (certificates[index]['fileUrl'] != null) {
+      try {
+        final oldRef = FirebaseStorage.instance.refFromURL(
+          certificates[index]['fileUrl'],
+        );
+        await oldRef.delete();
+      } catch (e) {
+        
+        logger.e('Failed to delete file from Storage: $e');
+      }
+    }
     setState(() {
       certificates[index]['file'] = null;
       certificates[index]['file name'] = null;
@@ -159,24 +190,27 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
           decoration: BoxDecoration(
             border: Border.all(
               color:
-                  _certificateNameFocusNode.hasFocus
+                  certificateNameFocusNodes[index].hasFocus
                       ? Colors.blue
                       : const Color.fromARGB(255, 189, 189, 189),
             ),
             borderRadius: BorderRadius.circular(width * 0.019),
           ),
           padding: EdgeInsets.only(
-            bottom: _certificateNameFocusNode.hasFocus ? 0 : width * 0.025,
+            bottom:
+                certificateNameFocusNodes[index].hasFocus ? 0 : width * 0.025,
             left: width * 0.025,
             top: width * 0.025,
             right: width * 0.025,
           ),
           child: TextFormField(
             showCursor: false,
-            focusNode: _certificateNameFocusNode,
+            focusNode: certificateNameFocusNodes[index],
             onEditingComplete: () {
-              _certificateNameFocusNode.unfocus();
-              FocusScope.of(context).requestFocus(_certificateTypeFocusNode);
+              certificateNameFocusNodes[index].unfocus();
+              FocusScope.of(
+                context,
+              ).requestFocus(certificateTypeFocusNodes[index]);
             },
             decoration: InputDecoration(
               errorBorder: InputBorder.none,
@@ -195,7 +229,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
               labelStyle: TextStyle(
                 fontSize: width * 0.038,
                 color:
-                    _certificateNameFocusNode.hasFocus
+                    certificateNameFocusNodes[index].hasFocus
                         ? Colors.blue
                         : Colors.grey.shade500,
                 fontWeight: FontWeight.w500,
@@ -204,24 +238,38 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
             onChanged: (value) => updateCertificate(index, 'name', value),
             onTap: () {
               setState(() {
-                _certificateNameFocusNode.requestFocus();
+                certificateNameFocusNodes[index].requestFocus();
               });
             },
             onTapOutside: (event) {
               setState(() {
-                _certificateNameFocusNode.unfocus();
+                certificateNameFocusNodes[index].unfocus();
               });
             },
           ),
         ),
-        SizedBox(height: 10),
+        if (isCertificateNameEmpty.length > index &&
+            isCertificateNameEmpty[index])
+          Padding(
+            padding: EdgeInsets.only(left: width * 0.027, top: width * 0.007),
+            child: Text(
+              certificates[index]['name'].toString().isEmpty
+                  ? "Required"
+                  : "Invalid format",
+              style: TextStyle(
+                fontSize: width * 0.03,
+                color: Color.fromARGB(255, 244, 92, 54),
+              ),
+            ),
+          ),
+        SizedBox(height: height * 0.011),
         Container(
           width: width,
           height: height * 0.065,
           decoration: BoxDecoration(
             border: Border.all(
               color:
-                  _certificateTypeFocusNode.hasFocus
+                  certificateTypeFocusNodes[index].hasFocus
                       ? Colors.blue
                       : Colors.grey.shade400,
             ),
@@ -247,15 +295,15 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
             onChanged: (value) {
               updateCertificate(index, 'type', value);
               setState(() {
-                _certificateTypeFocusNode.unfocus();
+                certificateTypeFocusNodes[index].unfocus();
               });
             },
             onTap: () {
               setState(() {
-                _certificateTypeFocusNode.requestFocus();
+                certificateTypeFocusNodes[index].requestFocus();
               });
             },
-            focusNode: _certificateTypeFocusNode,
+            focusNode: certificateTypeFocusNodes[index],
 
             dropdownColor: darkMode ? Colors.black : Colors.white,
             decoration: InputDecoration(
@@ -274,7 +322,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
               labelStyle: TextStyle(
                 fontSize: width * 0.038,
                 color:
-                    _certificateTypeFocusNode.hasFocus
+                    certificateTypeFocusNodes[index].hasFocus
                         ? Colors.blue
                         : Colors.grey.shade500,
                 fontWeight: FontWeight.w500,
@@ -338,14 +386,15 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
         });
       }
     });
-    _certificateNameFocusNode = FocusNode();
-    _certificateTypeFocusNode = FocusNode();
+    certificateNameFocusNodes.add(FocusNode());
+    certificateTypeFocusNodes.add(FocusNode());
     certificates.add({
       'name': '',
       'type': null,
       'file': null,
       'file name': null,
     });
+    isCertificateNameEmpty.add(false);
 
     _loadTempCertificates();
   }
@@ -370,12 +419,13 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
               .collection('Users')
               .doc(user.uid)
               .get();
-      final isDeclined = doc.data()?['Personal & Car Details Decline'] == true;
 
-      if (isDeclined) {
-        final certs = List<Map<String, dynamic>>.from(
-          doc.data()?['certificates'] ?? [],
-        );
+      final certs = List<Map<String, dynamic>>.from(
+        doc.data()?['certificates'] ?? [],
+      );
+
+      if (certs.isNotEmpty) {
+        // Firebase has data → display it
         setState(() {
           certificates =
               certs
@@ -389,11 +439,26 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                     },
                   )
                   .toList();
+
+          // Sync focus nodes and validation states
+          certificateNameFocusNodes = List.generate(
+            certificates.length,
+            (_) => FocusNode(),
+          );
+          certificateTypeFocusNodes = List.generate(
+            certificates.length,
+            (_) => FocusNode(),
+          );
+          isCertificateNameEmpty = List.generate(
+            certificates.length,
+            (_) => false,
+          );
         });
-        return;
+        return; // Exit here — we displayed Firebase data
       }
     }
 
+    // If no Firebase data → load from local temp storage
     final raw = prefs.getString('certificates');
     if (raw != null) {
       final matches = RegExp(r'\{.*?\}').allMatches(raw);
@@ -412,8 +477,22 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
               'file name': null,
             };
           }).toList();
+
       setState(() {
         certificates = restored;
+
+        certificateNameFocusNodes = List.generate(
+          certificates.length,
+          (_) => FocusNode(),
+        );
+        certificateTypeFocusNodes = List.generate(
+          certificates.length,
+          (_) => FocusNode(),
+        );
+        isCertificateNameEmpty = List.generate(
+          certificates.length,
+          (_) => false,
+        );
       });
     }
   }
@@ -425,10 +504,32 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
 
   @override
   void dispose() {
-    _certificateNameFocusNode.dispose();
-    _certificateTypeFocusNode.dispose();
+    for (var node in certificateNameFocusNodes) {
+      node.dispose();
+    }
+    for (var node in certificateTypeFocusNodes) {
+      node.dispose();
+    }
 
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    for (int i = 0; i < certificates.length; i++) {
+      if (certificateNameFocusNodes.length > i) {
+        certificateNameFocusNodes[i].addListener(() {
+          setState(() {
+            if (!certificateNameFocusNodes[i].hasFocus) {
+              final name = certificates[i]['name']?.toString() ?? '';
+              isCertificateNameEmpty[i] =
+                  name.isEmpty ? true : !validateCertificateName(name);
+            }
+          });
+        });
+      }
+    }
   }
 
   @override
@@ -440,213 +541,241 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     final role = widget.role;
     String numOfPages = role == 'Guide' ? '2/3' : '2/4';
 
-    return Scaffold(
-      backgroundColor: darkMode ? Colors.black : Colors.white,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
         backgroundColor: darkMode ? Colors.black : Colors.white,
-        surfaceTintColor: darkMode ? Colors.black : Colors.white,
-        leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          hoverColor: Colors.transparent,
-          icon: Icon(
-            Icons.arrow_circle_left_rounded,
-            size: width * 0.1,
-            color: Colors.grey.shade400,
-          ),
-        ),
-        toolbarHeight: height * 0.1,
-        title: AnimatedOpacity(
-          opacity: _showTitle ? 1.0 : 0.0,
-          duration: Duration(milliseconds: 300),
-          child: Text(
-            '$numOfPages Showcase Your Expertise',
-            overflow: TextOverflow.visible,
-            softWrap: true,
-            style: TextStyle(
-              fontSize: width * 0.05,
-              fontWeight: FontWeight.w600,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: darkMode ? Colors.black : Colors.white,
+          surfaceTintColor: darkMode ? Colors.black : Colors.white,
+          toolbarHeight: height * 0.1,
+          title: AnimatedOpacity(
+            opacity: _showTitle ? 1.0 : 0.0,
+            duration: Duration(milliseconds: 300),
+            child: Text(
+              '$numOfPages Showcase Your Expertise',
+              overflow: TextOverflow.visible,
+              softWrap: true,
+              style: TextStyle(
+                fontSize: width * 0.05,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: width * 0.04),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$numOfPages Showcase Your Expertise',
-                  style: GoogleFonts.daysOne(
-                    textStyle: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: width * 0.066,
-                      color: darkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-                SizedBox(height: height * 0.025),
-                Text(
-                  'Have certifications that highlight your skills or qualifications? Add them here to build trust and credibility as our partner.',
-                ),
-                SizedBox(height: height * 0.015),
-                ...certificates.asMap().entries.map((entry) {
-                  int index = entry.key;
-                  return buildCertificateField(
-                    index: index,
-                    width: width,
-                    height: height,
-                    darkMode: darkMode,
-                  );
-                }),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    ElevatedButton(
-                      onPressed: addCertificate,
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll(
-                          darkMode
-                              ? Color.fromARGB(255, 1, 105, 170)
-                              : Color.fromARGB(255, 0, 134, 179),
-                        ),
-                        foregroundColor: WidgetStatePropertyAll(
-                          darkMode
-                              ? const Color.fromARGB(255, 0, 0, 0)
-                              : const Color.fromARGB(255, 255, 255, 255),
-                        ),
-                        shape: WidgetStatePropertyAll(
-                          ContinuousRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                      child: Text('Add Another Certificate'),
-                    ),
-                    Spacer(),
-                    certificates.length > 1
-                        ? ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              certificates.removeLast();
-                            });
-                          },
-                          style: ButtonStyle(
-                            backgroundColor: WidgetStatePropertyAll(
-                              darkMode
-                                  ? Color.fromARGB(255, 1, 105, 170)
-                                  : Color.fromARGB(255, 0, 134, 179),
-                            ),
-                            foregroundColor: WidgetStatePropertyAll(
-                              darkMode
-                                  ? const Color.fromARGB(255, 0, 0, 0)
-                                  : const Color.fromARGB(255, 255, 255, 255),
-                            ),
-                            shape: WidgetStatePropertyAll(
-                              ContinuousRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                          ),
-                          child: Text('Delete'),
-                        )
-                        : SizedBox.shrink(),
-                  ],
-                ),
-                SizedBox(height: height * 0.023),
-                GestureDetector(
-                  onTap: () async {
-                    if (_allFilledOut()) {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.fade,
-                          child: IntermediateFormPage(
-                            isFromPersonalDataForm: false,
-                            isFromCarDetailsForm: false,
-                            isFromBankDetailsForm: false,
-                            isFromCertificateDetailsForm: true,
-                            isFromCarDetailsSwitcher: false,
-                            isFromProfilePage: false,
-                            backgroundProcess: _submitForm,
-                          ),
-                        ),
-                      );
-                    }
-                  },
-
-                  child: Container(
-                    width: width,
-                    height: height * 0.058,
-                    decoration: BoxDecoration(
-                      color:
-                          _allFilledOut()
-                              ? (darkMode
-                                  ? Color.fromARGB(255, 1, 105, 170)
-                                  : Color.fromARGB(255, 0, 134, 179))
-                              : (darkMode
-                                  ? Color.fromARGB(40, 52, 168, 235)
-                                  : Color.fromARGB(40, 0, 134, 179)),
-                      borderRadius: BorderRadius.circular(width * 0.019),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Next',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: width * 0.04,
-                          color:
-                              _allFilledOut()
-                                  ? (darkMode
-                                      ? const Color.fromARGB(255, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        255,
-                                        255,
-                                        255,
-                                        255,
-                                      ))
-                                  : (darkMode
-                                      ? const Color.fromARGB(132, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        187,
-                                        255,
-                                        255,
-                                        255,
-                                      )),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                Center(
-                  child: TextButton(
-                    onPressed: () async {
-                      await _clearTempCertificates();
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BankDetailsForm(),
-                          ),
-                        );
-                      }
-                    },
-                    child: Text(
-                      'Skip this step',
-                      style: GoogleFonts.robotoCondensed(
-                        fontSize: width * 0.04,
-                        fontWeight: FontWeight.w500,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: width * 0.04),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$numOfPages Showcase Your Expertise',
+                    style: GoogleFonts.daysOne(
+                      textStyle: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: width * 0.066,
                         color: darkMode ? Colors.white : Colors.black,
                       ),
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(height: height * 0.025),
+                  Text(
+                    'Have certifications that highlight your skills or qualifications? Add them here to build trust and credibility as our partner.',
+                  ),
+                  SizedBox(height: height * 0.015),
+                  ...certificates.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    return buildCertificateField(
+                      index: index,
+                      width: width,
+                      height: height,
+                      darkMode: darkMode,
+                    );
+                  }),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _allFilledOut()
+                          ? ElevatedButton(
+                            onPressed: addCertificate,
+                            style: ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll(
+                                darkMode
+                                    ? Color.fromARGB(255, 1, 105, 170)
+                                    : Color.fromARGB(255, 0, 134, 179),
+                              ),
+                              foregroundColor: WidgetStatePropertyAll(
+                                darkMode
+                                    ? const Color.fromARGB(255, 0, 0, 0)
+                                    : const Color.fromARGB(255, 255, 255, 255),
+                              ),
+                              shape: WidgetStatePropertyAll(
+                                ContinuousRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                            child: Text('Add Another Certificate'),
+                          )
+                          : SizedBox.shrink(),
+                      Spacer(),
+                      certificates.length > 1
+                          ? ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                certificates.removeLast();
+                                certificateNameFocusNodes
+                                    .removeLast()
+                                    .dispose();
+                                certificateTypeFocusNodes
+                                    .removeLast()
+                                    .dispose();
+                                isCertificateNameEmpty.removeLast();
+                                for (
+                                  int i = 0;
+                                  i < certificateNameFocusNodes.length;
+                                  i++
+                                ) {
+                                  certificateNameFocusNodes[i].removeListener(
+                                    () {},
+                                  );
+                                  certificateNameFocusNodes[i].addListener(() {
+                                    setState(() {
+                                      if (!certificateNameFocusNodes[i]
+                                          .hasFocus) {
+                                        final name =
+                                            certificates[i]['name']
+                                                ?.toString() ??
+                                            '';
+                                        isCertificateNameEmpty[i] =
+                                            name.isEmpty
+                                                ? true
+                                                : !validateCertificateName(
+                                                  name,
+                                                );
+                                      }
+                                    });
+                                  });
+                                }
+                              });
+                            },
+                            style: ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll(
+                                darkMode
+                                    ? Color.fromARGB(255, 1, 105, 170)
+                                    : Color.fromARGB(255, 0, 134, 179),
+                              ),
+                              foregroundColor: WidgetStatePropertyAll(
+                                darkMode
+                                    ? const Color.fromARGB(255, 0, 0, 0)
+                                    : const Color.fromARGB(255, 255, 255, 255),
+                              ),
+                              shape: WidgetStatePropertyAll(
+                                ContinuousRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                            child: Text('Delete'),
+                          )
+                          : SizedBox.shrink(),
+                    ],
+                  ),
+                  SizedBox(height: height * 0.023),
+                  GestureDetector(
+                    onTap: () async {
+                      if (_allFilledOut()) {
+                        Navigator.push(
+                          context,
+                          PageTransition(
+                            type: PageTransitionType.fade,
+                            child: IntermediateFormPage(
+                              isFromPersonalDataForm: false,
+                              isFromCarDetailsForm: false,
+                              isFromBankDetailsForm: false,
+                              isFromCertificateDetailsForm: true,
+                              isFromCarDetailsSwitcher: false,
+                              isFromProfilePage: false,
+                              backgroundProcess: _submitForm,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+
+                    child: Container(
+                      width: width,
+                      height: height * 0.058,
+                      decoration: BoxDecoration(
+                        color:
+                            _allFilledOut()
+                                ? (darkMode
+                                    ? Color.fromARGB(255, 1, 105, 170)
+                                    : Color.fromARGB(255, 0, 134, 179))
+                                : (darkMode
+                                    ? Color.fromARGB(40, 52, 168, 235)
+                                    : Color.fromARGB(40, 0, 134, 179)),
+                        borderRadius: BorderRadius.circular(width * 0.019),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Next',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: width * 0.04,
+                            color:
+                                _allFilledOut()
+                                    ? (darkMode
+                                        ? const Color.fromARGB(255, 0, 0, 0)
+                                        : const Color.fromARGB(
+                                          255,
+                                          255,
+                                          255,
+                                          255,
+                                        ))
+                                    : (darkMode
+                                        ? const Color.fromARGB(132, 0, 0, 0)
+                                        : const Color.fromARGB(
+                                          187,
+                                          255,
+                                          255,
+                                          255,
+                                        )),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  Center(
+                    child: TextButton(
+                      onPressed: () async {
+                        await _clearTempCertificates();
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BankDetailsForm(),
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(
+                        'Skip this step',
+                        style: GoogleFonts.robotoCondensed(
+                          fontSize: width * 0.04,
+                          fontWeight: FontWeight.w500,
+                          color: darkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -654,3 +783,5 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     );
   }
 }
+
+// Add a listener for certificate name focus to validate on blur

@@ -40,6 +40,9 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
   late FocusNode _bankNameFocusNode;
   bool isBankNameEmpty = false;
 
+  bool isAdressValid = true;
+  bool isBankNameValid = true;
+
   final _bankCodeController = TextEditingController();
   late FocusNode _bankCodeFocusNode;
   bool isBankCodeEmpty = false;
@@ -113,6 +116,14 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     return true;
   }
 
+  bool isValidAddressOrBankName(String value) {
+    if (value.isNotEmpty) {
+      final regex = RegExp(r'^[a-zA-Zа-яА-Я0-9\s,.\-]+$');
+      return regex.hasMatch(value);
+    }
+    return true;
+  }
+
   Future<void> _saveTempData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('address', _addressController.text);
@@ -138,7 +149,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
       final isDeclined = doc.data()?['Personal & Car Details Decline'] == true;
 
       if (isDeclined) {
-        final data = doc.data()!;
+        final data = doc.data()?['Bank Details'];
         _addressController.text = data['Address'] ?? '';
         _finCodeController.text = data['FIN'] ?? '';
         _vATnumberController.text = data['VAT'] ?? '';
@@ -197,7 +208,11 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     });
 
     _addressController.addListener(() {
-      setState(() {});
+      setState(() {
+        if (!isAdressEmpty) {
+          isAdressValid = isValidAddressOrBankName(_addressController.text);
+        }
+      });
       _saveTempData();
     });
 
@@ -244,7 +259,11 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     });
 
     _bankNameController.addListener(() {
-      setState(() {});
+      setState(() {
+        if (!isBankNameEmpty) {
+          isBankNameValid = isValidAddressOrBankName(_bankNameController.text);
+        }
+      });
       _saveTempData();
     });
 
@@ -370,10 +389,11 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
         _mHController.text.isNotEmpty &&
         _sWIFTController.text.isNotEmpty &&
         _iBANController.text.isNotEmpty &&
+        isAdressValid &&
+        isBankNameValid &&
         isIbanValid &&
         isBankCodeValid &&
         isFINCodeValid &&
-        isIbanValid &&
         isMHValid &&
         isSWIFTValid &&
         isVATnumberValid) {
@@ -500,1112 +520,1210 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
 
-    return Scaffold(
-      backgroundColor: darkMode ? Colors.black : Colors.white,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
         backgroundColor: darkMode ? Colors.black : Colors.white,
-        surfaceTintColor: darkMode ? Colors.black : Colors.white,
-        leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          hoverColor: Colors.transparent,
-          icon: Icon(
-            Icons.arrow_circle_left_rounded,
-            size: width * 0.1,
-            color: Colors.grey.shade400,
-          ),
-        ),
-        toolbarHeight: height * 0.1,
-        title: AnimatedOpacity(
-          opacity: showTitle ? 1.0 : 0.0,
-          duration: Duration(milliseconds: 300),
-          child: Text(
-            '$numOfPages Your Financial Details for Seamless Transactions',
-            overflow: TextOverflow.visible,
-            softWrap: true,
-            style: TextStyle(
-              fontSize: width * 0.05,
-              fontWeight: FontWeight.w600,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: darkMode ? Colors.black : Colors.white,
+          surfaceTintColor: darkMode ? Colors.black : Colors.white,
+          toolbarHeight: height * 0.1,
+          title: AnimatedOpacity(
+            opacity: showTitle ? 1.0 : 0.0,
+            duration: Duration(milliseconds: 300),
+            child: Text(
+              '$numOfPages Your Financial Details for Seamless Transactions',
+              overflow: TextOverflow.visible,
+              softWrap: true,
+              style: TextStyle(
+                fontSize: width * 0.05,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: width * 0.04),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$numOfPages Your Financial Details for Seamless Transactions',
-                  style: GoogleFonts.daysOne(
-                    textStyle: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: width * 0.066,
-                      color: darkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-                SizedBox(height: height * 0.025),
-                Text(
-                  role == 'Guide'
-                      ? 'Let\'s finalize your profile! Help us set up your account for payments and compliance by sharing your VAT, banking details, and other key information securely.'
-                      : 'We\'re almost there! Help us set up your account for payments and compliance by sharing your VAT, banking details, and other key information securely.',
-                ),
-                SizedBox(height: height * 0.015),
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isAdressEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _addressFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom:
-                        _addressFocusNode.hasFocus ||
-                                _addressController.text.isNotEmpty
-                            ? 0
-                            : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      onTap: () {
-                        setState(() {
-                          _addressFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_addressController, 'Address');
-                        setState(() {
-                          _addressFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _addressFocusNode,
-                      onEditingComplete: () {
-                        _addressFocusNode.unfocus();
-                        FocusScope.of(context).requestFocus(_finCodeFocusNode);
-                      },
-                      controller: _addressController,
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _addressFocusNode.hasFocus
-                                ? _addressController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _addressController.clear();
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'Registration address',
-                        hintText:
-                            'Bakı şəhəri, R.Behbudov küçəsi 13, mənzil 14',
-                        hintStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isAdressEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _addressFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: width * 0.04),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$numOfPages Your Financial Details for Seamless Transactions',
+                    style: GoogleFonts.daysOne(
+                      textStyle: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: width * 0.066,
+                        color: darkMode ? Colors.white : Colors.black,
                       ),
                     ),
                   ),
-                ),
-                if (isAdressEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      "Required",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
+                  SizedBox(height: height * 0.025),
+                  Text(
+                    role == 'Guide'
+                        ? 'Let\'s finalize your profile! Help us set up your account for payments and compliance by sharing your VAT, banking details, and other key information securely.'
+                        : 'We\'re almost there! Help us set up your account for payments and compliance by sharing your VAT, banking details, and other key information securely.',
                   ),
-                SizedBox(height: height * 0.015),
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isFINCodeEmpty || !isFINCodeValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _finCodeFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom:
-                        _finCodeFocusNode.hasFocus ||
-                                _finCodeController.text.isNotEmpty
-                            ? 0
-                            : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      maxLength: 7,
-                      buildCounter:
-                          (
-                            BuildContext context, {
-                            int? currentLength,
-                            bool? isFocused,
-                            int? maxLength,
-                          }) => null,
-                      onTap: () {
-                        setState(() {
-                          _finCodeFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_finCodeController, 'FIN');
-                        setState(() {
-                          _finCodeFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _finCodeFocusNode,
-                      onEditingComplete: () {
-                        _finCodeFocusNode.unfocus();
-                        FocusScope.of(
-                          context,
-                        ).requestFocus(_vATnumberFocusNode);
-                      },
-                      controller: _finCodeController,
-                      inputFormatters: [
-                        UpperCaseTextFormatter(),
-                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-                      ],
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _finCodeFocusNode.hasFocus
-                                ? _finCodeController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _finCodeController.clear();
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'FIN CODE "Personal identification number"',
-                        hintText: '94FMDDD',
-                        hintStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isFINCodeEmpty || !isFINCodeValid
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _finCodeFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isFINCodeEmpty || !isFINCodeValid)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      isFINCodeEmpty ? "Required" : "Invalid FIN Code",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-                SizedBox(height: height * 0.015),
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isVATnumberEmpty || !isVATnumberValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _vATnumberFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom:
-                        _vATnumberFocusNode.hasFocus ||
-                                _vATnumberController.text.isNotEmpty
-                            ? 0
-                            : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      maxLength: 10,
-                      buildCounter:
-                          (
-                            BuildContext context, {
-                            int? currentLength,
-                            bool? isFocused,
-                            int? maxLength,
-                          }) => null,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onTap: () {
-                        setState(() {
-                          _vATnumberFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_vATnumberController, 'VAT Number');
-                        setState(() {
-                          _vATnumberFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _vATnumberFocusNode,
-                      onEditingComplete: () {
-                        _vATnumberFocusNode.unfocus();
-                        FocusScope.of(context).requestFocus(_bankNameFocusNode);
-                      },
-                      controller: _vATnumberController,
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _vATnumberFocusNode.hasFocus
-                                ? _vATnumberController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _vATnumberController.clear();
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'VAT Number',
-                        hintText: '1245468891',
-                        hintStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isVATnumberEmpty || !isVATnumberValid
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _vATnumberFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isVATnumberEmpty || !isVATnumberValid)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      isVATnumberEmpty ? "Required" : "Invalid VAT Number",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-                SizedBox(height: height * 0.015),
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isBankNameEmpty
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _bankNameFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom:
-                        _bankNameFocusNode.hasFocus ||
-                                _bankNameController.text.isNotEmpty
-                            ? 0
-                            : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      onTap: () {
-                        setState(() {
-                          _bankNameFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_bankNameController, 'Bank Name');
-                        setState(() {
-                          _bankNameFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _bankNameFocusNode,
-                      onEditingComplete: () {
-                        _bankNameFocusNode.unfocus();
-                        FocusScope.of(context).requestFocus(_bankCodeFocusNode);
-                      },
-                      controller: _bankNameController,
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _bankNameFocusNode.hasFocus
-                                ? _bankNameController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _bankNameController.clear();
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'Bank Name',
-                        hintText: 'Kapital Bank ASC Merkez filiali',
-                        hintStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isBankNameEmpty
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _bankNameFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isBankNameEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      "Required",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-                SizedBox(height: height * 0.015),
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isBankCodeEmpty || !isBankCodeValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _bankCodeFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom:
-                        _bankCodeFocusNode.hasFocus ||
-                                _bankCodeController.text.isNotEmpty
-                            ? 0
-                            : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      maxLength: 8,
-                      buildCounter:
-                          (
-                            BuildContext context, {
-                            int? currentLength,
-                            bool? isFocused,
-                            int? maxLength,
-                          }) => null,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onTap: () {
-                        setState(() {
-                          _bankCodeFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_bankCodeController, 'Bank Code');
-                        setState(() {
-                          _bankCodeFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _bankCodeFocusNode,
-                      onEditingComplete: () {
-                        _bankCodeFocusNode.unfocus();
-                        FocusScope.of(context).requestFocus(_mHFocusNode);
-                      },
-                      controller: _bankCodeController,
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _bankCodeFocusNode.hasFocus
-                                ? _bankCodeController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _bankCodeController.clear();
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'Bank Code',
-                        hintText: '533345',
-                        hintStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isBankCodeEmpty || !isBankCodeValid
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _bankCodeFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isBankCodeEmpty || !isBankCodeValid)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      isBankCodeEmpty
-                          ? "Required"
-                          : "Invalid Bank Code format.",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-                SizedBox(height: height * 0.015),
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isMHEmpty || !isMHValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _mHFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom:
-                        _mHFocusNode.hasFocus || _mHController.text.isNotEmpty
-                            ? 0
-                            : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      maxLength: 34,
-                      buildCounter:
-                          (
-                            BuildContext context, {
-                            int? currentLength,
-                            bool? isFocused,
-                            int? maxLength,
-                          }) => null,
-
-                      onTap: () {
-                        setState(() {
-                          _mHFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_mHController, 'MH');
-                        setState(() {
-                          _mHFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _mHFocusNode,
-                      onEditingComplete: () {
-                        _mHFocusNode.unfocus();
-                        FocusScope.of(context).requestFocus(_sWIFTFocusNode);
-                      },
-                      controller: _mHController,
-                      inputFormatters: [
-                        UpperCaseTextFormatter(),
-                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-                      ],
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _mHFocusNode.hasFocus
-                                ? _mHController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _mHController.clear();
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'M.H:',
-                        hintText: 'AZ89NABR01576100000000002356',
-                        hintStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isMHEmpty || !isMHValid
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _mHFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isMHEmpty || !isMHValid)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      isMHEmpty
-                          ? "Required"
-                          : "Invalid Correspondent Bank Account (Müxbir Hesab) format.",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-                SizedBox(height: height * 0.015),
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isSWIFTEmpty || !isSWIFTValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _sWIFTFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom:
-                        _sWIFTFocusNode.hasFocus ||
-                                _sWIFTController.text.isNotEmpty
-                            ? 0
-                            : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      maxLength: 11,
-                      buildCounter:
-                          (
-                            BuildContext context, {
-                            int? currentLength,
-                            bool? isFocused,
-                            int? maxLength,
-                          }) => null,
-                      onTap: () {
-                        setState(() {
-                          _sWIFTFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_sWIFTController, 'SWIFT');
-                        setState(() {
-                          _sWIFTFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _sWIFTFocusNode,
-                      onEditingComplete: () {
-                        _sWIFTFocusNode.unfocus();
-                        FocusScope.of(context).requestFocus(_iBANFocusNode);
-                      },
-                      controller: _sWIFTController,
-                      inputFormatters: [
-                        UpperCaseTextFormatter(),
-                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-                      ],
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _sWIFTFocusNode.hasFocus
-                                ? _sWIFTController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _sWIFTController.clear();
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'SWIFT',
-                        hintText: 'AIIRDAZ9',
-
-                        hintStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isSWIFTEmpty || !isSWIFTValid
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _sWIFTFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isSWIFTEmpty || !isSWIFTValid)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      isSWIFTEmpty ? "Required" : "Invalid SWIFT Code format.",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-
-                SizedBox(height: height * 0.015),
-                Container(
-                  width: width,
-                  height: height * 0.065,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isIBANEmpty || !isIbanValid
-                              ? const Color.fromARGB(255, 244, 92, 54)
-                              : _iBANFocusNode.hasFocus
-                              ? Colors.blue
-                              : Colors.grey.shade400,
-                    ),
-                    borderRadius: BorderRadius.circular(width * 0.019),
-                  ),
-                  padding: EdgeInsets.only(
-                    bottom:
-                        _iBANFocusNode.hasFocus ||
-                                _iBANController.text.isNotEmpty
-                            ? 0
-                            : width * 0.025,
-                    left: width * 0.025,
-                    top: width * 0.025,
-                    right: width * 0.025,
-                  ),
-                  child: Center(
-                    child: TextField(
-                      maxLength: 34,
-                      buildCounter:
-                          (
-                            BuildContext context, {
-                            int? currentLength,
-                            bool? isFocused,
-                            int? maxLength,
-                          }) => null,
-                      onTap: () {
-                        setState(() {
-                          _iBANFocusNode.requestFocus();
-                        });
-                      },
-                      onTapOutside: (_) {
-                        _isEmpty(_iBANController, 'IBAN');
-                        setState(() {
-                          _iBANFocusNode.unfocus();
-                        });
-                      },
-                      showCursor: false,
-                      focusNode: _iBANFocusNode,
-                      onEditingComplete: () {
-                        _iBANFocusNode.unfocus();
-                      },
-                      controller: _iBANController,
-                      inputFormatters: [
-                        UpperCaseTextFormatter(),
-                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-                      ],
-                      decoration: InputDecoration(
-                        suffixIcon:
-                            _iBANFocusNode.hasFocus
-                                ? _iBANController.text.isEmpty
-                                    ? Icon(
-                                      Icons.cancel_outlined,
-                                      size: width * 0.076,
-                                      color: const Color.fromARGB(
-                                        255,
-                                        158,
-                                        158,
-                                        158,
-                                      ),
-                                    )
-                                    : IconButton(
-                                      onPressed: () {
-                                        _iBANController.clear();
-                                      },
-                                      icon: Icon(Icons.cancel),
-                                      padding: EdgeInsets.zero,
-                                      iconSize: width * 0.076,
-                                    )
-                                : null,
-                        errorBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: width * 0.05),
-                        isDense: true,
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.auto,
-                        labelText: 'IBAN',
-                        hintText: 'AZ93AIID56676634995921783406',
-                        hintStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color: Colors.grey.shade500.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: width * 0.038,
-                          color:
-                              isIBANEmpty || !isIbanValid
-                                  ? const Color.fromARGB(255, 244, 92, 54)
-                                  : _iBANFocusNode.hasFocus
-                                  ? Colors.blue
-                                  : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isIBANEmpty || !isIbanValid)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: width * 0.027,
-                      top: width * 0.007,
-                    ),
-                    child: Text(
-                      isIBANEmpty
-                          ? "Required"
-                          : "Invalid International Bank Account Number (IBAN) format.",
-                      style: TextStyle(
-                        fontSize: width * 0.03,
-                        color: const Color.fromARGB(255, 244, 92, 54),
-                      ),
-                    ),
-                  ),
-
-                SizedBox(height: height * 0.025),
-                GestureDetector(
-                  onTap: () async {
-                    if (_allFilledOut()) {
-                      Navigator.push(
-                        context,
-                        PageTransition(
-                          type: PageTransitionType.fade,
-                          child: IntermediateFormPage(
-                            isFromPersonalDataForm: false,
-                            isFromBankDetailsForm: true,
-                            isFromCarDetailsForm: false,
-                            isFromCertificateDetailsForm: false,
-                            isFromCarDetailsSwitcher: false,
-                            isFromProfilePage: false,
-                            backgroundProcess: _submitForm,
-                          ),
-                        ),
-                      );
-                    } else {
-                      _checkFields();
-                    }
-                  },
-                  child: Container(
+                  SizedBox(height: height * 0.015),
+                  Container(
                     width: width,
-                    height: height * 0.058,
+                    height: height * 0.065,
                     decoration: BoxDecoration(
-                      color:
-                          _allFilledOut()
-                              ? (darkMode
-                                  ? Color.fromARGB(255, 1, 105, 170)
-                                  : Color.fromARGB(255, 0, 134, 179))
-                              : (darkMode
-                                  ? Color.fromARGB(40, 52, 168, 235)
-                                  : Color.fromARGB(40, 0, 134, 179)),
+                      border: Border.all(
+                        color:
+                            isAdressEmpty || !isAdressValid
+                                ? const Color.fromARGB(255, 244, 92, 54)
+                                : _addressFocusNode.hasFocus
+                                ? Colors.blue
+                                : Colors.grey.shade400,
+                      ),
                       borderRadius: BorderRadius.circular(width * 0.019),
                     ),
+                    padding: EdgeInsets.only(
+                      bottom:
+                          _addressFocusNode.hasFocus ||
+                                  _addressController.text.isNotEmpty
+                              ? 0
+                              : width * 0.025,
+                      left: width * 0.025,
+                      top: width * 0.025,
+                      right: width * 0.025,
+                    ),
                     child: Center(
-                      child: Text(
-                        role == 'Guide' ? 'Submit' : 'Next',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: width * 0.04,
-                          color:
-                              _allFilledOut()
-                                  ? (darkMode
-                                      ? const Color.fromARGB(255, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        255,
-                                        255,
-                                        255,
-                                        255,
-                                      ))
-                                  : (darkMode
-                                      ? const Color.fromARGB(132, 0, 0, 0)
-                                      : const Color.fromARGB(
-                                        187,
-                                        255,
-                                        255,
-                                        255,
-                                      )),
+                      child: TextField(
+                        onTap: () {
+                          setState(() {
+                            _addressFocusNode.requestFocus();
+                          });
+                        },
+                        onTapOutside: (_) {
+                          _isEmpty(_addressController, 'Address');
+                          setState(() {
+                            _addressFocusNode.unfocus();
+                          });
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            isAdressEmpty = value.isEmpty;
+                          });
+                          setState(() {
+                            if (!isAdressEmpty) {
+                              isAdressValid = isValidAddressOrBankName(value);
+                            }
+                          });
+                        },
+                        showCursor: false,
+                        focusNode: _addressFocusNode,
+                        onEditingComplete: () {
+                          _addressFocusNode.unfocus();
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(_finCodeFocusNode);
+                        },
+                        controller: _addressController,
+                        decoration: InputDecoration(
+                          suffixIcon:
+                              _addressFocusNode.hasFocus
+                                  ? _addressController.text.isEmpty
+                                      ? Icon(
+                                        Icons.cancel_outlined,
+                                        size: width * 0.076,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
+                                      )
+                                      : IconButton(
+                                        onPressed: () {
+                                          _addressController.clear();
+                                        },
+                                        icon: Icon(Icons.cancel),
+                                        padding: EdgeInsets.zero,
+                                        iconSize: width * 0.076,
+                                      )
+                                  : null,
+                          errorBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.only(top: width * 0.05),
+                          isDense: true,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          labelText: 'Registration address',
+                          hintText:
+                              'Bakı şəhəri, R.Behbudov küçəsi 13, mənzil 14',
+                          hintStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color: Colors.grey.shade500.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color:
+                                isAdressEmpty || !isAdressValid
+                                    ? const Color.fromARGB(255, 244, 92, 54)
+                                    : _addressFocusNode.hasFocus
+                                    ? Colors.blue
+                                    : Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(height: height * 0.058),
-              ],
+                  if (isAdressEmpty || !isAdressValid)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.027,
+                        top: width * 0.007,
+                      ),
+                      child: Text(
+                        isAdressEmpty ? "Required" : "Invalid Address format.",
+                        style: TextStyle(
+                          fontSize: width * 0.03,
+                          color: const Color.fromARGB(255, 244, 92, 54),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: height * 0.015),
+                  Container(
+                    width: width,
+                    height: height * 0.065,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color:
+                            isFINCodeEmpty || !isFINCodeValid
+                                ? const Color.fromARGB(255, 244, 92, 54)
+                                : _finCodeFocusNode.hasFocus
+                                ? Colors.blue
+                                : Colors.grey.shade400,
+                      ),
+                      borderRadius: BorderRadius.circular(width * 0.019),
+                    ),
+                    padding: EdgeInsets.only(
+                      bottom:
+                          _finCodeFocusNode.hasFocus ||
+                                  _finCodeController.text.isNotEmpty
+                              ? 0
+                              : width * 0.025,
+                      left: width * 0.025,
+                      top: width * 0.025,
+                      right: width * 0.025,
+                    ),
+                    child: Center(
+                      child: TextField(
+                        maxLength: 7,
+                        buildCounter:
+                            (
+                              BuildContext context, {
+                              int? currentLength,
+                              bool? isFocused,
+                              int? maxLength,
+                            }) => null,
+                        onTap: () {
+                          setState(() {
+                            _finCodeFocusNode.requestFocus();
+                          });
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            isFINCodeEmpty = value.isEmpty;
+                          });
+                          setState(() {
+                            if (!isFINCodeEmpty) {
+                              isFINCodeValid = isValidFINCode(value);
+                            }
+                          });
+                        },
+                        onTapOutside: (_) {
+                          _isEmpty(_finCodeController, 'FIN');
+                          setState(() {
+                            _finCodeFocusNode.unfocus();
+                          });
+                        },
+                        showCursor: false,
+                        focusNode: _finCodeFocusNode,
+                        onEditingComplete: () {
+                          _finCodeFocusNode.unfocus();
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(_vATnumberFocusNode);
+                        },
+                        controller: _finCodeController,
+                        inputFormatters: [
+                          UpperCaseTextFormatter(),
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[A-Z0-9]'),
+                          ),
+                        ],
+                        decoration: InputDecoration(
+                          suffixIcon:
+                              _finCodeFocusNode.hasFocus
+                                  ? _finCodeController.text.isEmpty
+                                      ? Icon(
+                                        Icons.cancel_outlined,
+                                        size: width * 0.076,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
+                                      )
+                                      : IconButton(
+                                        onPressed: () {
+                                          _finCodeController.clear();
+                                        },
+                                        icon: Icon(Icons.cancel),
+                                        padding: EdgeInsets.zero,
+                                        iconSize: width * 0.076,
+                                      )
+                                  : null,
+                          errorBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.only(top: width * 0.05),
+                          isDense: true,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          labelText:
+                              'FIN CODE "Personal identification number"',
+                          hintText: '94FMDDD',
+                          hintStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color: Colors.grey.shade500.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color:
+                                isFINCodeEmpty || !isFINCodeValid
+                                    ? const Color.fromARGB(255, 244, 92, 54)
+                                    : _finCodeFocusNode.hasFocus
+                                    ? Colors.blue
+                                    : Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isFINCodeEmpty || !isFINCodeValid)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.027,
+                        top: width * 0.007,
+                      ),
+                      child: Text(
+                        isFINCodeEmpty ? "Required" : "Invalid FIN Code",
+                        style: TextStyle(
+                          fontSize: width * 0.03,
+                          color: const Color.fromARGB(255, 244, 92, 54),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: height * 0.015),
+                  Container(
+                    width: width,
+                    height: height * 0.065,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color:
+                            isVATnumberEmpty || !isVATnumberValid
+                                ? const Color.fromARGB(255, 244, 92, 54)
+                                : _vATnumberFocusNode.hasFocus
+                                ? Colors.blue
+                                : Colors.grey.shade400,
+                      ),
+                      borderRadius: BorderRadius.circular(width * 0.019),
+                    ),
+                    padding: EdgeInsets.only(
+                      bottom:
+                          _vATnumberFocusNode.hasFocus ||
+                                  _vATnumberController.text.isNotEmpty
+                              ? 0
+                              : width * 0.025,
+                      left: width * 0.025,
+                      top: width * 0.025,
+                      right: width * 0.025,
+                    ),
+                    child: Center(
+                      child: TextField(
+                        maxLength: 10,
+                        buildCounter:
+                            (
+                              BuildContext context, {
+                              int? currentLength,
+                              bool? isFocused,
+                              int? maxLength,
+                            }) => null,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onTap: () {
+                          setState(() {
+                            _vATnumberFocusNode.requestFocus();
+                          });
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            isVATnumberEmpty = value.isEmpty;
+                          });
+                          if (!isVATnumberEmpty) {
+                            setState(() {
+                              isVATnumberValid = isValidVATNumber(value);
+                            });
+                          }
+                        },
+                        onTapOutside: (_) {
+                          _isEmpty(_vATnumberController, 'VAT Number');
+                          setState(() {
+                            _vATnumberFocusNode.unfocus();
+                          });
+                        },
+                        showCursor: false,
+                        focusNode: _vATnumberFocusNode,
+                        onEditingComplete: () {
+                          _vATnumberFocusNode.unfocus();
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(_bankNameFocusNode);
+                        },
+                        controller: _vATnumberController,
+                        decoration: InputDecoration(
+                          suffixIcon:
+                              _vATnumberFocusNode.hasFocus
+                                  ? _vATnumberController.text.isEmpty
+                                      ? Icon(
+                                        Icons.cancel_outlined,
+                                        size: width * 0.076,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
+                                      )
+                                      : IconButton(
+                                        onPressed: () {
+                                          _vATnumberController.clear();
+                                        },
+                                        icon: Icon(Icons.cancel),
+                                        padding: EdgeInsets.zero,
+                                        iconSize: width * 0.076,
+                                      )
+                                  : null,
+                          errorBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.only(top: width * 0.05),
+                          isDense: true,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          labelText: 'VAT Number',
+                          hintText: '1245468891',
+                          hintStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color: Colors.grey.shade500.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color:
+                                isVATnumberEmpty || !isVATnumberValid
+                                    ? const Color.fromARGB(255, 244, 92, 54)
+                                    : _vATnumberFocusNode.hasFocus
+                                    ? Colors.blue
+                                    : Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isVATnumberEmpty || !isVATnumberValid)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.027,
+                        top: width * 0.007,
+                      ),
+                      child: Text(
+                        isVATnumberEmpty ? "Required" : "Invalid VAT Number",
+                        style: TextStyle(
+                          fontSize: width * 0.03,
+                          color: const Color.fromARGB(255, 244, 92, 54),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: height * 0.015),
+                  Container(
+                    width: width,
+                    height: height * 0.065,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color:
+                            isBankNameEmpty || !isBankNameValid
+                                ? const Color.fromARGB(255, 244, 92, 54)
+                                : _bankNameFocusNode.hasFocus
+                                ? Colors.blue
+                                : Colors.grey.shade400,
+                      ),
+                      borderRadius: BorderRadius.circular(width * 0.019),
+                    ),
+                    padding: EdgeInsets.only(
+                      bottom:
+                          _bankNameFocusNode.hasFocus ||
+                                  _bankNameController.text.isNotEmpty
+                              ? 0
+                              : width * 0.025,
+                      left: width * 0.025,
+                      top: width * 0.025,
+                      right: width * 0.025,
+                    ),
+                    child: Center(
+                      child: TextField(
+                        onTap: () {
+                          setState(() {
+                            _bankNameFocusNode.requestFocus();
+                          });
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            isBankNameEmpty = value.isEmpty;
+                          });
+                          if (!isBankNameEmpty) {
+                            setState(() {
+                              isBankNameValid = isValidAddressOrBankName(value);
+                            });
+                          }
+                        },
+                        onTapOutside: (_) {
+                          _isEmpty(_bankNameController, 'Bank Name');
+                          setState(() {
+                            _bankNameFocusNode.unfocus();
+                          });
+                        },
+                        showCursor: false,
+                        focusNode: _bankNameFocusNode,
+                        onEditingComplete: () {
+                          _bankNameFocusNode.unfocus();
+                          FocusScope.of(
+                            context,
+                          ).requestFocus(_bankCodeFocusNode);
+                        },
+                        controller: _bankNameController,
+                        decoration: InputDecoration(
+                          suffixIcon:
+                              _bankNameFocusNode.hasFocus
+                                  ? _bankNameController.text.isEmpty
+                                      ? Icon(
+                                        Icons.cancel_outlined,
+                                        size: width * 0.076,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
+                                      )
+                                      : IconButton(
+                                        onPressed: () {
+                                          _bankNameController.clear();
+                                        },
+                                        icon: Icon(Icons.cancel),
+                                        padding: EdgeInsets.zero,
+                                        iconSize: width * 0.076,
+                                      )
+                                  : null,
+                          errorBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.only(top: width * 0.05),
+                          isDense: true,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          labelText: 'Bank Name',
+                          hintText: 'Kapital Bank ASC Merkez filiali',
+                          hintStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color: Colors.grey.shade500.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color:
+                                isBankNameEmpty || !isBankNameValid
+                                    ? const Color.fromARGB(255, 244, 92, 54)
+                                    : _bankNameFocusNode.hasFocus
+                                    ? Colors.blue
+                                    : Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isBankNameEmpty || !isBankNameValid)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.027,
+                        top: width * 0.007,
+                      ),
+                      child: Text(
+                        isBankNameEmpty
+                            ? "Required"
+                            : "Invalid Bank Name format.",
+                        style: TextStyle(
+                          fontSize: width * 0.03,
+                          color: const Color.fromARGB(255, 244, 92, 54),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: height * 0.015),
+                  Container(
+                    width: width,
+                    height: height * 0.065,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color:
+                            isBankCodeEmpty || !isBankCodeValid
+                                ? const Color.fromARGB(255, 244, 92, 54)
+                                : _bankCodeFocusNode.hasFocus
+                                ? Colors.blue
+                                : Colors.grey.shade400,
+                      ),
+                      borderRadius: BorderRadius.circular(width * 0.019),
+                    ),
+                    padding: EdgeInsets.only(
+                      bottom:
+                          _bankCodeFocusNode.hasFocus ||
+                                  _bankCodeController.text.isNotEmpty
+                              ? 0
+                              : width * 0.025,
+                      left: width * 0.025,
+                      top: width * 0.025,
+                      right: width * 0.025,
+                    ),
+                    child: Center(
+                      child: TextField(
+                        maxLength: 8,
+                        buildCounter:
+                            (
+                              BuildContext context, {
+                              int? currentLength,
+                              bool? isFocused,
+                              int? maxLength,
+                            }) => null,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onTap: () {
+                          setState(() {
+                            _bankCodeFocusNode.requestFocus();
+                          });
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            isBankCodeEmpty = value.isEmpty;
+                          });
+                          if (!isBankCodeEmpty) {
+                            setState(() {
+                              isBankCodeEmpty = isValidBankCode(value);
+                            });
+                          }
+                        },
+                        onTapOutside: (_) {
+                          _isEmpty(_bankCodeController, 'Bank Code');
+                          setState(() {
+                            _bankCodeFocusNode.unfocus();
+                          });
+                        },
+                        showCursor: false,
+                        focusNode: _bankCodeFocusNode,
+                        onEditingComplete: () {
+                          _bankCodeFocusNode.unfocus();
+                          FocusScope.of(context).requestFocus(_mHFocusNode);
+                        },
+                        controller: _bankCodeController,
+                        decoration: InputDecoration(
+                          suffixIcon:
+                              _bankCodeFocusNode.hasFocus
+                                  ? _bankCodeController.text.isEmpty
+                                      ? Icon(
+                                        Icons.cancel_outlined,
+                                        size: width * 0.076,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
+                                      )
+                                      : IconButton(
+                                        onPressed: () {
+                                          _bankCodeController.clear();
+                                        },
+                                        icon: Icon(Icons.cancel),
+                                        padding: EdgeInsets.zero,
+                                        iconSize: width * 0.076,
+                                      )
+                                  : null,
+                          errorBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.only(top: width * 0.05),
+                          isDense: true,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          labelText: 'Bank Code',
+                          hintText: '533345',
+                          hintStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color: Colors.grey.shade500.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color:
+                                isBankCodeEmpty || !isBankCodeValid
+                                    ? const Color.fromARGB(255, 244, 92, 54)
+                                    : _bankCodeFocusNode.hasFocus
+                                    ? Colors.blue
+                                    : Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isBankCodeEmpty || !isBankCodeValid)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.027,
+                        top: width * 0.007,
+                      ),
+                      child: Text(
+                        isBankCodeEmpty
+                            ? "Required"
+                            : "Invalid Bank Code format.",
+                        style: TextStyle(
+                          fontSize: width * 0.03,
+                          color: const Color.fromARGB(255, 244, 92, 54),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: height * 0.015),
+                  Container(
+                    width: width,
+                    height: height * 0.065,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color:
+                            isMHEmpty || !isMHValid
+                                ? const Color.fromARGB(255, 244, 92, 54)
+                                : _mHFocusNode.hasFocus
+                                ? Colors.blue
+                                : Colors.grey.shade400,
+                      ),
+                      borderRadius: BorderRadius.circular(width * 0.019),
+                    ),
+                    padding: EdgeInsets.only(
+                      bottom:
+                          _mHFocusNode.hasFocus || _mHController.text.isNotEmpty
+                              ? 0
+                              : width * 0.025,
+                      left: width * 0.025,
+                      top: width * 0.025,
+                      right: width * 0.025,
+                    ),
+                    child: Center(
+                      child: TextField(
+                        maxLength: 34,
+                        buildCounter:
+                            (
+                              BuildContext context, {
+                              int? currentLength,
+                              bool? isFocused,
+                              int? maxLength,
+                            }) => null,
+                        onChanged: (value) {
+                          setState(() {
+                            isMHEmpty = value.isEmpty;
+                          });
+                          setState(() {
+                            isMHEmpty = value.isEmpty;
+                          });
+                          if (!isMHEmpty) {
+                            setState(() {
+                              isMHValid = isValidCorrespondentAccount(value);
+                            });
+                          }
+                        },
+                        onTap: () {
+                          setState(() {
+                            _mHFocusNode.requestFocus();
+                          });
+                        },
+                        onTapOutside: (_) {
+                          _isEmpty(_mHController, 'MH');
+                          setState(() {
+                            _mHFocusNode.unfocus();
+                          });
+                        },
+                        showCursor: false,
+                        focusNode: _mHFocusNode,
+                        onEditingComplete: () {
+                          _mHFocusNode.unfocus();
+                          FocusScope.of(context).requestFocus(_sWIFTFocusNode);
+                        },
+                        controller: _mHController,
+                        inputFormatters: [
+                          UpperCaseTextFormatter(),
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[A-Z0-9]'),
+                          ),
+                        ],
+                        decoration: InputDecoration(
+                          suffixIcon:
+                              _mHFocusNode.hasFocus
+                                  ? _mHController.text.isEmpty
+                                      ? Icon(
+                                        Icons.cancel_outlined,
+                                        size: width * 0.076,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
+                                      )
+                                      : IconButton(
+                                        onPressed: () {
+                                          _mHController.clear();
+                                        },
+                                        icon: Icon(Icons.cancel),
+                                        padding: EdgeInsets.zero,
+                                        iconSize: width * 0.076,
+                                      )
+                                  : null,
+                          errorBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.only(top: width * 0.05),
+                          isDense: true,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          labelText: 'M.H:',
+                          hintText: 'AZ89NABR01576100000000002356',
+                          hintStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color: Colors.grey.shade500.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color:
+                                isMHEmpty || !isMHValid
+                                    ? const Color.fromARGB(255, 244, 92, 54)
+                                    : _mHFocusNode.hasFocus
+                                    ? Colors.blue
+                                    : Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isMHEmpty || !isMHValid)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.027,
+                        top: width * 0.007,
+                      ),
+                      child: Text(
+                        isMHEmpty
+                            ? "Required"
+                            : "Invalid Correspondent Bank Account (Müxbir Hesab) format.",
+                        style: TextStyle(
+                          fontSize: width * 0.03,
+                          color: const Color.fromARGB(255, 244, 92, 54),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: height * 0.015),
+                  Container(
+                    width: width,
+                    height: height * 0.065,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color:
+                            isSWIFTEmpty || !isSWIFTValid
+                                ? const Color.fromARGB(255, 244, 92, 54)
+                                : _sWIFTFocusNode.hasFocus
+                                ? Colors.blue
+                                : Colors.grey.shade400,
+                      ),
+                      borderRadius: BorderRadius.circular(width * 0.019),
+                    ),
+                    padding: EdgeInsets.only(
+                      bottom:
+                          _sWIFTFocusNode.hasFocus ||
+                                  _sWIFTController.text.isNotEmpty
+                              ? 0
+                              : width * 0.025,
+                      left: width * 0.025,
+                      top: width * 0.025,
+                      right: width * 0.025,
+                    ),
+                    child: Center(
+                      child: TextField(
+                        maxLength: 11,
+                        buildCounter:
+                            (
+                              BuildContext context, {
+                              int? currentLength,
+                              bool? isFocused,
+                              int? maxLength,
+                            }) => null,
+                        onChanged: (value) {
+                          setState(() {
+                            isSWIFTEmpty = value.isEmpty;
+                          });
+                          if (!isSWIFTEmpty) {
+                            setState(() {
+                              isSWIFTValid = isValidSWIFT(value);
+                            });
+                          }
+                        },
+                        onTap: () {
+                          setState(() {
+                            _sWIFTFocusNode.requestFocus();
+                          });
+                        },
+                        onTapOutside: (_) {
+                          _isEmpty(_sWIFTController, 'SWIFT');
+                          setState(() {
+                            _sWIFTFocusNode.unfocus();
+                          });
+                        },
+                        showCursor: false,
+                        focusNode: _sWIFTFocusNode,
+                        onEditingComplete: () {
+                          _sWIFTFocusNode.unfocus();
+                          FocusScope.of(context).requestFocus(_iBANFocusNode);
+                        },
+                        controller: _sWIFTController,
+                        inputFormatters: [
+                          UpperCaseTextFormatter(),
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[A-Z0-9]'),
+                          ),
+                        ],
+                        decoration: InputDecoration(
+                          suffixIcon:
+                              _sWIFTFocusNode.hasFocus
+                                  ? _sWIFTController.text.isEmpty
+                                      ? Icon(
+                                        Icons.cancel_outlined,
+                                        size: width * 0.076,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
+                                      )
+                                      : IconButton(
+                                        onPressed: () {
+                                          _sWIFTController.clear();
+                                        },
+                                        icon: Icon(Icons.cancel),
+                                        padding: EdgeInsets.zero,
+                                        iconSize: width * 0.076,
+                                      )
+                                  : null,
+                          errorBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.only(top: width * 0.05),
+                          isDense: true,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          labelText: 'SWIFT',
+                          hintText: 'AIIRDAZ9',
+
+                          hintStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color: Colors.grey.shade500.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color:
+                                isSWIFTEmpty || !isSWIFTValid
+                                    ? const Color.fromARGB(255, 244, 92, 54)
+                                    : _sWIFTFocusNode.hasFocus
+                                    ? Colors.blue
+                                    : Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isSWIFTEmpty || !isSWIFTValid)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.027,
+                        top: width * 0.007,
+                      ),
+                      child: Text(
+                        isSWIFTEmpty
+                            ? "Required"
+                            : "Invalid SWIFT Code format.",
+                        style: TextStyle(
+                          fontSize: width * 0.03,
+                          color: const Color.fromARGB(255, 244, 92, 54),
+                        ),
+                      ),
+                    ),
+
+                  SizedBox(height: height * 0.015),
+                  Container(
+                    width: width,
+                    height: height * 0.065,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color:
+                            isIBANEmpty || !isIbanValid
+                                ? const Color.fromARGB(255, 244, 92, 54)
+                                : _iBANFocusNode.hasFocus
+                                ? Colors.blue
+                                : Colors.grey.shade400,
+                      ),
+                      borderRadius: BorderRadius.circular(width * 0.019),
+                    ),
+                    padding: EdgeInsets.only(
+                      bottom:
+                          _iBANFocusNode.hasFocus ||
+                                  _iBANController.text.isNotEmpty
+                              ? 0
+                              : width * 0.025,
+                      left: width * 0.025,
+                      top: width * 0.025,
+                      right: width * 0.025,
+                    ),
+                    child: Center(
+                      child: TextField(
+                        maxLength: 34,
+                        buildCounter:
+                            (
+                              BuildContext context, {
+                              int? currentLength,
+                              bool? isFocused,
+                              int? maxLength,
+                            }) => null,
+                        onTap: () {
+                          setState(() {
+                            _iBANFocusNode.requestFocus();
+                          });
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            isIBANEmpty = value.isEmpty;
+                          });
+                          if (!isIBANEmpty) {
+                            setState(() {
+                              isIbanValid = isValidIban(value);
+                            });
+                          }
+                        },
+                        onTapOutside: (_) {
+                          _isEmpty(_iBANController, 'IBAN');
+                          setState(() {
+                            _iBANFocusNode.unfocus();
+                          });
+                        },
+                        showCursor: false,
+                        focusNode: _iBANFocusNode,
+                        onEditingComplete: () {
+                          _iBANFocusNode.unfocus();
+                        },
+                        controller: _iBANController,
+                        inputFormatters: [
+                          UpperCaseTextFormatter(),
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[A-Z0-9]'),
+                          ),
+                        ],
+                        decoration: InputDecoration(
+                          suffixIcon:
+                              _iBANFocusNode.hasFocus
+                                  ? _iBANController.text.isEmpty
+                                      ? Icon(
+                                        Icons.cancel_outlined,
+                                        size: width * 0.076,
+                                        color: const Color.fromARGB(
+                                          255,
+                                          158,
+                                          158,
+                                          158,
+                                        ),
+                                      )
+                                      : IconButton(
+                                        onPressed: () {
+                                          _iBANController.clear();
+                                        },
+                                        icon: Icon(Icons.cancel),
+                                        padding: EdgeInsets.zero,
+                                        iconSize: width * 0.076,
+                                      )
+                                  : null,
+                          errorBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.only(top: width * 0.05),
+                          isDense: true,
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          labelText: 'IBAN',
+                          hintText: 'AZ93AIID56676634995921783406',
+                          hintStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color: Colors.grey.shade500.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          labelStyle: TextStyle(
+                            fontSize: width * 0.038,
+                            color:
+                                isIBANEmpty || !isIbanValid
+                                    ? const Color.fromARGB(255, 244, 92, 54)
+                                    : _iBANFocusNode.hasFocus
+                                    ? Colors.blue
+                                    : Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isIBANEmpty || !isIbanValid)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.027,
+                        top: width * 0.007,
+                      ),
+                      child: Text(
+                        isIBANEmpty
+                            ? "Required"
+                            : "Invalid International Bank Account Number (IBAN) format.",
+                        style: TextStyle(
+                          fontSize: width * 0.03,
+                          color: const Color.fromARGB(255, 244, 92, 54),
+                        ),
+                      ),
+                    ),
+
+                  SizedBox(height: height * 0.025),
+                  GestureDetector(
+                    onTap: () async {
+                      if (_allFilledOut()) {
+                        Navigator.push(
+                          context,
+                          PageTransition(
+                            type: PageTransitionType.fade,
+                            child: IntermediateFormPage(
+                              isFromPersonalDataForm: false,
+                              isFromBankDetailsForm: true,
+                              isFromCarDetailsForm: false,
+                              isFromCertificateDetailsForm: false,
+                              isFromCarDetailsSwitcher: false,
+                              isFromProfilePage: false,
+                              backgroundProcess: _submitForm,
+                            ),
+                          ),
+                        );
+                      } else {
+                        _checkFields();
+                      }
+                    },
+                    child: Container(
+                      width: width,
+                      height: height * 0.058,
+                      decoration: BoxDecoration(
+                        color:
+                            _allFilledOut()
+                                ? (darkMode
+                                    ? Color.fromARGB(255, 1, 105, 170)
+                                    : Color.fromARGB(255, 0, 134, 179))
+                                : (darkMode
+                                    ? Color.fromARGB(40, 52, 168, 235)
+                                    : Color.fromARGB(40, 0, 134, 179)),
+                        borderRadius: BorderRadius.circular(width * 0.019),
+                      ),
+                      child: Center(
+                        child: Text(
+                          role == 'Guide' ? 'Submit' : 'Next',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: width * 0.04,
+                            color:
+                                _allFilledOut()
+                                    ? (darkMode
+                                        ? const Color.fromARGB(255, 0, 0, 0)
+                                        : const Color.fromARGB(
+                                          255,
+                                          255,
+                                          255,
+                                          255,
+                                        ))
+                                    : (darkMode
+                                        ? const Color.fromARGB(132, 0, 0, 0)
+                                        : const Color.fromARGB(
+                                          187,
+                                          255,
+                                          255,
+                                          255,
+                                        )),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: height * 0.058),
+                ],
+              ),
             ),
           ),
         ),

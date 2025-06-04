@@ -101,15 +101,25 @@ Future<String> uploadSinglePhoto({
   required dynamic file,
   required String folderName,
 }) async {
-  final filePath =
-      'Users/$userID/$folderName/${DateTime.now().millisecondsSinceEpoch}.jpg';
-  final fileRef = storageRef.child(filePath);
+  if (file != null && file is XFile && file.path.isNotEmpty && !file.path.startsWith('https://')) {
+    final filePath = 'Users/$userID/$folderName/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final fileRef = storageRef.child(filePath);
 
-  UploadTask uploadTask = fileRef.putData(
-    await await file.readAsBytes().then((data) => data.buffer.asUint8List()),
-  );
-  TaskSnapshot taskSnapshot = await uploadTask;
-  return await taskSnapshot.ref.getDownloadURL();
+    UploadTask uploadTask = fileRef.putData(
+      await file.readAsBytes().then((data) => data.buffer.asUint8List()),
+    );
+    TaskSnapshot taskSnapshot = await uploadTask;
+    return await taskSnapshot.ref.getDownloadURL();
+  }
+  else if (file is String && file.startsWith('https://')) {
+    return file;
+  }
+  else if (file is XFile && file.path.startsWith('https://')) {
+    return file.path;
+  }
+  else {
+    return '';
+  }
 }
 
 Future<List<String>> uploadMultiplePhotos({
@@ -120,13 +130,21 @@ Future<List<String>> uploadMultiplePhotos({
 }) async {
   List<String> urls = [];
   for (var file in files) {
-    String url = await uploadSinglePhoto(
-      storageRef: storageRef,
-      userID: userId,
-      file: file,
-      folderName: folderName,
-    );
-    urls.add(url);
+    if (file != null && file is XFile && file.path.isNotEmpty && !file.path.startsWith('https://')) {
+      String url = await uploadSinglePhoto(
+        storageRef: storageRef,
+        userID: userId,
+        file: file,
+        folderName: folderName,
+      );
+      urls.add(url);
+    }
+    else if (file is String && file.startsWith('https://')) {
+      urls.add(file);
+    }
+    else if (file is XFile && file.path.startsWith('https://')) {
+      urls.add(file.path);
+    }
   }
   return urls;
 }

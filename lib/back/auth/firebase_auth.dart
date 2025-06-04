@@ -105,7 +105,7 @@ Future<void> signUp({
         (route) => false,
       );
     } else {
-      final ApiService apiService = ApiService();
+      final ApiServiceUpdate apiService = ApiServiceUpdate();
       await updateUserDetails(
         birthDayController: birthDayController,
         emailController: emailController,
@@ -157,7 +157,7 @@ Future<void> signUp({
       );
     }
   } catch (e) {
-   rethrow;
+    rethrow;
   }
 }
 
@@ -197,7 +197,7 @@ Future<void> addUserDetails({
               'Application Form Decline': false,
               'Personal & Car Details Decline': false,
               'Contract Signing Decline': false,
-              'Application Form': 'APPLICATION SUBMITTED',
+              'Application Form': 'APPLICATION RECEIVED',
               'Personal & Car Details Form': 'PENDING',
               'Contract Signing': 'PENDING',
               'Registration Completed': false,
@@ -222,7 +222,7 @@ Future<void> addUserDetails({
               'Application Form Decline': false,
               'Personal & Car Details Decline': false,
               'Contract Signing Decline': false,
-              'Application Form': 'APPLICATION SUBMITTED',
+              'Application Form': 'APPLICATION RECEIVED',
               'Personal & Car Details Form': 'PENDING',
               'Contract Signing': 'PENDING',
               'Registration Completed': false,
@@ -268,7 +268,7 @@ Future<void> updateUserDetails({
               'Application Form Decline': false,
               'Personal & Car Details Decline': false,
               'Contract Signing Decline': false,
-              'Application Form': 'APPLICATION SUBMITTED',
+              'Application Form': 'APPLICATION RECEIVED',
               'Personal & Car Details Form': 'PENDING',
               'Contract Signing': 'PENDING',
               'Registration Completed': false,
@@ -293,7 +293,7 @@ Future<void> updateUserDetails({
               'Application Form Decline': false,
               'Personal & Car Details Decline': false,
               'Contract Signing Decline': false,
-              'Application Form': 'APPLICATION SUBMITTED',
+              'Application Form': 'APPLICATION RECEIVED',
               'Personal & Car Details Form': 'PENDING',
               'Contract Signing': 'PENDING',
               'Registration Completed': false,
