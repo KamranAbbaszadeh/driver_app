@@ -12,6 +12,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:onemoretour/front/intro/route_navigator.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -2341,23 +2342,24 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                     Expanded(
                       child: Text.rich(
                         TextSpan(
-                          text: 'I have read and agree with the ',
+                          text:
+                              'I have read and understand that my personal data will be processed in accordance with ',
                           children: [
                             TextSpan(
-                              text: 'User Terms of Service',
+                              text: 'OnemoreTour Privacy Policy.',
                               style: TextStyle(color: Colors.blue),
-                              recognizer: TapGestureRecognizer()..onTap = () {},
+                              recognizer:
+                                  TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.of(context).push(
+                                        route(
+                                          title: 'Privacy Policy',
+                                          url:
+                                              'https://onemoretour.com/privacy',
+                                        ),
+                                      );
+                                    },
                             ),
-                            TextSpan(
-                              text:
-                                  ', and I understand that my personal data will be processed in accordance with ',
-                            ),
-                            TextSpan(
-                              text: 'OnemoreTour Privacy Policy',
-                              style: TextStyle(color: Colors.blue),
-                              recognizer: TapGestureRecognizer()..onTap = () {},
-                            ),
-                            TextSpan(text: '.'),
                           ],
                         ),
                         softWrap: true,

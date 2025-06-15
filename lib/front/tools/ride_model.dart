@@ -16,6 +16,7 @@ class Ride {
   String docId;
   String language;
   String? collectionSource;
+  String? vehicleRegistrationNumber;
 
   Ride({
     required this.tourName,
@@ -33,6 +34,7 @@ class Ride {
     required this.docId,
     required this.language,
     this.collectionSource,
+    required this.vehicleRegistrationNumber,
   });
 
   factory Ride.fromFirestore({
@@ -55,6 +57,7 @@ class Ride {
       docId: id,
       language: data['Languages'] ?? '',
       collectionSource: data['collectionSource'],
+      vehicleRegistrationNumber: data['VehicleRegistrationNumber'] ?? '',
     );
   }
 }

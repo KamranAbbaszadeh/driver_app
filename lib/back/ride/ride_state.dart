@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/map_and_location/get_functions.dart';
@@ -29,6 +30,8 @@ class RideState {
   final String? endLocationName;
   final bool? startArrived;
   final bool? endArrived;
+  final String? vehicleType;
+  final String? vehicleRegistrationNumber;
 
   RideState({
     this.filteredRides = const [],
@@ -42,6 +45,8 @@ class RideState {
     this.endLocationName,
     this.startArrived,
     this.endArrived,
+    this.vehicleType,
+    this.vehicleRegistrationNumber,
   });
 
   RideState copyWith({
@@ -56,6 +61,8 @@ class RideState {
     String? endLocationName,
     bool? startArrived,
     bool? endArrived,
+    String? vehicleType,
+    String? vehicleRegistrationNumber,
   }) {
     return RideState(
       filteredRides: filteredRides ?? this.filteredRides,
@@ -69,6 +76,9 @@ class RideState {
       endLocationName: endLocationName ?? this.endLocationName,
       startArrived: startArrived ?? this.startArrived,
       endArrived: endArrived ?? this.endArrived,
+      vehicleType: vehicleType ?? this.vehicleType,
+      vehicleRegistrationNumber:
+          vehicleRegistrationNumber ?? this.vehicleRegistrationNumber,
     );
   }
 }
@@ -78,8 +88,10 @@ class RideNotifier extends StateNotifier<RideState> {
   Timer? _refreshTimer;
   final Ref ref;
   final BuildContext context;
+  bool _hasReceivedInitialSnapshot = false;
 
   RideNotifier(this.ref, this.context) : super(RideState()) {
+    loadCachedRoute();
     _startListeningToRides();
     _refreshTimer = Timer.periodic(Duration(seconds: 30), (_) {});
   }
@@ -142,6 +154,9 @@ class RideNotifier extends StateNotifier<RideState> {
             ride.routes.forEach((key, route) {
               final routeWithKey = Map<String, dynamic>.from(route);
               routeWithKey['routeKey'] = key;
+              routeWithKey['vehicleRegistrationNumber'] =
+                  ride.vehicleRegistrationNumber ?? '';
+              routeWithKey['vehicleType'] = ride.vehicleType;
               updatedRides.add(routeWithKey);
             });
           }
@@ -176,9 +191,12 @@ class RideNotifier extends StateNotifier<RideState> {
     BuildContext context,
   ) async {
     if (currentRides.isEmpty) {
-      state = RideState();
+      if (_hasReceivedInitialSnapshot) {
+        state = RideState();
+      }
       return;
     }
+    _hasReceivedInitialSnapshot = true;
 
     final now = DateTime.now();
 
@@ -251,6 +269,7 @@ class RideNotifier extends StateNotifier<RideState> {
                       driver: '',
                       docId: '',
                       language: '',
+                      vehicleRegistrationNumber: '',
                     ),
               )
               .docId;
@@ -301,9 +320,12 @@ class RideNotifier extends StateNotifier<RideState> {
         endLocationName: endLocationName,
         startArrived: newNext["Start Arrived"],
         endArrived: newNext["End Arrived"],
+        vehicleType: newNext['vehicleType'],
+        vehicleRegistrationNumber: newNext['vehicleRegistrationNumber'],
       );
 
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cachedNextRoute', jsonEncode(updatedNextRoute));
       await prefs.setString('docId', docId);
       await prefs.setString('startDate', newNext['StartDate'] ?? '');
       await prefs.setString('endDate', newNext['EndDate'] ?? '');
@@ -421,17 +443,44 @@ class RideNotifier extends StateNotifier<RideState> {
     _subscriptions.clear();
     super.dispose();
   }
+
+  Future<void> loadCachedRoute() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('cachedNextRoute');
+    if (raw != null) {
+      final decoded = jsonDecode(raw);
+      state = state.copyWith(
+        nextRoute: decoded,
+        docId: decoded['ID'],
+        routeKey: decoded['routeKey'],
+        startArrived: decoded['Start Arrived'],
+        endArrived: decoded['End Arrived'],
+      );
+    }
+  }
+
+  void resetState() {
+    state = RideState();
+  }
 }
 
 final rideProvider = StateNotifierProvider<RideNotifier, RideState>((ref) {
   final context = ref.read(appContextProvider);
   final rideNotifier = RideNotifier(ref, context);
-  ref.listen<AsyncValue<User?>>(authStateChangesProvider, (previous, next) {
+  ref.listen<AsyncValue<User?>>(authStateChangesProvider, (
+    previous,
+    next,
+  ) async {
     final user = next.value;
     if (user != null) {
+      rideNotifier.resetState();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cachedNextRoute');
+      await prefs.remove('docId');
+      await prefs.remove('startDate');
+      await prefs.remove('endDate');
+      await prefs.remove('endArrived');
       rideNotifier._startListeningToRides();
-    } else {
-      rideNotifier.dispose();
     }
   });
   return rideNotifier;

@@ -14,10 +14,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:onemoretour/front/tools/bottom_bar_provider.dart';
 import 'package:onemoretour/front/tools/notification_notifier.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
+
+  Future<void> handleLogout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -342,6 +349,7 @@ class ProfilePage extends ConsumerWidget {
                                   ref.invalidate(vehiclesProvider);
                                   ref.invalidate(rideFlowProvider);
                                   ref.invalidate(ridesHistoryProvider);
+                                  handleLogout(context);
                                   await FirebaseAuth.instance.signOut();
                                   if (context.mounted) {
                                     Navigator.pushAndRemoveUntil(
@@ -353,6 +361,10 @@ class ProfilePage extends ConsumerWidget {
                                       (route) => false,
                                     );
                                   }
+
+                                  ref
+                                      .read(selectedIndexProvider.notifier)
+                                      .state = 0;
                                 },
                                 child: Text(
                                   'Log out',
@@ -473,6 +485,7 @@ class ProfilePage extends ConsumerWidget {
                     );
 
                     if (confirmDelete == true && context.mounted) {
+                      handleLogout(context);
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(

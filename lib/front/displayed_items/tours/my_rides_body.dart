@@ -2,27 +2,30 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/ride/active_vehicle_provider.dart';
 import 'package:onemoretour/front/displayed_items/tours/my_rides.dart';
 import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class MyRidesBody extends StatefulWidget {
+class MyRidesBody extends ConsumerStatefulWidget {
   const MyRidesBody({super.key});
 
   @override
-  State<MyRidesBody> createState() => _MyRidesBodyState();
+  ConsumerState<MyRidesBody> createState() => _MyRidesBodyState();
 }
 
-class _MyRidesBodyState extends State<MyRidesBody> {
+class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
   List<Ride> carRides = [];
   List<Ride> guideRides = [];
   List<Ride> filteredRidesbyDate = [];
   List<Ride> filteredCarRidesByDate = [];
   List<Ride> filteredGuideRidesByDate = [];
   Map<String, dynamic>? userData;
+  Map<String, dynamic>? vehicleData;
   Map<DateTime, int> datasets = {};
   bool showAllRides = true;
   late ScrollController _scrollController;
@@ -41,12 +44,27 @@ class _MyRidesBodyState extends State<MyRidesBody> {
               .collection('Users')
               .doc(userId)
               .get();
+
       if (docSnapshot.exists && mounted) {
         setState(() {
           userData = docSnapshot.data();
         });
 
-        fetchAndFilterRides(userData: userData!);
+        final carName = userData!['Active Vehicle'] ?? '';
+        final vehicleDoc =
+            await FirebaseFirestore.instance
+                .collection('Users')
+                .doc(userId)
+                .collection('Vehicles')
+                .doc(carName)
+                .get();
+        if (docSnapshot.exists && mounted) {
+          setState(() {
+            vehicleData = vehicleDoc.data();
+          });
+        }
+        if (userData == null || vehicleData == null) return;
+        fetchAndFilterRides(userData: userData!, vehicleData: vehicleData!);
       }
     } catch (e) {
       logger.e('Error fetching user\'s data: $e');
@@ -55,6 +73,7 @@ class _MyRidesBodyState extends State<MyRidesBody> {
 
   Future<void> fetchAndFilterRides({
     required Map<String, dynamic> userData,
+    required Map<String, dynamic> vehicleData,
   }) async {
     if (userData['Role'] == 'Driver' ||
         userData['Role'] == 'Driver Cum Guide') {
@@ -71,7 +90,9 @@ class _MyRidesBodyState extends State<MyRidesBody> {
             final userId = user.uid;
             final filtered =
                 allRides.where((ride) {
-                  return ride.driver == userId;
+                  return ride.driver == userId &&
+                      ride.vehicleRegistrationNumber ==
+                          vehicleData['Vehicle Registration Number'];
                 }).toList();
 
             if (mounted) {
@@ -172,6 +193,40 @@ class _MyRidesBodyState extends State<MyRidesBody> {
     fetchUserData();
     super.initState();
     _scrollController = ScrollController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    Future.microtask(() {
+      ref.listenManual<AsyncValue<String?>>(activeVehicleProvider, (
+        previous,
+        next,
+      ) async {
+        next.whenData((vehicleId) async {
+          if (vehicleId != null && userData != null) {
+            final vehicleDoc =
+                await FirebaseFirestore.instance
+                    .collection('Users')
+                    .doc(FirebaseAuth.instance.currentUser!.uid)
+                    .collection('Vehicles')
+                    .doc(vehicleId)
+                    .get();
+
+            if (mounted) {
+              setState(() {
+                vehicleData = vehicleDoc.data();
+              });
+              fetchAndFilterRides(
+                userData: userData!,
+                vehicleData: vehicleData!,
+              );
+            }
+          }
+        });
+      });
+    });
   }
 
   @override

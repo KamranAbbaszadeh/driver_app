@@ -19,7 +19,10 @@ class DetailsPage extends StatefulWidget {
 
 class _DetailsPageState extends State<DetailsPage> {
   late DateTime selectedDay;
+  late final String carName;
+  late final String vehicleRegistrationNumber;
   Map<String, dynamic>? userData;
+  Map<String, dynamic>? vehicleData;
 
   @override
   void initState() {
@@ -39,9 +42,25 @@ class _DetailsPageState extends State<DetailsPage> {
               .collection('Users')
               .doc(userId)
               .get();
-      if (docSnapshot.exists) {
+      if (docSnapshot.exists && mounted) {
         setState(() {
           userData = docSnapshot.data();
+          carName = userData!['Active Vehicle'] ?? '';
+        });
+      }
+      final vehicleDoc =
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(userId)
+              .collection('Vehicles')
+              .doc(carName)
+              .get();
+
+      if (docSnapshot.exists && mounted) {
+        setState(() {
+          vehicleData = vehicleDoc.data();
+          vehicleRegistrationNumber =
+              vehicleDoc['Vehicle Registration Number'] ?? '';
         });
       }
     } catch (e) {
@@ -50,10 +69,11 @@ class _DetailsPageState extends State<DetailsPage> {
   }
 
   void updateSelectedDay(DateTime day) {
-    setState(() {
-      selectedDay = day;
-      logger.e(selectedDay);
-    });
+    if (mounted) {
+      setState(() {
+        selectedDay = day;
+      });
+    }
   }
 
   @override
@@ -64,14 +84,15 @@ class _DetailsPageState extends State<DetailsPage> {
     final width = MediaQuery.of(context).size.width;
     final detailList = widget.ride.routes;
 
+    final sortedEntries =
+        detailList.entries.where((entry) {
+            DateTime startDate = DateTime.parse(entry.value['StartDate']);
+            return isSameDay(startDate, selectedDay);
+          }).toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
+
     List<Map<String, dynamic>> matchingRoutes =
-        detailList.values
-            .where((route) {
-              DateTime startDate = DateTime.parse(route['StartDate']);
-              return isSameDay(startDate, selectedDay);
-            })
-            .cast<Map<String, dynamic>>()
-            .toList();
+        sortedEntries.map((e) => e.value as Map<String, dynamic>).toList();
 
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
@@ -166,6 +187,8 @@ class _DetailsPageState extends State<DetailsPage> {
                   docId: widget.ride.docId,
                   baseUrl: baseUrl,
                   collection: widget.ride.collectionSource!,
+                  carName: carName,
+                  vehicleRegistrationNumber: vehicleRegistrationNumber,
                 );
               },
               child: Container(
@@ -180,11 +203,13 @@ class _DetailsPageState extends State<DetailsPage> {
                 ),
                 padding: EdgeInsets.all(width * 0.01),
                 child: Center(
-                  child: Text(
-                    'Get a Ride',
-                    style: GoogleFonts.lexend(
-                      fontWeight: FontWeight.w600,
-                      color: darkMode ? Colors.black : Colors.white,
+                  child: FittedBox(
+                    child: Text(
+                      'Get a Ride',
+                      style: GoogleFonts.lexend(
+                        fontWeight: FontWeight.w600,
+                        color: darkMode ? Colors.black : Colors.white,
+                      ),
                     ),
                   ),
                 ),

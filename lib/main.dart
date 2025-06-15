@@ -7,7 +7,6 @@ import 'package:onemoretour/back/ride/ride_state.dart';
 import 'package:onemoretour/front/auth/forms/application_forms/application_form.dart';
 import 'package:onemoretour/front/auth/auth_methods/auth_email.dart';
 import 'package:onemoretour/front/auth/forms/application_forms/car_details_switcher.dart';
-import 'package:onemoretour/front/auth/forms/contracts/contract_sign_form.dart';
 import 'package:onemoretour/front/auth/forms/application_forms/personal_data_form.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
 import 'package:onemoretour/front/displayed_items/chat_page.dart';
@@ -127,7 +126,6 @@ class _MyAppState extends ConsumerState<MyApp> {
                   (context) => NotificationBloc()..add(FetchNotifications()),
               child: NotificationPage(),
             ),
-        '/contract_sign': (context) => ContractSignForm(),
         '/home_page': (context) => HomePage(),
         '/chat_page': (context) {
           final args =

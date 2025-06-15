@@ -18,6 +18,25 @@ class NotificationPage extends ConsumerStatefulWidget {
 }
 
 class _NotificationPageState extends ConsumerState<NotificationPage> {
+  late final String contractUrl;
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+    FirebaseFirestore.instance.collection('Users').doc(user.uid).get().then((
+      doc,
+    ) {
+      if (doc.exists) {
+        contractUrl = doc['ContractLink'] ?? '';
+      } else {
+        contractUrl = '';
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -134,8 +153,8 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                       navigatorKey.currentState?.pushNamed(
                         '/personal_data_form',
                       );
-                    } else if (route == "/contract_sign") {
-
+                    } else if (route == "/contract_sign" && context.mounted) {
+                      Navigator.of(context).push(route(title: 'Contract', url: contractUrl));
                     } else {
                       registrationCompleted
                           ? navigatorKey.currentState?.pop()

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/map_and_location/get_functions.dart';
+import 'package:onemoretour/back/ride/active_vehicle_provider.dart';
 import 'package:onemoretour/back/ride/ride_state.dart';
 import 'package:onemoretour/front/displayed_items/ride_page.dart';
 import 'package:onemoretour/front/tools/app_bar.dart';
@@ -43,18 +44,14 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
     _initAsyncTasks();
   }
 
   Future<void> _initAsyncTasks() async {
     if (!mounted) return;
-
     await requestLocationPermissions(context);
     if (!mounted) return;
-
     if (!Platform.isAndroid) return;
-
     await requestIgnoreBatteryOptimizations(context);
   }
 
@@ -116,6 +113,17 @@ class _HomePageState extends ConsumerState<HomePage> {
           final rideState = ref.watch(rideProvider);
           final nextRoute = rideState.nextRoute;
           final currentDate = DateTime.now();
+          final assignedVehicle = rideState.vehicleRegistrationNumber;
+          final selectedVehicleAsync = ref.watch(vehicleDataProvider);
+
+          String selectedVehicle = '';
+          selectedVehicleAsync.maybeWhen(
+            data: (vehicleData) {
+              selectedVehicle =
+                  vehicleData?['Vehicle Registration Number'] ?? '';
+            },
+            orElse: () {},
+          );
           final tourStartDate = parseDate(nextRoute?['StartDate']);
           final tourEndDate = parseDate(nextRoute?['EndDate']);
           final endArrived = nextRoute?['End Arrived'];
@@ -123,6 +131,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
           final isTourStarted =
               endArrived == false &&
+              assignedVehicle == selectedVehicle &&
               currentDate.isAfter(
                 tourStartDate.subtract(const Duration(hours: 2)),
               ) &&

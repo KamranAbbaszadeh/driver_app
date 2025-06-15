@@ -26,19 +26,20 @@ class _RideMapState extends ConsumerState<RideMap> {
   late double screenWidth;
   late double screenHeight;
 
+  LatLng? _getCurrentLatLng() {
+    final pos = ref.read(locationProvider);
+    if (pos == null) return null;
+    return LatLng(pos['latitude'], pos['longitude']);
+  }
+
   @override
   void initState() {
     super.initState();
 
-    // rideFlowProvider listener
     ref.listenManual(rideFlowProvider, (previous, next) {
       if (next.startRide) {
-        final position = ref.read(locationProvider);
-        if (position != null && _mapController != null) {
-          final currentLatLng = LatLng(
-            position['latitude'],
-            position['longitude'],
-          );
+        final currentLatLng = _getCurrentLatLng();
+        if (currentLatLng != null && _mapController != null) {
           _mapController!.animateCamera(
             CameraUpdate.newCameraPosition(
               CameraPosition(target: currentLatLng, zoom: 16.0),
@@ -48,7 +49,6 @@ class _RideMapState extends ConsumerState<RideMap> {
       }
     });
 
-    // locationProvider listener
     ref.listenManual(locationProvider, (previous, next) {
       if (next != null && _mapController != null) {
         final updatedLatLng = LatLng(next['latitude'], next['longitude']);
@@ -106,8 +106,8 @@ class _RideMapState extends ConsumerState<RideMap> {
 
     if (position == null || startLatLng == null || endLatLng == null) return;
 
-    final currentLocation = LatLng(position['latitude'], position['longitude']);
-    logger.d(currentLocation);
+    final currentLocation = _getCurrentLatLng();
+    if (currentLocation == null) return;
     final midPoint = getMidpoint(startLatLng, endLatLng, currentLocation);
     final distance = Geolocator.distanceBetween(
       currentLocation.latitude,
@@ -182,7 +182,6 @@ class _RideMapState extends ConsumerState<RideMap> {
     if (_initialCameraPosition == null) {
       return const Center(child: CircularProgressIndicator());
     }
-
     return Stack(
       children: [
         GoogleMap(
@@ -190,6 +189,7 @@ class _RideMapState extends ConsumerState<RideMap> {
           markers: _markers,
           onMapCreated: (controller) {
             _mapController = controller;
+            _loadMarkers();
           },
           myLocationButtonEnabled: false,
           style: darkMode ? _mapStyleDarkString : _mapStyleLightString,
@@ -213,15 +213,14 @@ class _RideMapState extends ConsumerState<RideMap> {
 
               if (_mapController != null) {
                 if (rideFlow.startRide && position != null) {
-                  final currentLatLng = LatLng(
-                    position['latitude'],
-                    position['longitude'],
-                  );
-                  _mapController!.animateCamera(
-                    CameraUpdate.newCameraPosition(
-                      CameraPosition(target: currentLatLng, zoom: 16.0),
-                    ),
-                  );
+                  final currentLatLng = _getCurrentLatLng();
+                  if (currentLatLng != null) {
+                    _mapController!.animateCamera(
+                      CameraUpdate.newCameraPosition(
+                        CameraPosition(target: currentLatLng, zoom: 16.0),
+                      ),
+                    );
+                  }
                 } else if (_initialCameraPosition != null) {
                   _mapController!.animateCamera(
                     CameraUpdate.newCameraPosition(_initialCameraPosition!),

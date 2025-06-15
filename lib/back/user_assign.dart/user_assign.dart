@@ -6,7 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 Future<void> userAssign({
   required String docId,
   required String baseUrl,
-  required String collection, // "Cars" or "Guide"
+  required String collection,
+  required String carName,
+  required String vehicleRegistrationNumber,
 }) async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
@@ -19,9 +21,31 @@ Future<void> userAssign({
 
     await FirebaseFirestore.instance.collection(collection).doc(docId).set({
       fieldToUpdate: userId,
+      if (collection == 'Cars')
+        'VehicleRegistrationNumber': vehicleRegistrationNumber,
     }, SetOptions(merge: true));
 
-    userAssignPostApi.postData({'email': userEmail, 'ID': docId}, baseUrl);
+    final chatDocRef = FirebaseFirestore.instance
+        .collection('Chat')
+        .doc(userId);
+
+    await chatDocRef.set({
+      'createdAt': FieldValue.serverTimestamp(),
+      'userEmail': userEmail,
+    }, SetOptions(merge: true));
+
+    final chatSubCollectionRef = chatDocRef.collection(docId);
+
+    await chatSubCollectionRef.doc('init').set({
+      'createdAt': FieldValue.serverTimestamp(),
+      'initializedBy': userEmail,
+    });
+
+    userAssignPostApi.postData({
+      'email': userEmail,
+      'ID': docId,
+      'CarName': carName,
+    }, baseUrl);
   }
 
   navigatorKey.currentState?.pop();

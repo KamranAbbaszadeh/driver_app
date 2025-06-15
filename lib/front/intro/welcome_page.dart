@@ -1,6 +1,6 @@
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/front/auth/forms/application_forms/application_form.dart';
-import 'package:onemoretour/front/intro/terms.dart';
+import 'package:onemoretour/front/intro/route_navigator.dart';
 import 'package:onemoretour/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -258,9 +258,13 @@ class _WelcomePageState extends State<WelcomePage>
                                         recognizer:
                                             TapGestureRecognizer()
                                               ..onTap = () {
-                                                Navigator.of(
-                                                  context,
-                                                ).push(_termsRoute());
+                                                Navigator.of(context).push(
+                                                  route(
+                                                    title: 'Terms & Conditions',
+                                                    url:
+                                                        'https://onemoretour.com/terms',
+                                                  ),
+                                                );
                                               },
                                       ),
                                     ],
@@ -279,19 +283,6 @@ class _WelcomePageState extends State<WelcomePage>
           ],
         ),
       ),
-    );
-  }
-
-  Route _termsRoute() {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => Terms(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(0.0, 1.0);
-        const end = Offset.zero;
-        final tween = Tween(begin: begin, end: end);
-        final offsetAnimation = animation.drive(tween);
-        return SlideTransition(position: offsetAnimation, child: child);
-      },
     );
   }
 }

@@ -37,14 +37,20 @@ class _RidePageState extends ConsumerState<RidePage>
   bool isFinished = false;
   bool hasUnreadChat = false;
   bool _isMounted = false;
-
+  double? targetRadius;
   @override
   void initState() {
     super.initState();
     _isMounted = true;
 
     _checkUnreadMessages();
-
+    getTargetRadius().then((value) {
+      if (mounted) {
+        setState(() {
+          targetRadius = value;
+        });
+      }
+    });
     initializeForegroundTracking(
       context: context,
       onLocation: ({
@@ -112,8 +118,18 @@ class _RidePageState extends ConsumerState<RidePage>
     }
   }
 
+  Future<double> getTargetRadius() async {
+    DocumentSnapshot targetRadiusDoc =
+        await FirebaseFirestore.instance
+            .collection('Details')
+            .doc('Ride')
+            .get();
+    return targetRadiusDoc['distance']?.toDouble() ?? 100.0;
+  }
+
   @override
   void dispose() {
+    _isMounted = false;
     _locationSubscription?.cancel();
     super.dispose();
   }
@@ -132,8 +148,12 @@ class _RidePageState extends ConsumerState<RidePage>
     final startLocationName = rideState.startLocationName;
     final endLocationName = rideState.endLocationName;
     final position = ref.watch(locationProvider);
-
     if (startLatLng == null || endLatLng == null || position == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+    if (targetRadius == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: Colors.white)),
       );
@@ -164,7 +184,7 @@ class _RidePageState extends ConsumerState<RidePage>
           : startLatLng.longitude,
     );
 
-    final bool isWithinRange = distanceToTarget <= 50;
+    final bool isWithinRange = distanceToTarget <= targetRadius!;
     final navigateLat =
         rideFlow.startRide && startArrivedBool == true
             ? endLatLng.latitude

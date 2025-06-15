@@ -35,6 +35,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
     userSubscription?.cancel();
     carsSubscription?.cancel();
     _scrollController.dispose();
+
     super.dispose();
   }
 
@@ -75,11 +76,28 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
               .doc(activeVehicleId)
               .get();
 
+      if (!vehicleDoc.exists) {
+        if (!mounted) return;
+        setState(() {
+          filteredRidesFromCars = [];
+          filteredRidesFromGuide = [];
+        });
+        return;
+      }
+
       final seatNumber = vehicleDoc.data()?['Seat Number'];
       final allowedVehicles = List<String>.from(
         vehicleDoc.data()?['Allowed Vehicle'] ?? [],
       );
-      if (seatNumber == null || allowedVehicles.isEmpty) return;
+
+      if (seatNumber == null || allowedVehicles.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          filteredRidesFromCars = [];
+          filteredRidesFromGuide = [];
+        });
+        return;
+      }
 
       carsSubscription?.cancel();
 
@@ -117,7 +135,6 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                 ride.numOfGuests <= seatNumber &&
                 tourStartDate.isAfter(userTourEndDate) &&
                 ride.driver == '';
-
             final rideLanguagesList =
                 ride.language.split(',').map((e) => e.trim()).toList();
             final hasMatchingLanguage = rideLanguagesList.any(
@@ -128,6 +145,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                 hasMatchingLanguage &&
                 category.contains(ride.category) &&
                 tourStartDate.isAfter(userTourEndDate) &&
+                tourStartDate.isAfter(DateTime.now()) &&
                 ride.guide == '';
 
             if (matchDriver) fromCars.add(ride);

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/front/intro/route_navigator.dart';
 import 'package:onemoretour/front/intro/welcome_page.dart';
 import 'package:onemoretour/front/tools/notification_notifier.dart';
 import 'package:onemoretour/main.dart';
@@ -17,7 +18,7 @@ class WaitingPageView extends ConsumerStatefulWidget {
 
 class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
   late final String? userId;
-
+  late final String contractUrl;
   @override
   void initState() {
     super.initState();
@@ -34,6 +35,15 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.watch(notificationsProvider.notifier).refresh();
+    });
+    FirebaseFirestore.instance.collection('Users').doc(userId).get().then((
+      doc,
+    ) {
+      if (doc.exists) {
+        contractUrl = doc['ContractLink'] ?? '';
+      } else {
+        contractUrl = '';
+      }
     });
   }
 
@@ -736,9 +746,9 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                             userData['Contract Signing'] == "PENDING"
                         ? GestureDetector(
                           onTap: () {
-                            navigatorKey.currentState?.pushNamed(
-                              '/contract_sign',
-                            );
+                            Navigator.of(
+                              context,
+                            ).push(route(title: 'Contract', url: contractUrl));
                           },
                           child: Container(
                             decoration: BoxDecoration(
