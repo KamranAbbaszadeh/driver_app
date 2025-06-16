@@ -38,6 +38,7 @@ class _RidePageState extends ConsumerState<RidePage>
   bool isFinished = false;
   bool hasUnreadChat = false;
   bool _isMounted = false;
+  bool guestPickedUp = false;
   double? targetRadius;
   @override
   void initState() {
@@ -164,14 +165,21 @@ class _RidePageState extends ConsumerState<RidePage>
 
     final rideFlow = ref.watch(rideFlowProvider);
     final startArrivedBool = rideState.startArrived;
+    final endArrivedBool = rideState.endArrived;
     final routeKey = rideState.routeKey;
+
+    if (startArrivedBool == null || endArrivedBool == null) {
+      return CircularProgressIndicator();
+    }
 
     final rideFlowNotifier = ref.read(rideFlowProvider.notifier);
 
     final swipeButtonText =
         rideFlow.startRide
-            ? startArrivedBool!
-                ? "Complete the ride"
+            ? startArrivedBool
+                ? rideFlow.pickGuest
+                    ? "Complete the ride"
+                    : "Continue the ride"
                 : "In place"
             : "Start the ride";
     final double distanceToTarget = Geolocator.distanceBetween(
@@ -314,15 +322,13 @@ class _RidePageState extends ConsumerState<RidePage>
                                         ),
                                         border: Border.all(color: Colors.white),
                                         color:
-                                            startArrivedBool != null
-                                                ? startArrivedBool
-                                                    ? const Color.fromARGB(
-                                                      255,
-                                                      103,
-                                                      168,
-                                                      120,
-                                                    )
-                                                    : Colors.black
+                                            startArrivedBool
+                                                ? const Color.fromARGB(
+                                                  255,
+                                                  103,
+                                                  168,
+                                                  120,
+                                                )
                                                 : Colors.black,
                                       ),
 
@@ -624,10 +630,10 @@ class _RidePageState extends ConsumerState<RidePage>
                                                                                   155,
                                                                                 )
                                                                                 : Colors.transparent,
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              12,
-                                                                            ),
+                                                                        borderRadius: BorderRadius.circular(
+                                                                          width *
+                                                                              0.03,
+                                                                        ),
                                                                       ),
 
                                                                       child: Column(
@@ -794,13 +800,14 @@ class _RidePageState extends ConsumerState<RidePage>
                               ),
                             ],
                           ),
+
                           SizedBox(height: height * 0.01),
                           Padding(
                             padding: EdgeInsets.all(width * 0.0203),
                             child: SwipeableButtonView(
                               onFinish: () async {
                                 if (rideFlow.startRide &&
-                                    startArrivedBool! &&
+                                    startArrivedBool &&
                                     rideFlow.finishRide &&
                                     isWithinRange) {
                                   await Navigator.push(
@@ -815,7 +822,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                     isFinished = false;
                                   });
                                 } else if (rideFlow.startRide &&
-                                    startArrivedBool! &&
+                                    startArrivedBool &&
                                     isWithinRange) {
                                   setState(() {
                                     isFinished = false;
@@ -827,7 +834,11 @@ class _RidePageState extends ConsumerState<RidePage>
                                 }
                               },
                               isActive:
-                                  rideFlow.startRide ? isWithinRange : true,
+                                  rideFlow.startRide
+                                      ? rideFlow.pickGuest
+                                          ? isWithinRange
+                                          : true
+                                      : true,
                               isFinished: isFinished,
                               onWaitingProcess: () async {
                                 if (!rideFlow.startRide) {
@@ -836,7 +847,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                     isFinished = true;
                                   });
                                 } else if (rideFlow.startRide &&
-                                    !startArrivedBool! &&
+                                    !startArrivedBool &&
                                     isWithinRange) {
                                   try {
                                     await FirebaseFirestore.instance
@@ -856,7 +867,109 @@ class _RidePageState extends ConsumerState<RidePage>
                                     logger.e('Error for startArrived: $e ');
                                   }
                                 } else if (rideFlow.startRide &&
-                                    startArrivedBool! &&
+                                    startArrivedBool &&
+                                    !rideFlow.pickGuest &&
+                                    !rideFlow.finishRide) {
+                                  final result = await showDialog<bool>(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder:
+                                        (context) => AlertDialog(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              width * 0.05,
+                                            ),
+                                          ),
+                                          backgroundColor:
+                                              Theme.of(context).brightness ==
+                                                      Brightness.dark
+                                                  ? const Color(0xFF2C2C2E)
+                                                  : Colors.white,
+                                          title: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.person_pin_circle_rounded,
+                                                color: Colors.blue,
+                                              ),
+                                              SizedBox(width: width * 0.025),
+                                              Text(
+                                                'Guest Pickup',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: width * 0.045,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          content: Text(
+                                            'Have you picked up the guest?',
+                                            style: TextStyle(
+                                              fontSize: width * 0.04,
+                                            ),
+                                          ),
+                                          actionsPadding: EdgeInsets.symmetric(
+                                            horizontal: width * 0.03,
+                                            vertical: height * 0.009,
+                                          ),
+                                          actions: [
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                foregroundColor: Colors.white,
+                                                backgroundColor:
+                                                    Colors.grey.shade600,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        width * 0.025,
+                                                      ),
+                                                ),
+                                              ),
+                                              icon: const Icon(Icons.close),
+                                              label: const Text('Not yet'),
+                                              onPressed:
+                                                  () => Navigator.pop(
+                                                    context,
+                                                    false,
+                                                  ),
+                                            ),
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                foregroundColor: Colors.white,
+                                                backgroundColor: Colors.green,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        width * 0.025,
+                                                      ),
+                                                ),
+                                              ),
+                                              icon: const Icon(
+                                                Icons.check_circle,
+                                              ),
+                                              label: const Text('Yes, picked'),
+                                              onPressed:
+                                                  () => Navigator.pop(
+                                                    context,
+                                                    true,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                  );
+                                  if (result == true) {
+                                    rideFlowNotifier.guestPickedUp(true);
+                                    setState(() {
+                                      isFinished = true;
+                                    });
+                                  } else {
+                                    rideFlowNotifier.guestPickedUp(false);
+                                    setState(() {
+                                      isFinished = true;
+                                    });
+                                  }
+                                  _panelController.anchor();
+                                } else if (rideFlow.startRide &&
+                                    startArrivedBool &&
                                     isWithinRange &&
                                     !rideFlow.finishRide) {
                                   try {

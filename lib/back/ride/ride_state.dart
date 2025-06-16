@@ -468,6 +468,7 @@ final rideProvider = StateNotifierProvider<RideNotifier, RideState>((ref) {
     final user = next.value;
     if (user != null) {
       rideNotifier.resetState();
+      rideNotifier._hasReceivedInitialSnapshot = false;
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('cachedNextRoute');
       await prefs.remove('docId');

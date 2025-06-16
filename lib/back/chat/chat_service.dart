@@ -55,6 +55,12 @@ class ChatService {
         .collection(tourID)
         .orderBy('createdAt', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+        .map((snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            return {
+              ...data,
+              'docId': doc.id,
+            };
+          }).toList());
   }
 }

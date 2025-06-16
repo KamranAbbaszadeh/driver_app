@@ -405,7 +405,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             builder: (context, snapshot) {
               List<Map<String, dynamic>> messages =
                   (snapshot.data ?? [])
-                      .where((msg) => msg['id'] != 'init')
+                      .where((msg) => msg['docId'] != 'init')
                       .toList();
               Map<String, List<Map<String, dynamic>>> groupedMessages =
                   _groupMessagesByDate(messages);
