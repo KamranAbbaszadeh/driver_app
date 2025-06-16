@@ -1,13 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/front/auth/waiting_page.dart';
 import 'package:onemoretour/front/intro/route_navigator.dart';
 import 'package:onemoretour/front/intro/welcome_page.dart';
+import 'package:onemoretour/front/tools/bottom_bar_provider.dart';
 import 'package:onemoretour/front/tools/notification_notifier.dart';
 import 'package:onemoretour/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WaitingPageView extends ConsumerStatefulWidget {
   const WaitingPageView({super.key});
@@ -17,6 +20,11 @@ class WaitingPageView extends ConsumerStatefulWidget {
 }
 
 class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
+  Future<void> handleLogout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
+
   late final String? userId;
   late final String contractUrl;
   @override
@@ -63,6 +71,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
       appBar: AppBar(
         backgroundColor: darkMode ? Colors.black : Colors.white,
         actionsPadding: EdgeInsets.symmetric(horizontal: width * 0.019),
+        surfaceTintColor: Colors.transparent,
         actions: [
           Container(
             decoration: BoxDecoration(
@@ -105,6 +114,107 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          SizedBox(width: width * 0.019),
+
+          Material(
+            color: darkMode ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(width * 0.039),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(width * 0.039),
+              onTap: () async {
+                await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (context) => AlertDialog(
+                        backgroundColor:
+                            darkMode ? Color(0xFF1E1E1E) : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(width * 0.05),
+                        ),
+                        title: Text(
+                          'Confirm Logout',
+                          style: GoogleFonts.cabin(
+                            color: darkMode ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: width * 0.07,
+                          ),
+                        ),
+                        content: Text(
+                          'Are you sure you want to log out?',
+                          style: GoogleFonts.cabin(
+                            color: darkMode ? Colors.white70 : Colors.black54,
+                            fontSize: width * 0.045,
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context, false);
+                            },
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.cabin(
+                                color:
+                                    darkMode
+                                        ? Colors.grey[400]
+                                        : Colors.blueGrey,
+                                fontWeight: FontWeight.w600,
+                                fontSize: width * 0.045,
+                              ),
+                            ),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  darkMode
+                                      ? Color(0xFF34A8EB)
+                                      : Color(0xFF007BFF),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  width * 0.03,
+                                ),
+                              ),
+                            ),
+                            onPressed: () async {
+                              handleLogout(context);
+                              await FirebaseAuth.instance.signOut();
+                              if (context.mounted) {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const WaitingPage(),
+                                  ),
+                                  (route) => false,
+                                );
+                              }
+
+                              ref.read(selectedIndexProvider.notifier).state =
+                                  0;
+                            },
+                            child: Text(
+                              'Log out',
+                              style: GoogleFonts.cabin(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: width * 0.045,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                );
+              },
+              child: Image.asset(
+                'assets/logout.png',
+                width: width * 0.051,
+                height: height * 0.02,
+                fit: BoxFit.fill,
+                color: darkMode ? Colors.white : Colors.black,
+                errorBuilder: (context, error, stackTrace) => Icon(Icons.error),
+              ),
             ),
           ),
         ],

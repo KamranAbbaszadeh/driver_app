@@ -32,7 +32,7 @@ class _DatePickerState extends State<DatePicker> {
     final width = MediaQuery.of(context).size.width;
     final ride = widget.ride;
     return Container(
-      height: height * 0.12,
+      height: height * 0.13,
       padding: EdgeInsets.symmetric(vertical: height * 0.02),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.only(
@@ -51,7 +51,6 @@ class _DatePickerState extends State<DatePicker> {
         calendarFormat: CalendarFormat.week,
         rangeStartDay: ride.startDate.toDate(),
         rangeEndDay: ride.endDate.toDate(),
-        
 
         onDaySelected: (selectedDay, focusedDay) {
           setState(() {

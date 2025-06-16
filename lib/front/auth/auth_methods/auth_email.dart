@@ -73,6 +73,7 @@ class _AuthState extends ConsumerState<AuthEmail> {
       backgroundColor: darkMode ? Colors.black : Colors.white,
       appBar: AppBar(
         toolbarHeight: height * 0.065,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
           onPressed: () {
             Navigator.pop(context);

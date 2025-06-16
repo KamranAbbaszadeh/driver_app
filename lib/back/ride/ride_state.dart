@@ -157,13 +157,14 @@ class RideNotifier extends StateNotifier<RideState> {
               routeWithKey['vehicleRegistrationNumber'] =
                   ride.vehicleRegistrationNumber ?? '';
               routeWithKey['vehicleType'] = ride.vehicleType;
+              routeWithKey['docId'] = ride.docId;
               updatedRides.add(routeWithKey);
             });
           }
 
           if (updatedRides.isEmpty && context.mounted) {
-            await updateNextRoute([], context);
-            return;
+            state = RideState();
+            return await updateNextRoute([], context);
           }
 
           final shouldUpdateState =
@@ -190,13 +191,13 @@ class RideNotifier extends StateNotifier<RideState> {
     List<Map<String, dynamic>> currentRides,
     BuildContext context,
   ) async {
+    _hasReceivedInitialSnapshot = true;
     if (currentRides.isEmpty) {
       if (_hasReceivedInitialSnapshot) {
         state = RideState();
       }
       return;
     }
-    _hasReceivedInitialSnapshot = true;
 
     final now = DateTime.now();
 
@@ -218,8 +219,10 @@ class RideNotifier extends StateNotifier<RideState> {
     final newNext = validRides.firstWhereOrNull((_) => true) ?? {};
 
     if (newNext.isEmpty) {
-      if (state.nextRoute != null) {
-        state = state.copyWith(nextRoute: null);
+      if (state.nextRoute != null ||
+          state.docId != null ||
+          state.routeKey != null) {
+        state = RideState();
       }
       return;
     }
@@ -249,30 +252,21 @@ class RideNotifier extends StateNotifier<RideState> {
         startArrivedChanged ||
         endArrivedChanged ||
         tourDateChanged) {
-      final routeKey = newNext['routeKey'] as String;
-      final docId =
-          state.filteredRides
+      final newNextId = newNext['ID'];
+
+      final matchingRide = state.filteredRides.firstWhereOrNull(
+        (ride) => ride.routes.values.any((route) => route['ID'] == newNextId),
+      );
+
+      final docId = matchingRide?.docId ?? '';
+
+      final routeKey =
+          matchingRide?.routes.entries
               .firstWhere(
-                (ride) => ride.routes.containsKey(newNext['routeKey']),
-                orElse:
-                    () => Ride(
-                      tourName: '',
-                      category: '',
-                      transfer: false,
-                      startDate: Timestamp.now(),
-                      endDate: Timestamp.now(),
-                      numOfGuests: 0,
-                      pickUpLocation: const GeoPoint(0, 0),
-                      price: 0,
-                      routes: {},
-                      vehicleType: '',
-                      driver: '',
-                      docId: '',
-                      language: '',
-                      vehicleRegistrationNumber: '',
-                    ),
+                (entry) => entry.value['ID'] == newNextId,
+                orElse: () => const MapEntry('', {}),
               )
-              .docId;
+              .key;
 
       LatLng? startLatLng;
       LatLng? endLatLng;

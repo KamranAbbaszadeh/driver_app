@@ -47,6 +47,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
       backgroundColor: darkMode ? Colors.black : Colors.white,
       appBar: AppBar(
         backgroundColor: darkMode ? Colors.black : Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: Text(
           'Notifications',
           style: TextStyle(
@@ -154,7 +155,9 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                         '/personal_data_form',
                       );
                     } else if (route == "/contract_sign" && context.mounted) {
-                      Navigator.of(context).push(route(title: 'Contract', url: contractUrl));
+                      Navigator.of(
+                        context,
+                      ).push(route(title: 'Contract', url: contractUrl));
                     } else {
                       registrationCompleted
                           ? navigatorKey.currentState?.pop()

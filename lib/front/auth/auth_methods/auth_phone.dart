@@ -51,6 +51,7 @@ class _AuthState extends State<AuthPhone> {
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
           onPressed: () {
             Navigator.pop(context);

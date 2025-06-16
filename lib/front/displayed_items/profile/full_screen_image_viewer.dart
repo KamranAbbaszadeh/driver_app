@@ -12,6 +12,7 @@ class FullscreenImageViewer extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
         backgroundColor: Colors.black,
         leading: IconButton(
           onPressed: () {

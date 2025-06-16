@@ -59,6 +59,7 @@ class _UrlLauncherWebViewState extends State<UrlLauncherWebView> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
         backgroundColor:
             darkMode
                 ? const Color.fromARGB(255, 0, 0, 0)

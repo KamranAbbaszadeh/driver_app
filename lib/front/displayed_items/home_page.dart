@@ -110,91 +110,97 @@ class _HomePageState extends ConsumerState<HomePage> {
       bottomNavigationBar: BottomNavBar(),
       floatingActionButton: Consumer(
         builder: (context, ref, _) {
+          final endArrived = ref.watch(
+            rideProvider.select((s) => s.endArrived),
+          );
           final rideState = ref.watch(rideProvider);
           final nextRoute = rideState.nextRoute;
           final currentDate = DateTime.now();
           final assignedVehicle = rideState.vehicleRegistrationNumber;
           final selectedVehicleAsync = ref.watch(vehicleDataProvider);
 
-          String selectedVehicle = '';
-          selectedVehicleAsync.maybeWhen(
+          return selectedVehicleAsync.when(
             data: (vehicleData) {
-              selectedVehicle =
+              final selectedVehicle =
                   vehicleData?['Vehicle Registration Number'] ?? '';
-            },
-            orElse: () {},
-          );
-          final tourStartDate = parseDate(nextRoute?['StartDate']);
-          final tourEndDate = parseDate(nextRoute?['EndDate']);
-          final endArrived = nextRoute?['End Arrived'];
-          final index = ref.watch(selectedIndexProvider);
+              final tourStartDate = parseDate(nextRoute?['StartDate']);
+              final tourEndDate = parseDate(nextRoute?['EndDate']);
+              final endArrivedValue =
+                  rideState.nextRoute?['End Arrived'] ?? endArrived ?? false;
+              final index = ref.watch(selectedIndexProvider);
 
-          final isTourStarted =
-              endArrived == false &&
-              assignedVehicle == selectedVehicle &&
-              currentDate.isAfter(
-                tourStartDate.subtract(const Duration(hours: 2)),
-              ) &&
-              currentDate.isBefore(tourEndDate.add(const Duration(hours: 1)));
-
-          if (isTourStarted && index == 0) {
-            final width = MediaQuery.of(context).size.width;
-            final height = MediaQuery.of(context).size.height;
-            final darkMode =
-                MediaQuery.of(context).platformBrightness == Brightness.dark;
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: width * 0.04),
-              child: SizedBox(
-                width: width * 0.5,
-                height: height * 0.07,
-                child: Material(
-                  elevation: width * 0.02,
-                  borderRadius: BorderRadius.circular(width * 0.045),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(width * 0.045),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RidePage(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
+              final isTourStarted =
+                  endArrivedValue == false &&
+                  assignedVehicle == selectedVehicle &&
+                  currentDate.isAfter(
+                    tourStartDate.subtract(const Duration(hours: 2)),
+                  ) &&
+                  currentDate.isBefore(
+                    tourEndDate.add(const Duration(hours: 1)),
+                  );
+              if (isTourStarted && index == 0) {
+                final width = MediaQuery.of(context).size.width;
+                final height = MediaQuery.of(context).size.height;
+                final darkMode =
+                    MediaQuery.of(context).platformBrightness ==
+                    Brightness.dark;
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: width * 0.04),
+                  child: SizedBox(
+                    width: width * 0.5,
+                    height: height * 0.07,
+                    child: Material(
+                      elevation: width * 0.02,
+                      borderRadius: BorderRadius.circular(width * 0.045),
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(width * 0.045),
-                        gradient: LinearGradient(
-                          colors:
-                              darkMode
-                                  ? [Color(0xFF34A8EB), Color(0xFF015E9C)]
-                                  : [Color(0xFF34A8EB), Color(0xFF015E9C)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(width: width * 0.02),
-                            Text(
-                              'Start Ride',
-                              style: GoogleFonts.cabin(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: width * 0.05,
-                              ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RidePage(),
                             ),
-                          ],
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(width * 0.045),
+                            gradient: LinearGradient(
+                              colors:
+                                  darkMode
+                                      ? [Color(0xFF34A8EB), Color(0xFF015E9C)]
+                                      : [Color(0xFF34A8EB), Color(0xFF015E9C)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(width: width * 0.02),
+                                Text(
+                                  'Start Ride',
+                                  style: GoogleFonts.cabin(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: width * 0.05,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            );
-          }
-          return const SizedBox.shrink();
+                );
+              }
+              return const SizedBox.shrink();
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+          );
         },
       ),
       floatingActionButtonLocation:

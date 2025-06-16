@@ -9,6 +9,7 @@ Future<void> userAssign({
   required String collection,
   required String carName,
   required String vehicleRegistrationNumber,
+  required Timestamp tourEdnDAte,
 }) async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
@@ -23,6 +24,10 @@ Future<void> userAssign({
       fieldToUpdate: userId,
       if (collection == 'Cars')
         'VehicleRegistrationNumber': vehicleRegistrationNumber,
+    }, SetOptions(merge: true));
+
+    await FirebaseFirestore.instance.collection('Users').doc(userId).set({
+      "Tour end Date": tourEdnDAte,
     }, SetOptions(merge: true));
 
     final chatDocRef = FirebaseFirestore.instance

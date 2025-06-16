@@ -68,7 +68,6 @@ class FirebaseApi {
       );
 
       final userID = FirebaseAuth.instance.currentUser?.uid;
-      logger.i("User ID: $userID");
 
       await _requestNotificationPermissions();
       await _firebaseMessaging.setForegroundNotificationPresentationOptions(
@@ -91,16 +90,11 @@ class FirebaseApi {
       RemoteMessage? initialMessage =
           await FirebaseMessaging.instance.getInitialMessage();
       if (initialMessage != null) {
-        logger.i(
-          "📩 App launched from terminated state via notification: ${initialMessage.toMap()}",
-        );
         _handleNotificationTap(initialMessage, ref);
       }
     } catch (e, st) {
       logger.e("🔥 FirebaseApi.initialize failed", error: e, stackTrace: st);
     }
-
-    logger.i("FirebaseApi.initialize - complete ");
   }
 
   Future<void> _requestNotificationPermissions() async {

@@ -36,6 +36,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
 
     return Scaffold(
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
           onPressed: () {
             Navigator.pop(context);

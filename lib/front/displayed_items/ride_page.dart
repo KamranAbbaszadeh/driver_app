@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/map_and_location/get_functions.dart';
 import 'package:onemoretour/back/map_and_location/location_provider.dart';
 import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
@@ -837,37 +838,45 @@ class _RidePageState extends ConsumerState<RidePage>
                                 } else if (rideFlow.startRide &&
                                     !startArrivedBool! &&
                                     isWithinRange) {
-                                  await FirebaseFirestore.instance
-                                      .collection('Cars')
-                                      .doc(docId)
-                                      .set({
-                                        'Routes': {
-                                          routeKey!: {'Start Arrived': true},
-                                        },
-                                        'updatedAt':
-                                            FieldValue.serverTimestamp(),
-                                      }, SetOptions(merge: true));
-                                  setState(() {
-                                    isFinished = true;
-                                  });
+                                  try {
+                                    await FirebaseFirestore.instance
+                                        .collection('Cars')
+                                        .doc(docId)
+                                        .set({
+                                          'Routes': {
+                                            routeKey!: {'Start Arrived': true},
+                                          },
+                                          'updatedAt':
+                                              FieldValue.serverTimestamp(),
+                                        }, SetOptions(merge: true));
+                                    setState(() {
+                                      isFinished = true;
+                                    });
+                                  } on Exception catch (e) {
+                                    logger.e('Error for startArrived: $e ');
+                                  }
                                 } else if (rideFlow.startRide &&
                                     startArrivedBool! &&
                                     isWithinRange &&
                                     !rideFlow.finishRide) {
-                                  await FirebaseFirestore.instance
-                                      .collection('Cars')
-                                      .doc(docId)
-                                      .set({
-                                        'Routes': {
-                                          routeKey!: {'End Arrived': true},
-                                        },
-                                        'updatedAt':
-                                            FieldValue.serverTimestamp(),
-                                      }, SetOptions(merge: true));
-                                  rideFlowNotifier.setFinishRide(true);
-                                  setState(() {
-                                    isFinished = true;
-                                  });
+                                  try {
+                                    await FirebaseFirestore.instance
+                                        .collection('Cars')
+                                        .doc(docId)
+                                        .set({
+                                          'Routes': {
+                                            routeKey!: {'End Arrived': true},
+                                          },
+                                          'updatedAt':
+                                              FieldValue.serverTimestamp(),
+                                        }, SetOptions(merge: true));
+                                    rideFlowNotifier.setFinishRide(true);
+                                    setState(() {
+                                      isFinished = true;
+                                    });
+                                  } on Exception catch (e) {
+                                    logger.e('Error for endArrived: $e ');
+                                  }
                                 }
                                 _panelController.anchor();
                               },

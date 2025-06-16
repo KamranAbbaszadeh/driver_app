@@ -403,7 +403,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           body: StreamBuilder<List<Map<String, dynamic>>>(
             stream: _chatService.getMessages(tourID: widget.tourId),
             builder: (context, snapshot) {
-              List<Map<String, dynamic>> messages = snapshot.data ?? [];
+              List<Map<String, dynamic>> messages =
+                  (snapshot.data ?? [])
+                      .where((msg) => msg['id'] != 'init')
+                      .toList();
               Map<String, List<Map<String, dynamic>>> groupedMessages =
                   _groupMessagesByDate(messages);
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -875,6 +878,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   }) {
     return AppBar(
       backgroundColor: Colors.black,
+      surfaceTintColor: Colors.transparent,
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(),
         icon: Icon(

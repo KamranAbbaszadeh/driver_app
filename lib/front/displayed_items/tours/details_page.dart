@@ -163,6 +163,7 @@ class _DetailsPageState extends State<DetailsPage> {
             ? 'https://onemoretour.com/version-test/api/1.1/wf/assign-guide'
             : 'https://onemoretour.com/version-test/api/1.1/wf/assign-driver';
     return AppBar(
+      surfaceTintColor: Colors.transparent,
       backgroundColor: darkMode ? Colors.black : Colors.white,
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(),
@@ -189,6 +190,7 @@ class _DetailsPageState extends State<DetailsPage> {
                   collection: widget.ride.collectionSource!,
                   carName: carName,
                   vehicleRegistrationNumber: vehicleRegistrationNumber,
+                  tourEdnDAte: widget.ride.endDate,
                 );
               },
               child: Container(

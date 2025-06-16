@@ -32,6 +32,7 @@ class _RideRoutesState extends State<RideRoutes> {
   CameraPosition? initialCameraPosition;
   late String _mapStyleDarkString;
   late String _mapStyleLightString;
+  bool _isControllerDisposed = false;
 
   @override
   void initState() {
@@ -55,7 +56,10 @@ class _RideRoutesState extends State<RideRoutes> {
 
   @override
   void dispose() {
-    mapController?.dispose();
+    if (mapController != null && !_isControllerDisposed) {
+      mapController!.dispose();
+      _isControllerDisposed = true;
+    }
 
     super.dispose();
   }

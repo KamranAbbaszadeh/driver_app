@@ -69,6 +69,7 @@ class _VehicleListState extends ConsumerState<VehicleList> {
     final width = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
+        surfaceTintColor: Colors.transparent,
         title: Text(
           'Vehicle List',
           style: GoogleFonts.ptSans(
