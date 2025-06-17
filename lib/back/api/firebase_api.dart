@@ -27,7 +27,6 @@ String? currentChatTourId;
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  logger.i("📩 Background message received: ${message.toMap()}");
 
   try {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -188,10 +187,7 @@ class FirebaseApi {
     await _localNotifications.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) async {
-        // Log the notification tap for local notifications
-        logger.i("📩 Notification tapped (local): ${details.payload}");
         if (details.payload != null) {
-          logger.i("📩 Notification tapped with payload: ${details.payload}");
           final Map<String, dynamic> data = jsonDecode(details.payload!);
           final String? type = data['route'];
           if (type == '/chat_page') {
@@ -246,7 +242,6 @@ class FirebaseApi {
     }
 
     try {
-      logger.i("📩 Full foreground message: ${message.toMap()}");
       String? messageId =
           message.messageId ??
           message.sentTime?.millisecondsSinceEpoch.toString() ??
@@ -257,9 +252,6 @@ class FirebaseApi {
       List<dynamic> messages =
           messagesString != null ? jsonDecode(messagesString) : [];
       if (messages.any((m) => m['messageId'] == messageId)) {
-        logger.i(
-          "📩 Duplicate message detected — skipping store for messageId: $messageId",
-        );
         return;
       }
 
@@ -277,9 +269,7 @@ class FirebaseApi {
                 'notification_messages',
                 jsonEncode(messages),
               );
-              logger.i(
-                "✅ Stored messageId $messageId — messages count now: ${messages.length}",
-              );
+
               return;
             }
 
@@ -356,9 +346,6 @@ class FirebaseApi {
         'messageId': messageId,
       });
       await prefs.setString('notification_messages', jsonEncode(messages));
-      logger.i(
-        "✅ Stored messageId $messageId — messages count now: ${messages.length}",
-      );
     } catch (e) {
       logger.e("Error handling message: $e");
     }
@@ -412,11 +399,7 @@ class FirebaseApi {
   }
 
   Future<void> _setupMessageHandlers(WidgetRef ref) async {
-    logger.i(
-      "✅ Setting up message handlers — subscribing to onMessage and onMessageOpenedApp",
-    );
     FirebaseMessaging.onMessage.listen((message) async {
-      logger.i("📩 Foreground message received: ${message.toMap()}");
       await handleMessage(message);
 
       ref.read(notificationsProvider.notifier).refresh();
@@ -424,7 +407,6 @@ class FirebaseApi {
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       try {
-        logger.i("📩 App opened from notification: ${message.toMap()}");
         _handleNotificationTap(message, ref);
       } catch (e) {
         logger.e("Error handling message opened app: $e");

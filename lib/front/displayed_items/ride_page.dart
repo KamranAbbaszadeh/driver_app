@@ -6,6 +6,7 @@ import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/map_and_location/get_functions.dart';
 import 'package:onemoretour/back/map_and_location/location_provider.dart';
 import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
+import 'package:onemoretour/back/ride/guest_pick_up_api.dart';
 import 'package:onemoretour/front/displayed_items/chat_page.dart';
 import 'package:onemoretour/front/displayed_items/intermediate_page.dart';
 import 'package:onemoretour/front/displayed_items/ride_map.dart';
@@ -810,17 +811,6 @@ class _RidePageState extends ConsumerState<RidePage>
                                     startArrivedBool &&
                                     rideFlow.finishRide &&
                                     isWithinRange) {
-                                  await Navigator.push(
-                                    context,
-                                    PageTransition(
-                                      type: PageTransitionType.fade,
-                                      child: IntermediatePage(),
-                                    ),
-                                  );
-                                  rideFlowNotifier.resetAll();
-                                  setState(() {
-                                    isFinished = false;
-                                  });
                                 } else if (rideFlow.startRide &&
                                     startArrivedBool &&
                                     isWithinRange) {
@@ -834,11 +824,17 @@ class _RidePageState extends ConsumerState<RidePage>
                                 }
                               },
                               isActive:
-                                  rideFlow.startRide
-                                      ? rideFlow.pickGuest
-                                          ? isWithinRange
-                                          : true
-                                      : true,
+                                  !rideFlow.startRide ||
+                                  (rideFlow.startRide &&
+                                      !startArrivedBool &&
+                                      isWithinRange) ||
+                                  (rideFlow.startRide &&
+                                      startArrivedBool &&
+                                      !rideFlow.pickGuest) ||
+                                  (rideFlow.startRide &&
+                                      startArrivedBool &&
+                                      rideFlow.pickGuest &&
+                                      isWithinRange),
                               isFinished: isFinished,
                               onWaitingProcess: () async {
                                 if (!rideFlow.startRide) {
@@ -958,6 +954,8 @@ class _RidePageState extends ConsumerState<RidePage>
                                   );
                                   if (result == true) {
                                     rideFlowNotifier.guestPickedUp(true);
+                                    final guestPickUpApi = GuestPickUpApi();
+                                    guestPickUpApi.postData({"CarID": docId});
                                     setState(() {
                                       isFinished = true;
                                     });
@@ -986,6 +984,19 @@ class _RidePageState extends ConsumerState<RidePage>
                                     rideFlowNotifier.setFinishRide(true);
                                     setState(() {
                                       isFinished = true;
+                                    });
+                                    if (context.mounted) {
+                                      await Navigator.push(
+                                        context,
+                                        PageTransition(
+                                          type: PageTransitionType.fade,
+                                          child: IntermediatePage(),
+                                        ),
+                                      );
+                                    }
+                                    rideFlowNotifier.resetAll();
+                                    setState(() {
+                                      isFinished = false;
                                     });
                                   } on Exception catch (e) {
                                     logger.e('Error for endArrived: $e ');
