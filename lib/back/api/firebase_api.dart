@@ -544,10 +544,18 @@ class FirebaseApi {
       final scheduledTime = startDate.subtract(notificationTimes[i]);
 
       if (scheduledTime.isAfter(tz.TZDateTime.now(tz.local))) {
+        final Duration left = startDate.difference(scheduledTime);
+        final int hours = left.inHours;
+        final int minutes = left.inMinutes.remainder(60);
+        final String formattedTime =
+            hours > 0
+                ? '$hours hour${hours > 1 ? 's' : ''}${minutes > 0 ? ' $minutes min' : ''}'
+                : '$minutes min';
+
         await _localNotifications.zonedSchedule(
           baseId + i,
           '⏰ Tour Reminder',
-          'Tour starts in ${notificationTimes[i].inMinutes ~/ 60 > 0 ? '${notificationTimes[i].inMinutes ~/ 60} hour(s)' : '${notificationTimes[i].inMinutes} minutes'}',
+          'Tour starts in $formattedTime',
           tz.TZDateTime.from(scheduledTime, tz.local),
           NotificationDetails(
             android: AndroidNotificationDetails(

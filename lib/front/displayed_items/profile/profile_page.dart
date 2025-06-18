@@ -4,7 +4,6 @@ import 'package:onemoretour/back/tools/firebase_service.dart';
 import 'package:onemoretour/back/user/user_data_provider.dart';
 import 'package:onemoretour/db/user_data/store_role.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
-import 'package:onemoretour/front/displayed_items/profile/deleting_account_page.dart';
 import 'package:onemoretour/front/displayed_items/profile/profile_data.dart';
 import 'package:onemoretour/front/displayed_items/profile/rides_history.dart';
 import 'package:onemoretour/front/displayed_items/profile/vehicle_list.dart';
@@ -406,112 +405,6 @@ class ProfilePage extends ConsumerWidget {
                         Icon(Icons.arrow_forward_ios),
                       ],
                     ),
-                  ),
-                ),
-              ),
-              Spacer(),
-              Padding(
-                padding: EdgeInsets.only(top: height * 0.02),
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color.fromARGB(255, 231, 1, 55),
-                    textStyle: GoogleFonts.cabin(
-                      fontWeight: FontWeight.bold,
-                      fontSize: width * 0.045,
-                    ),
-                  ),
-                  onPressed: () async {
-                    final confirmDelete = await showDialog<bool>(
-                      context: context,
-                      builder:
-                          (context) => AlertDialog(
-                            backgroundColor:
-                                darkMode ? Color(0xFF1E1E1E) : Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(width * 0.05),
-                            ),
-                            title: Text(
-                              'Delete Profile',
-                              style: GoogleFonts.cabin(
-                                fontWeight: FontWeight.bold,
-                                fontSize: width * 0.05,
-                                color: darkMode ? Colors.white : Colors.black,
-                              ),
-                            ),
-                            content: Text(
-                              'Are you sure you want to delete your profile? This action cannot be undone.',
-                              style: GoogleFonts.cabin(
-                                fontSize: width * 0.04,
-                                color:
-                                    darkMode ? Colors.white70 : Colors.black54,
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: Text(
-                                  'Cancel',
-                                  style: GoogleFonts.cabin(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: width * 0.04,
-                                    color:
-                                        darkMode
-                                            ? Colors.grey[400]
-                                            : Colors.blueGrey,
-                                  ),
-                                ),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color.fromARGB(
-                                    255,
-                                    231,
-                                    1,
-                                    55,
-                                  ),
-                                ),
-                                onPressed: () => Navigator.pop(context, true),
-                                child: Text(
-                                  'Delete',
-                                  style: GoogleFonts.cabin(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: width * 0.04,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                    );
-
-                    if (confirmDelete == true && context.mounted) {
-                      handleLogout(context);
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const DeletingAccountPage(),
-                        ),
-                      );
-                    }
-                  },
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Delete Profile',
-                        style: GoogleFonts.cabin(
-                          fontWeight: FontWeight.bold,
-                          fontSize: width * 0.045,
-                          color: const Color.fromARGB(255, 231, 1, 55),
-                        ),
-                      ),
-                      SizedBox(height: height * 0.001),
-                      Container(
-                        width: width * 0.3,
-                        height: height * 0.002,
-                        color: const Color.fromARGB(255, 231, 1, 55),
-                      ),
-                    ],
                   ),
                 ),
               ),

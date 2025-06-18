@@ -5,12 +5,14 @@ import 'package:onemoretour/back/rides_history/rides_provider.dart';
 import 'package:onemoretour/back/tools/image_picker.dart';
 import 'package:onemoretour/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
 import 'package:onemoretour/back/user/user_data_provider.dart';
+import 'package:onemoretour/front/displayed_items/profile/deleting_account_page.dart';
 import 'package:onemoretour/front/displayed_items/profile/full_screen_image_viewer.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileData extends ConsumerStatefulWidget {
   const ProfileData({super.key});
@@ -20,6 +22,11 @@ class ProfileData extends ConsumerStatefulWidget {
 }
 
 class _ProfileDataState extends ConsumerState<ProfileData> {
+  Future<void> handleLogout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
+
   @override
   Widget build(BuildContext context) {
     final userData = ref.watch(currentUserDataProvider);
@@ -37,6 +44,128 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
     return Scaffold(
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'delete_account') {
+                final confirmDelete = await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (context) => AlertDialog(
+                        backgroundColor:
+                            darkMode ? Color(0xFF1E1E1E) : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(width * 0.05),
+                        ),
+                        title: Text(
+                          'Delete Profile',
+                          style: GoogleFonts.cabin(
+                            fontWeight: FontWeight.bold,
+                            fontSize: width * 0.05,
+                            color: darkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        content: RichText(
+                          text: TextSpan(
+                            style: GoogleFonts.cabin(
+                              fontSize: width * 0.04,
+                              color: darkMode ? Colors.white70 : Colors.black54,
+                            ),
+                            children: [
+                              TextSpan(
+                                text:
+                                    'Are you sure you want to delete your profile? \n\n',
+                              ),
+                              TextSpan(
+                                text: 'This action cannot be undone.',
+                                style: GoogleFonts.cabin(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: width * 0.04,
+                                  color: const Color.fromARGB(255, 231, 1, 55),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.cabin(
+                                fontWeight: FontWeight.bold,
+                                fontSize: width * 0.04,
+                                color:
+                                    darkMode
+                                        ? Colors.grey[400]
+                                        : Colors.blueGrey,
+                              ),
+                            ),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color.fromARGB(
+                                255,
+                                231,
+                                1,
+                                55,
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context, true),
+                            child: Text(
+                              'Delete',
+                              style: GoogleFonts.cabin(
+                                fontWeight: FontWeight.bold,
+                                fontSize: width * 0.04,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                );
+
+                if (confirmDelete == true && context.mounted) {
+                  handleLogout(context);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DeletingAccountPage(),
+                    ),
+                  );
+                }
+              }
+            },
+            color: Colors.white,
+            position: PopupMenuPosition.under,
+            popUpAnimationStyle: AnimationStyle(curve: Curves.easeInOut),
+            menuPadding: EdgeInsets.all(0),
+            itemBuilder:
+                (BuildContext context) => [
+                  PopupMenuItem<String>(
+                    value: 'delete_account',
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.delete,
+                          color: const Color.fromARGB(255, 231, 1, 55),
+                        ),
+                        Text(
+                          'Delete Account',
+                          style: GoogleFonts.cabin(
+                            fontWeight: FontWeight.bold,
+                            fontSize: width * 0.032,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+          ),
+        ],
         leading: IconButton(
           onPressed: () {
             Navigator.pop(context);

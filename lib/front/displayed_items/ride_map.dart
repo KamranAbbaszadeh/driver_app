@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/map_and_location/location_provider.dart';
@@ -71,7 +72,9 @@ class _RideMapState extends ConsumerState<RideMap> {
         ),
       };
     });
-    _mapController?.animateCamera(CameraUpdate.newLatLng(position));
+    if (ref.read(rideFlowProvider).startRide) {
+      _mapController?.animateCamera(CameraUpdate.newLatLng(position));
+    }
   }
 
   @override
@@ -244,10 +247,8 @@ class _RideMapState extends ConsumerState<RideMap> {
     return LatLng(midLat, midLng);
   }
 
-  double getZoomLevel(double distanceInMeters) {
-    if (distanceInMeters < 500) return 16.0;
-    if (distanceInMeters < 1000) return 12.0;
-    if (distanceInMeters < 5000) return 10.0;
-    return 8.0;
+  double getZoomLevel(double distance) {
+    final zoom = 16 - (log(distance) / ln10 * 1.2);
+    return zoom.clamp(8.0, 18.0);
   }
 }

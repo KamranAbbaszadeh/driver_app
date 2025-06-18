@@ -310,9 +310,9 @@ exports.sendNotificationOnNewChatMessage = onDocumentCreated(
           },
           data: {
             route: "/chat_page",
-            userId,
-            tourId,
-            name: messageData.name,
+            userId: String(userId),
+            tourId: String(tourId),
+            name: String(messageData.name),
             fullBody: `${messageData.name} has sent a message`,
           },
           token: fcmToken,
@@ -355,8 +355,9 @@ exports.notifyOnNewTour =
             .collection("Vehicles")
             .doc(activeVehicle)
             .get();
-        const allowedVehicles = vehicleDoc.data()["Allowed Vehicle"];
-
+        if (!vehicleDoc.exists) continue;
+        const vehicleData = vehicleDoc.data();
+        const allowedVehicles = vehicleData["Allowed Vehicle"] || [];
         if (vehicleDoc.exists) {
           if ((role === "Driver" || role === "Driver Cum Guide") &&
               driverField === "" &&
@@ -369,6 +370,26 @@ exports.notifyOnNewTour =
                   body: "A new tour matches your vehicle. Please review.",
                 },
                 token,
+                apns: {
+                  payload: {
+                    aps: {
+                      alert: {
+                        title: "New Tour Available",
+                        body: "A new tour matches your vehicle. Please review.",
+                      },
+                      sound: "default",
+                      badge: 1,
+                    },
+                  },
+                  headers: {
+                    "apns-push-type": "alert",
+                    "apns-priority": "10",
+                    "apns-topic": "io.flutter.plugins.firebase.messaging",
+                  },
+                },
+                android: {
+                  priority: "high",
+                },
                 data: {
                   route: "/tour_list",
                   fullBody: "A new tour has been created"+
@@ -417,6 +438,26 @@ exports.notifyOnNewGuideTour =
               body: "A new guide tour matches your profile.",
             },
             token,
+            apns: {
+              payload: {
+                aps: {
+                  alert: {
+                    title: "Guide Needed",
+                    body: "A new guide tour matches your profile.",
+                  },
+                  sound: "default",
+                  badge: 1,
+                },
+              },
+              headers: {
+                "apns-push-type": "alert",
+                "apns-priority": "10",
+                "apns-topic": "io.flutter.plugins.firebase.messaging",
+              },
+            },
+            android: {
+              priority: "high",
+            },
             data: {
               route: "/tour_list",
               fullBody: "A guide tour has been added"+
@@ -458,7 +499,7 @@ exports.notifyOnDriverRemoved =
             .get();
         if (!vehicleDoc.exists) continue;
         const previousUID = beforeData.Driver;
-        const allowedVehicles = vehicleDoc.data()["Allowed Vehicle"];
+        const allowedVehicles = vehicleDoc.data()["Allowed Vehicle"] || [];
 
         if ((user.Role === "Driver" || user.Role === "Driver Cum Guide") &&
           previousUID !== userDoc.id &&
@@ -471,6 +512,26 @@ exports.notifyOnDriverRemoved =
                 body: "A tour is available again for your vehicle.",
               },
               token,
+              apns: {
+                payload: {
+                  aps: {
+                    alert: {
+                      title: "Tour Reopened",
+                      body: "A tour is available again for your vehicle.",
+                    },
+                    sound: "default",
+                    badge: 1,
+                  },
+                },
+                headers: {
+                  "apns-push-type": "alert",
+                  "apns-priority": "10",
+                  "apns-topic": "io.flutter.plugins.firebase.messaging",
+                },
+              },
+              android: {
+                priority: "high",
+              },
               data: {
                 route: "/tour_list",
                 fullBody: "A tour became available again"+
@@ -523,6 +584,26 @@ exports.notifyOnGuideRemoved =
                 body: "A guide is needed for a reopened tour.",
               },
               token,
+              apns: {
+                payload: {
+                  aps: {
+                    alert: {
+                      title: "Guide Needed Again",
+                      body: "A guide is needed for a reopened tour.",
+                    },
+                    sound: "default",
+                    badge: 1,
+                  },
+                },
+                headers: {
+                  "apns-push-type": "alert",
+                  "apns-priority": "10",
+                  "apns-topic": "io.flutter.plugins.firebase.messaging",
+                },
+              },
+              android: {
+                priority: "high",
+              },
               data: {
                 route: "/tour_list",
                 fullBody: "A guide tour became available"+
