@@ -85,6 +85,8 @@
 		<string>This app may use speech recognition for voice input features or accessibility enhancements.</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
+		<key>FirebaseAppDelegateProxyEnabled</key>
+		<true/>
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>fetch</string>
