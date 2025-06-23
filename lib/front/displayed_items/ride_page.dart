@@ -41,8 +41,6 @@ class _RidePageState extends ConsumerState<RidePage>
   bool hasUnreadChat = false;
   bool _isMounted = false;
   bool guestPickedUp = false;
-  String? firstArrivalTime;
-  String? secondArrivalTime;
   double? targetRadius;
   @override
   void initState() {
@@ -860,19 +858,13 @@ class _RidePageState extends ConsumerState<RidePage>
                                               FieldValue.serverTimestamp(),
                                         }, SetOptions(merge: true));
                                     final DateTime now = DateTime.now();
-                                    firstArrivalTime =
+                                    final String formattedNow =
                                         now.toUtc().toIso8601String();
-                                    SharedPreferences prefs =
-                                        await SharedPreferences.getInstance();
-                                    await prefs.setString(
-                                      'firstArrivalTime',
-                                      firstArrivalTime!,
-                                    );
                                     await rideFlowAPI.postData({
                                       "RouteID": nextRoute['ID'],
                                       "EndArrived?": false,
                                       "StartArrived?": true,
-                                      "StartTime": firstArrivalTime,
+                                      "StartTime": formattedNow,
                                       "EndTime": "",
                                     });
                                     setState(() {
@@ -1001,21 +993,15 @@ class _RidePageState extends ConsumerState<RidePage>
                                               FieldValue.serverTimestamp(),
                                         }, SetOptions(merge: true));
                                     final DateTime now = DateTime.now();
-                                    secondArrivalTime =
+                                    final String formattedNow =
                                         now.toUtc().toIso8601String();
-                                    SharedPreferences prefs =
-                                        await SharedPreferences.getInstance();
-                                    firstArrivalTime = prefs.getString(
-                                      'firstArrivalTime',
-                                    );
                                     await rideFlowAPI.postData({
                                       "RouteID": nextRoute['ID'],
                                       "EndArrived?": true,
                                       "StartArrived?": true,
-                                      "StartTime": firstArrivalTime,
-                                      "EndTime": secondArrivalTime,
+                                      "StartTime": "",
+                                      "EndTime": formattedNow,
                                     });
-                                    await prefs.remove('firstArrivalTime');
                                     rideFlowNotifier.setFinishRide(true);
                                     setState(() {
                                       isFinished = true;
