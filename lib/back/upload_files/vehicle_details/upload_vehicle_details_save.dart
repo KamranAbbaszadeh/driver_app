@@ -6,6 +6,8 @@ import 'package:onemoretour/back/upload_files/vehicle_details/vehicle_details_po
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 Future<void> uploadVehicleDetailsAndSave({
   required String userId,
@@ -128,13 +130,20 @@ Future<String> uploadSinglePhoto({
   required dynamic file,
   required String folderName,
 }) async {
+  final uuid = Uuid().v4();
   final filePath =
-      'Users/$userID/$folderName/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      'Users/$userID/$folderName/${DateTime.now().millisecondsSinceEpoch}_$uuid.jpg';
   final fileRef = storageRef.child(filePath);
 
-  UploadTask uploadTask = fileRef.putData(
-    await await file.readAsBytes().then((data) => data.buffer.asUint8List()),
+  final originalBytes = await file.readAsBytes();
+
+  final compressedBytes = await FlutterImageCompress.compressWithList(
+    originalBytes,
+    quality: 70,
+    format: CompressFormat.jpeg,
   );
+
+  UploadTask uploadTask = fileRef.putData(compressedBytes);
   TaskSnapshot taskSnapshot = await uploadTask;
   return await taskSnapshot.ref.getDownloadURL();
 }
@@ -145,17 +154,19 @@ Future<List<String>> uploadMultiplePhotos({
   required List<dynamic> files,
   required String folderName,
 }) async {
-  List<String> urls = [];
-  for (var file in files) {
-    String url = await uploadSinglePhoto(
-      storageRef: storageRef,
-      userID: userId,
-      file: file,
-      folderName: folderName,
-    );
-    urls.add(url);
-  }
-  return urls;
+  final uploads =
+      files
+          .map(
+            (file) => uploadSinglePhoto(
+              storageRef: storageRef,
+              userID: userId,
+              file: file,
+              folderName: folderName,
+            ),
+          )
+          .toList();
+
+  return await Future.wait(uploads);
 }
 
 Future<List<String>> uploadMultiplePhotosFromPaths(
@@ -165,24 +176,29 @@ Future<List<String>> uploadMultiplePhotosFromPaths(
   String folderName,
   String vehicleRegisterNum,
 ) async {
-  List<String> uploadedUrls = [];
+  final uuid = Uuid();
+  List<Future<String>> uploadFutures = [];
+
   for (final path in paths) {
     if (path.isNotEmpty && !path.startsWith('https://')) {
       final file = File(path);
       if (file.existsSync()) {
+        final filePath =
+            '${DateTime.now().millisecondsSinceEpoch}_${uuid.v4()}';
         final uploadRef = storageRef
             .child(vehicleRegisterNum)
             .child(folderName)
-            .child('${DateTime.now().millisecondsSinceEpoch}');
-        final uploadTask = await uploadRef.putFile(file);
-        final url = await uploadTask.ref.getDownloadURL();
-        uploadedUrls.add(url);
+            .child(filePath);
+        uploadFutures.add(
+          uploadRef.putFile(file).then((task) => task.ref.getDownloadURL()),
+        );
       }
     } else if (path.startsWith('https://')) {
-      uploadedUrls.add(path);
+      uploadFutures.add(Future.value(path));
     }
   }
-  return uploadedUrls;
+
+  return await Future.wait(uploadFutures);
 }
 
 Future<String> uploadSinglePhotoFromPath(
@@ -192,13 +208,15 @@ Future<String> uploadSinglePhotoFromPath(
   String folderName,
   String vehicleRegisterNum,
 ) async {
+  final uuid = Uuid().v4();
   if (path.isNotEmpty && !path.startsWith('https://')) {
     final file = File(path);
     if (file.existsSync()) {
+      final filePath = '${DateTime.now().millisecondsSinceEpoch}_$uuid';
       final uploadRef = storageRef
           .child(vehicleRegisterNum)
           .child(folderName)
-          .child('${DateTime.now().millisecondsSinceEpoch}');
+          .child(filePath);
       final uploadTask = await uploadRef.putFile(file);
       return await uploadTask.ref.getDownloadURL();
     } else {

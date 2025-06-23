@@ -1,7 +1,5 @@
-bool validateEmail(String? value) {
-  const pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
-
-  final regex = RegExp(pattern);
-
-  return regex.hasMatch(value!) ? true : false;
+bool validateEmail(String email) {
+  final trimmed = email.trim();
+  final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+  return emailRegex.hasMatch(trimmed);
 }

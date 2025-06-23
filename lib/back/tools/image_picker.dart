@@ -13,6 +13,7 @@ class ImagePickerHelper {
     required Function(List<XFile>) onPicked,
     bool allowCamera = true,
     bool allowGallery = true,
+    required int? maxImages,
   }) async {
     final granted = await _requestPermissions(camera: allowCamera);
     if (!granted) {
@@ -119,6 +120,8 @@ class ImagePickerHelper {
 
   static Future<List<XFile>?> selectMultiplePhotos({
     required BuildContext context,
+    required int? maxImages,
+    required int? minImages,
   }) async {
     final status = await Permission.photos.request();
     if (!status.isGranted) {
@@ -132,6 +135,17 @@ class ImagePickerHelper {
 
     final images = await _picker.pickMultiImage();
     if (images.isEmpty) return null;
+    if (minImages != null && images.length < minImages) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please select at least $minImages images.')),
+        );
+      }
+      return null;
+    }
+    if (maxImages != null && images.length > maxImages) {
+      return images.sublist(0, maxImages);
+    }
     return images;
   }
 

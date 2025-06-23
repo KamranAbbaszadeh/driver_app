@@ -30,18 +30,13 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           apns: {
             payload: {
               aps: {
-                alert: {
-                  title: "Hey There",
-                  body: `Your application form has been approved.`,
-                },
-                sound: "default",
-                badge: 1,
+                "content-available": 1,
+                "sound": "default",
               },
             },
             headers: {
-              "apns-push-type": "alert",
               "apns-priority": "10",
-              "apns-topic": "io.flutter.plugins.firebase.messaging",
+              "apns-topic": "com.onemoretour",
             },
           },
           android: {
@@ -74,18 +69,13 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           apns: {
             payload: {
               aps: {
-                alert: {
-                  title: "Congratulations",
-                  body: `Your application form has been approved.`,
-                },
-                sound: "default",
-                badge: 1,
+                "content-available": 1,
+                "sound": "default",
               },
             },
             headers: {
-              "apns-push-type": "alert",
               "apns-priority": "10",
-              "apns-topic": "io.flutter.plugins.firebase.messaging",
+              "apns-topic": "com.onemoretour",
             },
           },
           android: {
@@ -116,18 +106,13 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           apns: {
             payload: {
               aps: {
-                alert: {
-                  title: "Application Declined",
-                  body: "Unfortunately, your application form was declined.",
-                },
-                sound: "default",
-                badge: 1,
+                "content-available": 1,
+                "sound": "default",
               },
             },
             headers: {
-              "apns-push-type": "alert",
               "apns-priority": "10",
-              "apns-topic": "io.flutter.plugins.firebase.messaging",
+              "apns-topic": "com.onemoretour",
             },
           },
           android: {
@@ -158,18 +143,13 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           apns: {
             payload: {
               aps: {
-                alert: {
-                  title: "Details Declined",
-                  body: "Your personal and car details were declined.",
-                },
-                sound: "default",
-                badge: 1,
+                "content-available": 1,
+                "sound": "default",
               },
             },
             headers: {
-              "apns-push-type": "alert",
               "apns-priority": "10",
-              "apns-topic": "io.flutter.plugins.firebase.messaging",
+              "apns-topic": "com.onemoretour",
             },
           },
           android: {
@@ -200,18 +180,13 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
           apns: {
             payload: {
               aps: {
-                alert: {
-                  title: "Registration Completed",
-                  body: "Congratulations! Your registration is now complete.",
-                },
-                sound: "default",
-                badge: 1,
+                "content-available": 1,
+                "sound": "default",
               },
             },
             headers: {
-              "apns-push-type": "alert",
               "apns-priority": "10",
-              "apns-topic": "io.flutter.plugins.firebase.messaging",
+              "apns-topic": "com.onemoretour",
             },
           },
           android: {
@@ -291,18 +266,13 @@ exports.sendNotificationOnNewChatMessage = onDocumentCreated(
           apns: {
             payload: {
               aps: {
-                alert: {
-                  title: `New message for the tour ${tourName}`,
-                  body: `${messageData.name} has sent a message`,
-                },
-                sound: "default",
-                badge: 1,
+                "content-available": 1,
+                "sound": "default",
               },
             },
             headers: {
-              "apns-push-type": "alert",
               "apns-priority": "10",
-              "apns-topic": "io.flutter.plugins.firebase.messaging",
+              "apns-topic": "com.onemoretour",
             },
           },
           android: {
@@ -373,18 +343,13 @@ exports.notifyOnNewTour =
                 apns: {
                   payload: {
                     aps: {
-                      alert: {
-                        title: "New Tour Available",
-                        body: "A new tour matches your vehicle. Please review.",
-                      },
-                      sound: "default",
-                      badge: 1,
+                      "content-available": 1,
+                      "sound": "default",
                     },
                   },
                   headers: {
-                    "apns-push-type": "alert",
                     "apns-priority": "10",
-                    "apns-topic": "io.flutter.plugins.firebase.messaging",
+                    "apns-topic": "com.onemoretour",
                   },
                 },
                 android: {
@@ -441,18 +406,13 @@ exports.notifyOnNewGuideTour =
             apns: {
               payload: {
                 aps: {
-                  alert: {
-                    title: "Guide Needed",
-                    body: "A new guide tour matches your profile.",
-                  },
-                  sound: "default",
-                  badge: 1,
+                  "content-available": 1,
+                  "sound": "default",
                 },
               },
               headers: {
-                "apns-push-type": "alert",
                 "apns-priority": "10",
-                "apns-topic": "io.flutter.plugins.firebase.messaging",
+                "apns-topic": "com.onemoretour",
               },
             },
             android: {
@@ -515,18 +475,13 @@ exports.notifyOnDriverRemoved =
               apns: {
                 payload: {
                   aps: {
-                    alert: {
-                      title: "Tour Reopened",
-                      body: "A tour is available again for your vehicle.",
-                    },
-                    sound: "default",
-                    badge: 1,
+                    "content-available": 1,
+                    "sound": "default",
                   },
                 },
                 headers: {
-                  "apns-push-type": "alert",
                   "apns-priority": "10",
-                  "apns-topic": "io.flutter.plugins.firebase.messaging",
+                  "apns-topic": "com.onemoretour",
                 },
               },
               android: {
@@ -587,18 +542,13 @@ exports.notifyOnGuideRemoved =
               apns: {
                 payload: {
                   aps: {
-                    alert: {
-                      title: "Guide Needed Again",
-                      body: "A guide is needed for a reopened tour.",
-                    },
-                    sound: "default",
-                    badge: 1,
+                    "content-available": 1,
+                    "sound": "default",
                   },
                 },
                 headers: {
-                  "apns-push-type": "alert",
                   "apns-priority": "10",
-                  "apns-topic": "io.flutter.plugins.firebase.messaging",
+                  "apns-topic": "com.onemoretour",
                 },
               },
               android: {

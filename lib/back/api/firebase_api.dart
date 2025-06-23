@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 
 final Logger logger = Logger();
 
@@ -46,6 +47,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     });
 
     await prefs.setString('notification_messages', jsonEncode(messages));
+    _updateAppBadge(messages);
   } catch (e) {
     logger.e("Error saving notification locally in background: $e");
   }
@@ -127,19 +129,23 @@ class FirebaseApi {
     }
 
     try {
-      String? token = await messaging.getToken().timeout(
-        Duration(seconds: 5),
-        onTimeout: () {
-          return null;
-        },
-      );
-
-      if (token != null) {
-        await FirebaseFirestore.instance.collection('Users').doc(userId).update(
-          {'fcmToken': token},
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        String? token = await messaging.getToken().timeout(
+          Duration(seconds: 5),
+          onTimeout: () {
+            return null;
+          },
         );
-      } else {
-        logger.w("⚠️ Token was null, not saving to Firestore");
+
+        if (token != null) {
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(userId)
+              .update({'fcmToken': token});
+        } else {
+          logger.w("⚠️ Token was null, not saving to Firestore");
+        }
       }
     } catch (e) {
       logger.e("Error saving FCM token: $e");
@@ -233,12 +239,14 @@ class FirebaseApi {
     isFlutterLocalNotificationsInitialized = true;
   }
 
-  Future<void> handleMessage(RemoteMessage message) async {
+  Future<void> handleMessage(RemoteMessage message, WidgetRef ref) async {
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
 
-    if (notification == null) {
-      logger.w("⚠️ Foreground message has no notification payload.");
+    if (notification == null && message.data.isNotEmpty) {
+      logger.i(
+        "📥 Received data-only message on iOS. Creating local notification manually.",
+      );
     }
 
     try {
@@ -255,7 +263,7 @@ class FirebaseApi {
         return;
       }
 
-      if (notification != null && android != null) {
+      if ((notification != null && android != null)) {
         if (message.data['route'] == '/chat_page') {
           String? tourId = message.data['tourId'];
           if (tourId != null) {
@@ -285,7 +293,9 @@ class FirebaseApi {
               String notificationTitle = 'Tour: $tourName';
               String notificationBody =
                   '${message.data['name']} just sent you a message for tour $tourName';
-
+              final unreadCount =
+                  messages.where((m) => m['isViewed'] == false).length;
+              FlutterAppBadger.updateBadgeCount(unreadCount);
               await _localNotifications.show(
                 notification.hashCode,
                 notificationTitle,
@@ -305,6 +315,7 @@ class FirebaseApi {
                     presentList: true,
                     presentAlert: true,
                     presentBadge: true,
+                    badgeNumber: unreadCount,
                     presentBanner: true,
                   ),
                 ),
@@ -313,6 +324,9 @@ class FirebaseApi {
             }
           }
         } else {
+          final unreadCount =
+              messages.where((m) => m['isViewed'] == false).length;
+          FlutterAppBadger.updateBadgeCount(unreadCount);
           await _localNotifications.show(
             notification.hashCode,
             notification.title,
@@ -346,6 +360,7 @@ class FirebaseApi {
         'messageId': messageId,
       });
       await prefs.setString('notification_messages', jsonEncode(messages));
+      _updateAppBadge(messages);
     } catch (e) {
       logger.e("Error handling message: $e");
     }
@@ -359,7 +374,7 @@ class FirebaseApi {
       String? messagesString = prefs.getString('notification_messages');
       List<dynamic> messages =
           messagesString != null ? jsonDecode(messagesString) : [];
-
+      ref.read(notificationsProvider.notifier).refresh();
       if (messageId != null &&
           messages.any((m) => m['messageId'] == messageId)) {
         return;
@@ -371,6 +386,7 @@ class FirebaseApi {
         'messageId': messageId,
       });
       await prefs.setString('notification_messages', jsonEncode(messages));
+      _updateAppBadge(messages);
 
       final Map<String, dynamic> data = message.data;
 
@@ -400,8 +416,7 @@ class FirebaseApi {
 
   Future<void> _setupMessageHandlers(WidgetRef ref) async {
     FirebaseMessaging.onMessage.listen((message) async {
-      await handleMessage(message);
-
+      await handleMessage(message, ref);
       ref.read(notificationsProvider.notifier).refresh();
     });
 
@@ -657,5 +672,15 @@ class FirebaseApi {
             ),
       );
     }
+  }
+}
+
+void _updateAppBadge(List<dynamic> messages) {
+  final unreadCount = messages.where((m) => m['isViewed'] == false).length;
+
+  if (unreadCount > 0) {
+    FlutterAppBadger.updateBadgeCount(unreadCount);
+  } else {
+    FlutterAppBadger.removeBadge();
   }
 }

@@ -237,7 +237,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                   behavior: HitTestBehavior.opaque,
                   onTap: () async {
                     final selected = await ImagePickerHelper.selectSinglePhoto(
-                      context: context,
+                      context: context, 
                     );
                     if (selected == null) return;
                     if (personalPhoto != null) {
@@ -286,6 +286,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                   onTap: () async {
                     final images = await ImagePickerHelper.selectMultiplePhotos(
                       context: context,
+                      maxImages: 2,
+                      minImages: 1,
                     );
                     if (images != null) {
                       if (iDPhoto.isNotEmpty) {
@@ -345,6 +347,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                         final images =
                             await ImagePickerHelper.selectMultiplePhotos(
                               context: context,
+                              maxImages: 2,
+                              minImages: 2,
                             );
                         if (images != null) {
                           if (driverLicensePhoto.isNotEmpty) {

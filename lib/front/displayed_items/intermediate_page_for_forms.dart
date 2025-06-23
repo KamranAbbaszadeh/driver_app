@@ -177,13 +177,21 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                         }
                       } catch (e) {
                         ref.read(loadingProvider.notifier).stopLoading();
+
                         if (context.mounted) {
+                          final rawMessage = e.toString();
+                          final cleanedMessage = rawMessage.replaceFirst(
+                            RegExp(r'^\[.*?\] '),
+                            '',
+                          );
                           await showDialog(
                             context: context,
                             builder:
                                 (ctx) => AlertDialog(
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(
+                                      width * 0.04,
+                                    ),
                                   ),
                                   backgroundColor:
                                       darkMode
@@ -195,7 +203,7 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                                         Icons.error_outline,
                                         color: Colors.redAccent,
                                       ),
-                                      SizedBox(width: 8),
+                                      SizedBox(width: width * 0.02),
                                       Text(
                                         'Operation Failed',
                                         style: GoogleFonts.cabin(
@@ -209,13 +217,13 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                                     ],
                                   ),
                                   content: Text(
-                                    'An unexpected error occurred:\n\n${e.toString()}',
+                                    'An unexpected error occurred:\n\n$cleanedMessage',
                                     style: GoogleFonts.cabin(
                                       color:
                                           darkMode
                                               ? Colors.white70
                                               : Colors.black87,
-                                      fontSize: 16,
+                                      fontSize: width * 0.04,
                                     ),
                                   ),
                                   actions: [
@@ -227,12 +235,12 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                                                 : Colors.redAccent,
                                         foregroundColor: Colors.white,
                                         padding: EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
+                                          horizontal: width * 0.04,
+                                          vertical: height * 0.014,
                                         ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
-                                            8,
+                                            width * 0.02,
                                           ),
                                         ),
                                       ),
@@ -243,7 +251,7 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                                         'Return',
                                         style: GoogleFonts.cabin(
                                           fontWeight: FontWeight.w600,
-                                          fontSize: 16,
+                                          fontSize: width * 0.04,
                                         ),
                                       ),
                                     ),

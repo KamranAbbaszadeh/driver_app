@@ -112,13 +112,22 @@ class _RideMapState extends ConsumerState<RideMap> {
     final currentLocation = _getCurrentLatLng();
     if (currentLocation == null) return;
     final midPoint = getMidpoint(startLatLng, endLatLng, currentLocation);
-    final distance = Geolocator.distanceBetween(
+    final distanceEnd = Geolocator.distanceBetween(
       currentLocation.latitude,
       currentLocation.longitude,
       endLatLng.latitude,
       endLatLng.longitude,
     );
-    final zoomLvl = getZoomLevel(distance);
+
+    final distanceStart = Geolocator.distanceBetween(
+      currentLocation.latitude,
+      currentLocation.longitude,
+      startLatLng.latitude,
+      startLatLng.longitude,
+    );
+    final width = MediaQuery.of(context).size.width;
+    final distance = distanceStart + distanceEnd;
+    final zoomLvl = getZoomLevel(distance, width);
 
     final BitmapDescriptor startIcon = await BitmapDescriptor.asset(
       ImageConfiguration(size: Size(screenWidth * 0.122, screenHeight * 0.056)),
@@ -247,8 +256,9 @@ class _RideMapState extends ConsumerState<RideMap> {
     return LatLng(midLat, midLng);
   }
 
-  double getZoomLevel(double distance) {
-    final zoom = 16 - (log(distance) / ln10 * 1.2);
-    return zoom.clamp(8.0, 18.0);
+  double getZoomLevel(double distanceMeters, double screenWidthInPixels) {
+    final zoom =
+        log(156543.03392 * cos(0) * screenWidthInPixels / distanceMeters) / ln2;
+    return zoom.clamp(8.0, 21.0);
   }
 }

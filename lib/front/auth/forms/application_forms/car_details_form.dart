@@ -345,10 +345,17 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
     final chassisPath = prefs.getString('chassisPhoto');
 
     setState(() {
-      carsPhoto = carPaths.map((path) => XFile(path)).toList();
+      carsPhoto =
+          carPaths
+              .where((path) => path.isNotEmpty)
+              .map((path) => XFile(path))
+              .toList();
       technicalPassportNumberPhoto =
-          techPaths.map((path) => XFile(path)).toList();
-      if (chassisPath != null) {
+          techPaths
+              .where((path) => path.isNotEmpty)
+              .map((path) => XFile(path))
+              .toList();
+      if (chassisPath != null && chassisPath.isNotEmpty) {
         chassisNumberPhoto = XFile(chassisPath);
       }
     });
@@ -660,7 +667,12 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                             nameOfTheCarFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: nameOfTheCarFocusNode,
                         onSubmitted: (_) {
                           nameOfTheCarFocusNode.unfocus();
@@ -742,6 +754,8 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       final images =
                           await ImagePickerHelper.selectMultiplePhotos(
                             context: context,
+                            maxImages: 6,
+                            minImages: 3,
                           );
                       if (images != null) {
                         setState(() => carsPhoto.addAll(images));
@@ -769,10 +783,21 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         padding: EdgeInsets.all(width * 0.02),
                         child: ImageGrid(
                           isDeclined: widget.isDeclined,
-                          images: carsPhoto,
+                          images:
+                              carsPhoto
+                                  .where((x) => x.path.isNotEmpty)
+                                  .toList(),
                           onRemove: (index) async {
-                            final removedPhoto = carsPhoto[index];
-                            setState(() => carsPhoto.removeAt(index));
+                            final filteredPhotos =
+                                carsPhoto
+                                    .where((x) => x.path.isNotEmpty)
+                                    .toList();
+                            final removedPhoto = filteredPhotos[index];
+                            setState(() {
+                              carsPhoto.removeWhere(
+                                (x) => x.path == removedPhoto.path,
+                              );
+                            });
                             await _saveTempPhotos();
                             await _updateVehicleDetailsProvider();
                             if (removedPhoto.path.startsWith('https://') &&
@@ -825,7 +850,12 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                             technicalPassportNumberFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: technicalPassportNumberFocusNode,
                         onSubmitted: (_) {
                           technicalPassportNumberFocusNode.unfocus();
@@ -916,6 +946,8 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       final images =
                           await ImagePickerHelper.selectMultiplePhotos(
                             context: context,
+                            maxImages: 2,
+                            minImages: 2,
                           );
                       if (images != null) {
                         setState(
@@ -949,14 +981,21 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         padding: EdgeInsets.all(width * 0.02),
                         child: ImageGrid(
                           isDeclined: widget.isDeclined,
-                          images: technicalPassportNumberPhoto,
+                          images:
+                              technicalPassportNumberPhoto
+                                  .where((x) => x.path.isNotEmpty)
+                                  .toList(),
                           onRemove: (index) async {
-                            final removedPhoto =
-                                technicalPassportNumberPhoto[index];
-                            setState(
-                              () =>
-                                  technicalPassportNumberPhoto.removeAt(index),
-                            );
+                            final filteredTechPhotos =
+                                technicalPassportNumberPhoto
+                                    .where((x) => x.path.isNotEmpty)
+                                    .toList();
+                            final removedPhoto = filteredTechPhotos[index];
+                            setState(() {
+                              technicalPassportNumberPhoto.removeWhere(
+                                (x) => x.path == removedPhoto.path,
+                              );
+                            });
                             await _saveTempPhotos();
                             await _updateVehicleDetailsProvider();
                             if (removedPhoto.path.startsWith('https://') &&
@@ -1004,7 +1043,12 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                             chassisNumberFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: chassisNumberFocusNode,
                         onEditingComplete: () {
                           chassisNumberFocusNode.unfocus();
@@ -1124,13 +1168,18 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         padding: EdgeInsets.all(width * 0.02),
                         child: ImageGrid(
                           isDeclined: widget.isDeclined,
-                          images: [chassisNumberPhoto],
+                          images:
+                              chassisNumberPhoto != null &&
+                                      chassisNumberPhoto.path.isNotEmpty
+                                  ? [chassisNumberPhoto]
+                                  : [],
                           onRemove: (index) async {
                             final removedPhoto = chassisNumberPhoto;
                             setState(() => chassisNumberPhoto = null);
                             await _saveTempPhotos();
                             await _updateVehicleDetailsProvider();
                             if (removedPhoto != null &&
+                                removedPhoto.path.isNotEmpty &&
                                 removedPhoto.path.startsWith('https://') &&
                                 widget.onDeleteRemotePhoto != null) {
                               await widget.onDeleteRemotePhoto!(
@@ -1181,7 +1230,12 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                             vehicleRegistrationNumberFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: vehicleRegistrationNumberFocusNode,
                         onEditingComplete: () {
                           vehicleRegistrationNumberFocusNode.unfocus();
@@ -1296,7 +1350,21 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(4),
                         ],
+                        onChanged: (value) {
+                          final year = int.tryParse(value);
+                          if (year != null && year > DateTime.now().year) {
+                            yearOfTheCarController.text =
+                                DateTime.now().year.toString();
+                            yearOfTheCarController
+                                .selection = TextSelection.fromPosition(
+                              TextPosition(
+                                offset: yearOfTheCarController.text.length,
+                              ),
+                            );
+                          }
+                        },
                         onTap: () {
                           setState(() {
                             yearOfTheCarFocusNode.requestFocus();
@@ -1308,7 +1376,12 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                             yearOfTheCarFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: yearOfTheCarFocusNode,
                         onEditingComplete: () {
                           yearOfTheCarFocusNode.unfocus();
@@ -1527,7 +1600,12 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                             seatNumbersFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: seatNumbersFocusNode,
                         onEditingComplete: () {
                           seatNumbersFocusNode.unfocus();

@@ -97,10 +97,14 @@ class _AuthState extends State<AuthPhoneAlternative> {
                     focusNode: _phoneFocusNode,
                     autofocus: true,
                     keyboardType: TextInputType.number,
-                    cursorColor: Colors.grey.shade400,
                     controller: _phoneNumberController,
                     textInputAction: TextInputAction.done,
-                    showCursor: false,
+                    showCursor: true,
+                    cursorHeight: height * 0.02,
+                    cursorColor:
+                        darkMode
+                            ? Color.fromARGB(255, 1, 105, 170)
+                            : Color.fromARGB(255, 0, 134, 179),
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.only(top: width * 0.05),
                       labelText: 'Phone Number (international format)',

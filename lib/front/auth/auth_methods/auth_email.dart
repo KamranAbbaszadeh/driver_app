@@ -33,7 +33,6 @@ class _AuthState extends ConsumerState<AuthEmail> {
 
     _passwordFocusNode.addListener(() {
       if (!_passwordFocusNode.hasFocus) {
-        // _isEmpty(_passwordController, 'password');
         setState(() {
           passwordObscure = true;
         });
@@ -50,6 +49,10 @@ class _AuthState extends ConsumerState<AuthEmail> {
       isEmpty = value.isEmpty;
       isValid = validateEmail(value);
     });
+  }
+
+  bool _isFormValid() {
+    return !isEmpty && isValid && _passwordController.text.isNotEmpty;
   }
 
   @override
@@ -168,6 +171,12 @@ class _AuthState extends ConsumerState<AuthEmail> {
                                     _emailFocusNode.unfocus();
                                   });
                                 },
+                                showCursor: true,
+                                cursorHeight: height * 0.02,
+                                cursorColor:
+                                    darkMode
+                                        ? Color.fromARGB(255, 1, 105, 170)
+                                        : Color.fromARGB(255, 0, 134, 179),
                                 focusNode: _emailFocusNode,
                                 onEditingComplete: () {
                                   _emailFocusNode.unfocus();
@@ -307,7 +316,12 @@ class _AuthState extends ConsumerState<AuthEmail> {
                                 passwordObscure = true;
                               });
                             },
-                            showCursor: false,
+                            showCursor: true,
+                            cursorHeight: height * 0.02,
+                            cursorColor:
+                                darkMode
+                                    ? Color.fromARGB(255, 1, 105, 170)
+                                    : Color.fromARGB(255, 0, 134, 179),
                             focusNode: _passwordFocusNode,
                             onEditingComplete: () {
                               _passwordFocusNode.unfocus();
@@ -373,34 +387,38 @@ class _AuthState extends ConsumerState<AuthEmail> {
               ),
               GestureDetector(
                 onTap: () async {
-                  try {
-                    ref.read(loadingProvider.notifier).startLoading();
-                    await FirebaseAuth.instance.signInWithEmailAndPassword(
-                      email: _emailController.text.trim().toLowerCase(),
-                      password: _passwordController.text.trim(),
-                    );
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user == null) return;
-                    final userId = user.uid;
-
-                    FirebaseApi.instance.saveFCMToken(userId);
-
-                    ref.read(loadingProvider.notifier).stopLoading();
-                    if (context.mounted) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => WaitingPage()),
-                        (route) => false,
+                  if (_isFormValid()) {
+                    try {
+                      ref.read(loadingProvider.notifier).startLoading();
+                      await FirebaseAuth.instance.signInWithEmailAndPassword(
+                        email: _emailController.text.trim().toLowerCase(),
+                        password: _passwordController.text.trim(),
                       );
-                    }
-                  } catch (_) {
-                    ref.read(loadingProvider.notifier).stopLoading();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Email or password is incorrect"),
-                        ),
-                      );
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user == null) return;
+                      final userId = user.uid;
+
+                      FirebaseApi.instance.saveFCMToken(userId);
+
+                      ref.read(loadingProvider.notifier).stopLoading();
+                      if (context.mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => WaitingPage(),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    } catch (_) {
+                      ref.read(loadingProvider.notifier).stopLoading();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Email or password is incorrect"),
+                          ),
+                        );
+                      }
                     }
                   }
                 },
@@ -409,9 +427,13 @@ class _AuthState extends ConsumerState<AuthEmail> {
                   height: height * 0.058,
                   decoration: BoxDecoration(
                     color:
-                        darkMode
-                            ? Color.fromARGB(255, 52, 168, 235)
-                            : Color.fromARGB(177, 0, 134, 179),
+                        _isFormValid()
+                            ? darkMode
+                                ? Color.fromARGB(255, 52, 168, 235)
+                                : Color.fromARGB(177, 0, 134, 179)
+                            : darkMode
+                            ? Color.fromARGB(40, 52, 168, 235)
+                            : Color.fromARGB(40, 0, 134, 179),
                     borderRadius: BorderRadius.circular(7.5),
                   ),
                   child:

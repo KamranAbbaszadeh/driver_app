@@ -8,8 +8,11 @@ class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<void> sendMessage({required dynamic message, required String tourID}) async {
-    final String currentUserId = _auth.currentUser!.uid;
+  Future<void> sendMessage({
+    required dynamic message,
+    required String tourID,
+    required String currentUserId,
+  }) async {
     final Timestamp timestamp = Timestamp.now();
     DocumentSnapshot userSnapshot =
         await _firestore.collection("Users").doc(currentUserId).get();
@@ -31,7 +34,18 @@ class ChatService {
         .collection(tourID);
 
     QuerySnapshot querySnapshot = await docRef.get();
-    int nextIndex = querySnapshot.docs.length + 1;
+    final existingIndexes =
+        querySnapshot.docs
+            .where((doc) => doc.id.startsWith('message'))
+            .map((doc) {
+              final match = RegExp(r'message(\d+)').firstMatch(doc.id);
+              return match != null ? int.tryParse(match.group(1)!) : null;
+            })
+            .whereType<int>()
+            .toList()
+          ..sort();
+    final int nextIndex =
+        (existingIndexes.isNotEmpty ? existingIndexes.last + 1 : 1);
 
     final MessageSendApi sendMessage = MessageSendApi();
     try {
@@ -55,12 +69,12 @@ class ChatService {
         .collection(tourID)
         .orderBy('createdAt', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-            final data = doc.data();
-            return {
-              ...data,
-              'docId': doc.id,
-            };
-          }).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) {
+                final data = doc.data();
+                return {...data, 'docId': doc.id};
+              }).toList(),
+        );
   }
 }

@@ -61,7 +61,6 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   late FocusNode _confirmPasswordFocusNode;
 
   bool _showTitle = false;
-  bool isValid = true;
   bool isPasswordValid = true;
   bool isPasswordConfirmed = true;
   bool isPhoneNumberValid = true;
@@ -99,9 +98,9 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   }
 
   void _validateEmail(String value) {
+    final trimmedValue = value.trim();
     setState(() {
-      isEmailEmpty = value.isEmpty;
-      isValid = validateEmail(value);
+      isEmailEmpty = trimmedValue.isEmpty;
     });
   }
 
@@ -193,7 +192,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
           _lastNameController.text.isNotEmpty &&
           validateName(_lastNameController.text) &&
           _emailController.text.isNotEmpty &&
-          isValid &&
+          validateEmail(_emailController.text.trim()) &&
           _phoneNumberController.text.isNotEmpty &&
           validatePhoneNumber(_phoneNumberController.text) &&
           _birthDayController.text.isNotEmpty &&
@@ -254,7 +253,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
             controller.text.isEmpty || !validateName(controller.text);
       } else if (fieldName == 'email') {
         isEmailEmpty = controller.text.isEmpty;
-        isValid = validateEmail(controller.text);
+        validateEmail(_emailController.text.trim());
       } else if (fieldName == 'phoneNumber') {
         isPhoneNumberEmpty = controller.text.isEmpty;
         isPhoneNumberValid = validatePhoneNumber(controller.text);
@@ -315,7 +314,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     } else if (_genderController.text.isEmpty) {
       _genderFocusNode.requestFocus();
       return;
-    } else if (_emailController.text.isEmpty || !isValid) {
+    } else if (_emailController.text.isEmpty ||
+        !validateEmail(_emailController.text.trim())) {
       _emailFocusNode.requestFocus();
       return;
     } else if (_passwordController.text.isEmpty || !isPasswordValid) {
@@ -736,7 +736,10 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
             'Ready to become a driver or a tour guide?',
             overflow: TextOverflow.visible,
             softWrap: true,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: width * 0.05,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -799,7 +802,12 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           _firstNameFocusNode.unfocus();
                         });
                       },
-                      showCursor: false,
+                      showCursor: true,
+                      cursorHeight: height * 0.02,
+                      cursorColor:
+                          darkMode
+                              ? Color.fromARGB(255, 1, 105, 170)
+                              : Color.fromARGB(255, 0, 134, 179),
                       focusNode: _firstNameFocusNode,
                       onEditingComplete: () {
                         _firstNameFocusNode.unfocus();
@@ -930,7 +938,12 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           _lastNameFocusNode.unfocus();
                         });
                       },
-                      showCursor: false,
+                      showCursor: true,
+                      cursorHeight: height * 0.02,
+                      cursorColor:
+                          darkMode
+                              ? Color.fromARGB(255, 1, 105, 170)
+                              : Color.fromARGB(255, 0, 134, 179),
                       focusNode: _lastNameFocusNode,
                       onEditingComplete: () {
                         _lastNameFocusNode.unfocus();
@@ -1061,7 +1074,12 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           _fathersNameFocusNode.unfocus();
                         });
                       },
-                      showCursor: false,
+                      showCursor: true,
+                      cursorHeight: height * 0.02,
+                      cursorColor:
+                          darkMode
+                              ? Color.fromARGB(255, 1, 105, 170)
+                              : Color.fromARGB(255, 0, 134, 179),
                       focusNode: _fathersNameFocusNode,
                       onEditingComplete: () {
                         _fathersNameFocusNode.unfocus();
@@ -1285,6 +1303,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         });
                       },
                       showCursor: false,
+
                       readOnly: true,
                       focusNode: _genderFocusNode,
                       onEditingComplete: () {
@@ -1354,7 +1373,11 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           decoration: BoxDecoration(
                             border: Border.all(
                               color:
-                                  isEmailEmpty || !isValid
+                                  isEmailEmpty ||
+                                          (!validateEmail(
+                                                _emailController.text.trim(),
+                                              ) &&
+                                              _emailController.text.isNotEmpty)
                                       ? const Color.fromARGB(255, 244, 92, 54)
                                       : _emailFocusNode.hasFocus
                                       ? Colors.blue
@@ -1383,7 +1406,12 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                                   _emailFocusNode.unfocus();
                                 });
                               },
-                              showCursor: false,
+                              showCursor: true,
+                              cursorHeight: height * 0.02,
+                              cursorColor:
+                                  darkMode
+                                      ? Color.fromARGB(255, 1, 105, 170)
+                                      : Color.fromARGB(255, 0, 134, 179),
                               focusNode: _emailFocusNode,
                               onEditingComplete: () {
                                 _emailFocusNode.unfocus();
@@ -1440,7 +1468,14 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                                 labelStyle: TextStyle(
                                   fontSize: width * 0.038,
                                   color:
-                                      isEmailEmpty || !isValid
+                                      isEmailEmpty ||
+                                              (!validateEmail(
+                                                    _emailController.text
+                                                        .trim(),
+                                                  ) &&
+                                                  _emailController
+                                                      .text
+                                                      .isNotEmpty)
                                           ? const Color.fromARGB(
                                             255,
                                             244,
@@ -1470,15 +1505,15 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                               ),
                             ),
                           ),
-                        if (!isValid && !isEmailEmpty)
+                        if (!validateEmail(_emailController.text.trim()) &&
+                            _emailController.text.isNotEmpty)
                           Padding(
                             padding: EdgeInsets.only(
                               left: width * 0.027,
                               top: width * 0.007,
                             ),
                             child: Text(
-                              "Invalid email adress",
-
+                              "Invalid email address",
                               style: TextStyle(
                                 fontSize: width * 0.03,
                                 color: const Color.fromARGB(255, 244, 92, 54),
@@ -1527,7 +1562,12 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                                   passwordObscure = true;
                                 });
                               },
-                              showCursor: false,
+                              showCursor: true,
+                              cursorHeight: height * 0.02,
+                              cursorColor:
+                                  darkMode
+                                      ? Color.fromARGB(255, 1, 105, 170)
+                                      : Color.fromARGB(255, 0, 134, 179),
                               focusNode: _passwordFocusNode,
                               onEditingComplete: () {
                                 _passwordFocusNode.unfocus();
@@ -1669,7 +1709,11 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                                 });
                               },
                               obscureText: confirmPasswordObscure,
-                              showCursor: false,
+                              showCursor: true,
+                              cursorColor:
+                                  darkMode
+                                      ? Color.fromARGB(255, 1, 105, 170)
+                                      : Color.fromARGB(255, 0, 134, 179),
                               focusNode: _confirmPasswordFocusNode,
                               onEditingComplete: () {
                                 _confirmPasswordFocusNode.unfocus();
@@ -1814,7 +1858,12 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           _phoneNumberFocusNode.unfocus();
                         });
                       },
-                      showCursor: false,
+                      showCursor: true,
+                      cursorHeight: height * 0.02,
+                      cursorColor:
+                          darkMode
+                              ? Color.fromARGB(255, 1, 105, 170)
+                              : Color.fromARGB(255, 0, 134, 179),
                       keyboardType: TextInputType.phone,
                       focusNode: _phoneNumberFocusNode,
                       onEditingComplete: () {
@@ -1941,6 +1990,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         });
                       },
                       showCursor: false,
+
                       readOnly: true,
                       focusNode: _roleFocusNode,
                       onEditingComplete: () {
@@ -2029,7 +2079,12 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                           _experienceFocusNode.unfocus();
                         });
                       },
-                      showCursor: false,
+                      showCursor: true,
+                      cursorHeight: height * 0.02,
+                      cursorColor:
+                          darkMode
+                              ? Color.fromARGB(255, 1, 105, 170)
+                              : Color.fromARGB(255, 0, 134, 179),
                       focusNode: _experienceFocusNode,
                       onEditingComplete: () {
                         _experienceFocusNode.unfocus();
@@ -2140,6 +2195,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                         });
                       },
                       showCursor: false,
+
                       readOnly: true,
                       focusNode: _languageFocusNode,
 
@@ -2229,10 +2285,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                               ),
                             ),
                             padding: EdgeInsets.only(
-                              bottom:
-                                  _vehicleTypeFocusNode.hasFocus
-                                      ? 0
-                                      : width * 0.025,
+                              bottom: 0,
                               left: width * 0.025,
                               top: width * 0.025,
                               right: width * 0.025,
@@ -2254,6 +2307,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                                   });
                                 },
                                 readOnly: true,
+                                showCursor: false,
                                 focusNode: _vehicleTypeFocusNode,
                                 onEditingComplete: () {
                                   _vehicleTypeFocusNode.unfocus();

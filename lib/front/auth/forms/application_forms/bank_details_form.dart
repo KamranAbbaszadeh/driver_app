@@ -118,7 +118,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
 
   bool isValidAddressOrBankName(String value) {
     if (value.isNotEmpty) {
-      final regex = RegExp(r'^[a-zA-Zа-яА-Я0-9\s,.\-]+$');
+      final regex = RegExp(r'^[\p{L}0-9\s,.\-]+$', unicode: true);
       return regex.hasMatch(value);
     }
     return true;
@@ -615,7 +615,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                             }
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: _addressFocusNode,
                         onEditingComplete: () {
                           _addressFocusNode.unfocus();
@@ -749,7 +754,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                             _finCodeFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: _finCodeFocusNode,
                         onEditingComplete: () {
                           _finCodeFocusNode.unfocus();
@@ -893,7 +903,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                             _vATnumberFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: _vATnumberFocusNode,
                         onEditingComplete: () {
                           _vATnumberFocusNode.unfocus();
@@ -1018,7 +1033,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                             _bankNameFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: _bankNameFocusNode,
                         onEditingComplete: () {
                           _bankNameFocusNode.unfocus();
@@ -1157,7 +1177,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                             _bankCodeFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: _bankCodeFocusNode,
                         onEditingComplete: () {
                           _bankCodeFocusNode.unfocus();
@@ -1292,7 +1317,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                             _mHFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: _mHFocusNode,
                         onEditingComplete: () {
                           _mHFocusNode.unfocus();
@@ -1431,7 +1461,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                             _sWIFTFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: _sWIFTFocusNode,
                         onEditingComplete: () {
                           _sWIFTFocusNode.unfocus();
@@ -1572,7 +1607,12 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                             _iBANFocusNode.unfocus();
                           });
                         },
-                        showCursor: false,
+                        showCursor: true,
+                        cursorHeight: height * 0.02,
+                        cursorColor:
+                            darkMode
+                                ? Color.fromARGB(255, 1, 105, 170)
+                                : Color.fromARGB(255, 0, 134, 179),
                         focusNode: _iBANFocusNode,
                         onEditingComplete: () {
                           _iBANFocusNode.unfocus();

@@ -7,6 +7,7 @@ import 'package:onemoretour/back/map_and_location/get_functions.dart';
 import 'package:onemoretour/back/map_and_location/location_provider.dart';
 import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
 import 'package:onemoretour/back/ride/guest_pick_up_api.dart';
+import 'package:onemoretour/back/ride/ride_flow_update_api.dart';
 import 'package:onemoretour/front/displayed_items/chat_page.dart';
 import 'package:onemoretour/front/displayed_items/intermediate_page.dart';
 import 'package:onemoretour/front/displayed_items/ride_map.dart';
@@ -203,7 +204,7 @@ class _RidePageState extends ConsumerState<RidePage>
         rideFlow.startRide && startArrivedBool == true
             ? endLatLng.longitude
             : startLatLng.longitude;
-
+    final rideFlowAPI = RideFlowUpdateApi();
     return Scaffold(
       body: Center(
         child:
@@ -856,6 +857,11 @@ class _RidePageState extends ConsumerState<RidePage>
                                           'updatedAt':
                                               FieldValue.serverTimestamp(),
                                         }, SetOptions(merge: true));
+                                    rideFlowAPI.postData({
+                                      "RouteID" : nextRoute['ID'],
+                                      "EndArrived?" : false
+
+                                    });
                                     setState(() {
                                       isFinished = true;
                                     });

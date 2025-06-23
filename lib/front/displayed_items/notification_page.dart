@@ -30,6 +30,10 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
       doc,
     ) {
       if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (!data.containsKey('ContractLink')) {
+          return;
+        }
         contractUrl = doc['ContractLink'] ?? '';
       } else {
         contractUrl = '';
@@ -135,6 +139,12 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
 
                     bool registrationCompleted =
                         userDoc['Registration Completed'];
+                    bool applicationFormApproved =
+                        userDoc['Application Form Verified'];
+                    bool personalDetailsFormApproved =
+                        userDoc['Personal & Car Details Form Verified'];
+                    bool contractSigned =
+                        userDoc['Contract Signing'] == 'SIGNED';
                     if (route == "/chat_page") {
                       final tourId = message['data']['tourId'];
                       navigatorKey.currentState?.pushNamed(
@@ -148,13 +158,20 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                     } else if (route == "/tour_list") {
                       ref.read(selectedIndexProvider.notifier).state = 1;
                       navigatorKey.currentState?.pop();
-                    } else if (route == "/application_status") {
+                    } else if (route == "/application_status" &&
+                        !registrationCompleted &&
+                        !applicationFormApproved) {
                       navigatorKey.currentState?.pushNamed('/application_form');
-                    } else if (route == "/personalinfo_status") {
+                    } else if (route == "/personalinfo_status" &&
+                        !personalDetailsFormApproved &&
+                        !registrationCompleted) {
                       navigatorKey.currentState?.pushNamed(
                         '/personal_data_form',
                       );
-                    } else if (route == "/contract_sign" && context.mounted) {
+                    } else if (route == "/contract_sign" &&
+                        context.mounted &&
+                        !registrationCompleted &&
+                        contractSigned) {
                       Navigator.of(
                         context,
                       ).push(route(title: 'Contract', url: contractUrl));

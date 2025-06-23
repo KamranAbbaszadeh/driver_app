@@ -362,7 +362,12 @@ class _AuthState extends State<AuthPhone> {
                                 isPhoneNumberEmpty =
                                     _phoneNumberController.text.isEmpty;
                               },
-                              showCursor: false,
+                              showCursor: true,
+                              cursorHeight: height * 0.02,
+                              cursorColor:
+                                  darkMode
+                                      ? Color.fromARGB(255, 1, 105, 170)
+                                      : Color.fromARGB(255, 0, 134, 179),
                               decoration: InputDecoration(
                                 contentPadding: EdgeInsets.only(
                                   top: width * 0.05,

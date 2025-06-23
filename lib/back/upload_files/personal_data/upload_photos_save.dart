@@ -4,7 +4,8 @@ import 'package:onemoretour/back/upload_files/personal_data/photo_post_api.dart'
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 Future<void> uploadPhotosAndSaveData({
   required String userId,
@@ -15,54 +16,76 @@ Future<void> uploadPhotosAndSaveData({
 }) async {
   final storageRef = FirebaseStorage.instance.ref();
   final firestore = FirebaseFirestore.instance;
-  late String personalPhotoUrl;
-  late String licenseUrl1;
-  late String licenseurl2;
-  late String idUrl1;
-  late String idUrl2;
+  String personalPhotoUrl = '';
+  String licenseUrl1 = '';
+  String licenseurl2 = '';
+  String idUrl1 = '';
+  String idUrl2 = '';
+
   try {
-    // Upload Personal Photo
-    if (personalPhoto != null) {
-      personalPhotoUrl = await uploadSinglePhoto(
-        storageRef: storageRef,
-        userID: userId,
-        file: personalPhoto,
-        folderName: 'personalPhoto',
-      );
-      await firestore.collection('Users').doc(userId).set({
-        'personalPhoto': personalPhotoUrl,
-      }, SetOptions(merge: true));
+    final List<Future<void>> uploadTasks = [];
+
+    Future<void> uploadPersonal() async {
+      if (personalPhoto != null) {
+        personalPhotoUrl = await uploadSinglePhoto(
+          storageRef: storageRef,
+          userID: userId,
+          file: personalPhoto,
+          folderName: 'personalPhoto',
+        );
+      }
     }
 
-    // Upload ID Photos
-    if (idPhotos.isNotEmpty) {
-      List<String> idPhotoUrls = await uploadMultiplePhotos(
-        storageRef: storageRef,
-        userId: userId,
-        files: idPhotos,
-        folderName: 'idPhotos',
-      );
-      await firestore.collection('Users').doc(userId).set({
-        'idPhotos': idPhotoUrls,
-      }, SetOptions(merge: true));
-      idUrl1 = idPhotoUrls.isNotEmpty ? idPhotoUrls[0] : '';
-      idUrl2 = idPhotoUrls.length > 1 ? idPhotoUrls[1] : '';
+    Future<void> uploadIDs() async {
+      if (idPhotos.isNotEmpty) {
+        List<String> idPhotoUrls = await uploadMultiplePhotos(
+          storageRef: storageRef,
+          userId: userId,
+          files: idPhotos,
+          folderName: 'idPhotos',
+        );
+        idUrl1 = idPhotoUrls.isNotEmpty ? idPhotoUrls[0] : '';
+        idUrl2 = idPhotoUrls.length > 1 ? idPhotoUrls[1] : '';
+      }
     }
 
-    // Upload Driver License Photos
-    if (driverLicensePhotos.isNotEmpty) {
-      List<String> licensePhotoUrls = await uploadMultiplePhotos(
-        storageRef: storageRef,
-        userId: userId,
-        files: driverLicensePhotos,
-        folderName: 'licensePhotos',
-      );
-      await firestore.collection('Users').doc(userId).set({
-        'licensePhotos': licensePhotoUrls,
-      }, SetOptions(merge: true));
-      licenseUrl1 = licensePhotoUrls.isNotEmpty ? licensePhotoUrls[0] : '';
-      licenseurl2 = licensePhotoUrls.length > 1 ? licensePhotoUrls[1] : '';
+    Future<void> uploadLicenses() async {
+      if (driverLicensePhotos.isNotEmpty) {
+        List<String> licensePhotoUrls = await uploadMultiplePhotos(
+          storageRef: storageRef,
+          userId: userId,
+          files: driverLicensePhotos,
+          folderName: 'licensePhotos',
+        );
+        licenseUrl1 = licensePhotoUrls.isNotEmpty ? licensePhotoUrls[0] : '';
+        licenseurl2 = licensePhotoUrls.length > 1 ? licensePhotoUrls[1] : '';
+      }
     }
+
+    uploadTasks.add(uploadPersonal());
+    uploadTasks.add(uploadIDs());
+    uploadTasks.add(uploadLicenses());
+
+    await Future.wait(uploadTasks);
+
+    Map<String, dynamic> updateData = {};
+    if (personalPhotoUrl.isNotEmpty) {
+      updateData['personalPhoto'] = personalPhotoUrl;
+    }
+
+    if (idUrl1.isNotEmpty || idUrl2.isNotEmpty) {
+      updateData['idPhotos'] = [idUrl1, idUrl2];
+    }
+
+    if (licenseUrl1.isNotEmpty || licenseurl2.isNotEmpty) {
+      updateData['licensePhotos'] = [licenseUrl1, licenseurl2];
+    }
+
+    await firestore
+        .collection('Users')
+        .doc(userId)
+        .set(updateData, SetOptions(merge: true));
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -101,23 +124,31 @@ Future<String> uploadSinglePhoto({
   required dynamic file,
   required String folderName,
 }) async {
-  if (file != null && file is XFile && file.path.isNotEmpty && !file.path.startsWith('https://')) {
-    final filePath = 'Users/$userID/$folderName/${DateTime.now().millisecondsSinceEpoch}.jpg';
+  final uuid = Uuid().v4();
+  if (file != null &&
+      file is XFile &&
+      file.path.isNotEmpty &&
+      !file.path.startsWith('https://')) {
+    final originalBytes = await file.readAsBytes();
+
+    final compressedBytes = await FlutterImageCompress.compressWithList(
+      originalBytes,
+      quality: 70,
+      format: CompressFormat.jpeg,
+    );
+
+    final filePath =
+        'Users/$userID/$folderName/${DateTime.now().millisecondsSinceEpoch}_$uuid.jpg';
     final fileRef = storageRef.child(filePath);
 
-    UploadTask uploadTask = fileRef.putData(
-      await file.readAsBytes().then((data) => data.buffer.asUint8List()),
-    );
+    UploadTask uploadTask = fileRef.putData(compressedBytes);
     TaskSnapshot taskSnapshot = await uploadTask;
     return await taskSnapshot.ref.getDownloadURL();
-  }
-  else if (file is String && file.startsWith('https://')) {
+  } else if (file is String && file.startsWith('https://')) {
     return file;
-  }
-  else if (file is XFile && file.path.startsWith('https://')) {
+  } else if (file is XFile && file.path.startsWith('https://')) {
     return file.path;
-  }
-  else {
+  } else {
     return '';
   }
 }
@@ -130,7 +161,10 @@ Future<List<String>> uploadMultiplePhotos({
 }) async {
   List<String> urls = [];
   for (var file in files) {
-    if (file != null && file is XFile && file.path.isNotEmpty && !file.path.startsWith('https://')) {
+    if (file != null &&
+        file is XFile &&
+        file.path.isNotEmpty &&
+        !file.path.startsWith('https://')) {
       String url = await uploadSinglePhoto(
         storageRef: storageRef,
         userID: userId,
@@ -138,11 +172,9 @@ Future<List<String>> uploadMultiplePhotos({
         folderName: folderName,
       );
       urls.add(url);
-    }
-    else if (file is String && file.startsWith('https://')) {
+    } else if (file is String && file.startsWith('https://')) {
       urls.add(file);
-    }
-    else if (file is XFile && file.path.startsWith('https://')) {
+    } else if (file is XFile && file.path.startsWith('https://')) {
       urls.add(file.path);
     }
   }

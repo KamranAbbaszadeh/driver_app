@@ -224,7 +224,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
           });
           final keyName =
               regNumber != null ? '${types[0]} - $regNumber' : types[0];
-          final formKey = formKeys[keyName]!;
+          final formKey = formKeys[keyName];
           return CarDetailsForm(
             key: formKey,
             vehicleType: types[0],
@@ -234,13 +234,99 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
             initialData: vehicleDetails[keyName],
             isDeclined: personalDecline,
             onFormSubmit: (formData) async {
-              ref.read(vehicleDetailsProvider.notifier).update((state) {
-                final updated = Map<String, dynamic>.from(state);
-                final newKey =
-                    '${formData['Vehicle\'s Type']} - ${formData['Vehicle Registration Number']}';
-                updated[newKey] = formData;
-                return updated;
-              });
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) return;
+              final userId = user.uid;
+
+              if (context.mounted) {
+                await Navigator.push(
+                  context,
+                  PageTransition(
+                    type: PageTransitionType.fade,
+                    child: IntermediateFormPage(
+                      isFromPersonalDataForm: false,
+                      isFromCarDetailsForm: false,
+                      isFromBankDetailsForm: false,
+                      isFromCertificateDetailsForm: false,
+                      isFromCarDetailsSwitcher: true,
+                      isFromProfilePage: false,
+                      backgroundProcess: () async {
+                        try {
+                          final storageRef = FirebaseStorage.instance
+                              .ref()
+                              .child('Users')
+                              .child(userId);
+
+                          List<String> carPhotoPaths = List<String>.from(
+                            formData['Vehicle Photos Local'],
+                          );
+                          List<String> techPhotoPaths = List<String>.from(
+                            formData['Technical Passport Photos Local'],
+                          );
+                          String chassisPhotoPath =
+                              formData['Chassis Number Photo Local'];
+
+                          List<String> uploadedCarPhotos =
+                              await uploadMultiplePhotosFromPaths(
+                                carPhotoPaths,
+                                storageRef,
+                                userId,
+                                'Vehicle Photos',
+                                formData['Vehicle Registration Number'],
+                              );
+                          List<String> uploadedTechPhotos =
+                              await uploadMultiplePhotosFromPaths(
+                                techPhotoPaths,
+                                storageRef,
+                                userId,
+                                'Technical Passport',
+                                formData['Vehicle Registration Number'],
+                              );
+                          String uploadedChassisPhoto =
+                              await uploadSinglePhotoFromPath(
+                                chassisPhotoPath,
+                                storageRef,
+                                userId,
+                                'Chassis Number',
+                                formData['Vehicle Registration Number'],
+                              );
+
+                          final finalFormData = {
+                            ...formData,
+                            'Vehicle Photos': uploadedCarPhotos,
+                            'Technical Passport Photos': uploadedTechPhotos,
+                            'Chassis Number Photo': uploadedChassisPhoto,
+                            'isApproved': false,
+                          };
+
+                          if (context.mounted) {
+                            await uploadVehicleDetailsAndSave(
+                              userId: userId,
+                              vehicleDetails: finalFormData,
+                              context: context,
+                            );
+                          }
+
+                          await FirebaseFirestore.instance
+                              .collection('Users')
+                              .doc(userId)
+                              .update({
+                                'Personal & Car Details Form':
+                                    'APPLICATION RECEIVED',
+                                'Active Vehicle': 'Car1',
+                                'Personal & Car Details Decline': false,
+                              });
+
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.remove('vehicleDetails');
+                        } catch (e) {
+                          logger.e('Error uploading vehicle details: $e');
+                        }
+                      },
+                    ),
+                  ),
+                );
+              }
             },
             multiSelection: false,
           );

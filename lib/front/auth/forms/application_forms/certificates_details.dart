@@ -14,7 +14,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Validator for Certificate Name
 bool validateCertificateName(String value) {
   return RegExp(r"^[A-Za-z0-9\s\-,.]{2,100}$").hasMatch(value);
 }
@@ -44,7 +43,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
       if (cert['type'] == null) {
         return false;
       }
-      if (cert['file'] == null) {
+      if (cert['file'] == null && cert['fileUrl'] == null) {
         return false;
       }
     }
@@ -56,6 +55,13 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   List<FocusNode> certificateTypeFocusNodes = [];
 
   void addCertificate() {
+    if (certificates.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can only add up to 3 certificates.')),
+      );
+      return;
+    }
+
     setState(() {
       certificates.add({'name': '', 'type': null, 'file': null});
       certificateNameFocusNodes.add(FocusNode());
@@ -81,7 +87,6 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
         );
         await oldRef.delete();
       } catch (e) {
-        
         logger.e('Failed to delete file from Storage: $e');
       }
     }
@@ -102,7 +107,33 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     setState(() {
       certificates[index][key] = value;
     });
+    logger.d(
+      "Certificate with index: $index is updated. Result: ${certificates[index]}",
+    );
     _saveTempCertificates();
+  }
+
+  void updateCertificateFile({
+    required int index,
+    required String fileName,
+    required dynamic file,
+  }) {
+    try {
+      setState(() {
+        certificates[index]['file name'] = fileName;
+        certificates[index]['file'] = file.path;
+      });
+    } on Exception catch (e) {
+      logger.e(e);
+    }
+    logger.d(
+      "Certificate with index: $index is updated. Result: ${certificates[index]}",
+    );
+    try {
+      _saveTempCertificates();
+    } on Exception catch (e) {
+      logger.e(e);
+    }
   }
 
   Future<void> pickFile(int index) async {
@@ -124,8 +155,6 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
         'pdf',
         'doc',
         'docx',
-        'xls',
-        'xlsx',
         'ppt',
         'pptx',
       ],
@@ -143,10 +172,8 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
         }
         return;
       }
-
       final file = File(doc.path!);
-      updateCertificate(index, 'file', file);
-      updateCertificate(index, 'file name', doc.name);
+      updateCertificateFile(index: index, fileName: doc.name, file: file);
       setState(() {});
       if (mounted) {
         ScaffoldMessenger.of(
@@ -204,7 +231,12 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
             right: width * 0.025,
           ),
           child: TextFormField(
-            showCursor: false,
+            showCursor: true,
+            cursorColor:
+                darkMode
+                    ? Color.fromARGB(255, 1, 105, 170)
+                    : Color.fromARGB(255, 0, 134, 179),
+            cursorHeight: height * 0.02,
             focusNode: certificateNameFocusNodes[index],
             onEditingComplete: () {
               certificateNameFocusNodes[index].unfocus();
@@ -212,6 +244,8 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                 context,
               ).requestFocus(certificateTypeFocusNodes[index]);
             },
+            initialValue:
+                certificates.isNotEmpty ? certificates[index]['name'] : null,
             decoration: InputDecoration(
               errorBorder: InputBorder.none,
               contentPadding: EdgeInsets.only(top: width * 0.05),
@@ -235,7 +269,15 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            onChanged: (value) => updateCertificate(index, 'name', value),
+            onChanged: (value) {
+              updateCertificate(index, 'name', value);
+              setState(() {
+                isCertificateNameEmpty[index] =
+                    value.trim().isEmpty
+                        ? true
+                        : !validateCertificateName(value.trim());
+              });
+            },
             onTap: () {
               setState(() {
                 certificateNameFocusNodes[index].requestFocus();
@@ -282,6 +324,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
             right: width * 0.025,
           ),
           child: DropdownButtonFormField<String>(
+            value: certificates.isNotEmpty ? certificates[index]['type'] : null,
             items:
                 ['Driver', 'Language', 'Guide']
                     .map(
@@ -330,7 +373,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
             ),
           ),
         ),
-        SizedBox(height: 10),
+        SizedBox(height: height * 0.011),
         GestureDetector(
           onTap: () => pickFile(index),
           child: Row(
@@ -346,7 +389,10 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
               SizedBox(width: width * 0.025),
               Expanded(
                 child: Text(
-                  certificates[index]['file name'] ?? 'Upload Certificate',
+                  certificates[index]['fileUrl'] != null
+                      ? ''
+                      : certificates[index]['file name'] ??
+                          'Upload Certificate',
                   softWrap: true,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -386,17 +432,22 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
         });
       }
     });
-    certificateNameFocusNodes.add(FocusNode());
-    certificateTypeFocusNodes.add(FocusNode());
-    certificates.add({
-      'name': '',
-      'type': null,
-      'file': null,
-      'file name': null,
-    });
-    isCertificateNameEmpty.add(false);
 
-    _loadTempCertificates();
+    _loadTempCertificates().then((_) {
+      if (certificates.isEmpty) {
+        setState(() {
+          certificates.add({
+            'name': '',
+            'type': null,
+            'file': null,
+            'file name': null,
+          });
+          certificateNameFocusNodes.add(FocusNode());
+          certificateTypeFocusNodes.add(FocusNode());
+          isCertificateNameEmpty.add(false);
+        });
+      }
+    });
   }
 
   Future<void> _saveTempCertificates() async {
@@ -412,53 +463,67 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   Future<void> _loadTempCertificates() async {
     final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
+    try {
+      if (user != null) {
+        final doc =
+            await FirebaseFirestore.instance
+                .collection('Users')
+                .doc(user.uid)
+                .get();
 
-    if (user != null) {
-      final doc =
-          await FirebaseFirestore.instance
-              .collection('Users')
-              .doc(user.uid)
-              .get();
+        final certData = doc.data()?['certificates'];
+        List<Map<String, dynamic>> certs = [];
 
-      final certs = List<Map<String, dynamic>>.from(
-        doc.data()?['certificates'] ?? [],
-      );
-
-      if (certs.isNotEmpty) {
-        // Firebase has data → display it
-        setState(() {
-          certificates =
-              certs
-                  .map(
+        if (certData is List) {
+          certs =
+              certData
+                  .map<Map<String, dynamic>>(
                     (cert) => {
                       'name': cert['name'],
                       'type': cert['type'],
-                      'file': null,
-                      'file name': cert['file name'],
-                      'fileUrl': cert['fileUrl'],
+                      'fileUrl': cert['doc'],
+                      'file name': cert['fileName'],
                     },
                   )
                   .toList();
+        } else if (certData is Map) {
+          certs =
+              certData.values
+                  .map<Map<String, dynamic>>(
+                    (e) => {
+                      'name': e['name'],
+                      'type': e['type'],
+                      'fileUrl': e['doc'],
+                      'file name': e['fileName'],
+                    },
+                  )
+                  .toList();
+        }
 
-          // Sync focus nodes and validation states
-          certificateNameFocusNodes = List.generate(
-            certificates.length,
-            (_) => FocusNode(),
-          );
-          certificateTypeFocusNodes = List.generate(
-            certificates.length,
-            (_) => FocusNode(),
-          );
-          isCertificateNameEmpty = List.generate(
-            certificates.length,
-            (_) => false,
-          );
-        });
-        return; // Exit here — we displayed Firebase data
+        if (certs.isNotEmpty) {
+          setState(() {
+            certificates = certs;
+
+            certificateNameFocusNodes = List.generate(
+              certificates.length,
+              (_) => FocusNode(),
+            );
+            certificateTypeFocusNodes = List.generate(
+              certificates.length,
+              (_) => FocusNode(),
+            );
+            isCertificateNameEmpty = List.generate(
+              certificates.length,
+              (_) => false,
+            );
+          });
+          return;
+        }
       }
+    } on Exception catch (e) {
+      logger.e("error in load data from firebase: $e");
     }
 
-    // If no Firebase data → load from local temp storage
     final raw = prefs.getString('certificates');
     if (raw != null) {
       final matches = RegExp(r'\{.*?\}').allMatches(raw);
@@ -599,7 +664,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _allFilledOut()
+                      _allFilledOut() && certificates.length < 3
                           ? ElevatedButton(
                             onPressed: addCertificate,
                             style: ButtonStyle(
@@ -783,5 +848,3 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     );
   }
 }
-
-// Add a listener for certificate name focus to validate on blur

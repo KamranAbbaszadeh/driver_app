@@ -1,4 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/bloc/notification_bloc.dart';
 import 'package:onemoretour/back/bloc/notification_event.dart';
@@ -39,6 +40,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseApi.instance.initializeTimeZone();
   bg.BackgroundGeolocation.registerHeadlessTask(headlessTask);
+  FlutterAppBadger.removeBadge();
   WakelockPlus.enable();
 
   runApp(
@@ -87,7 +89,11 @@ class _MyAppState extends ConsumerState<MyApp> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final userID = user.uid;
-      FirebaseApi.instance.saveFCMToken(userID);
+      try {
+        FirebaseApi.instance.saveFCMToken(userID);
+      } on Exception catch (e) {
+        logger.e(e);
+      }
     }
 
     FlutterNativeSplash.remove();

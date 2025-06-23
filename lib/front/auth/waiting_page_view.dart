@@ -48,6 +48,10 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
       doc,
     ) {
       if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (!data.containsKey('ContractLink')) {
+          return;
+        }
         contractUrl = doc['ContractLink'] ?? '';
       } else {
         contractUrl = '';

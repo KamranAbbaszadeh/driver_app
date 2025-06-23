@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/upload_files/certificates/certificate_post_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -25,13 +26,14 @@ Future<void> uploadCertificateAndSave({
       );
 
       dynamic file = certificates[i]['file'];
+      final filePath = file is File ? file.path : file;
       String fileUrl = '';
 
-      if (file != null &&
-          file is XFile &&
-          file.path.isNotEmpty &&
-          !file.path.startsWith('https://')) {
-        await storageRef.putFile(File(file.path));
+      if (filePath != null &&
+          filePath is String &&
+          filePath.isNotEmpty &&
+          !filePath.startsWith('https://')) {
+        await storageRef.putFile(File(filePath));
         fileUrl = await storageRef.getDownloadURL();
       } else if (file is String && file.startsWith('https://')) {
         fileUrl = file;
@@ -49,7 +51,8 @@ Future<void> uploadCertificateAndSave({
       Map<String, String> certificateData = {
         'name': certificates[i]['name'] as String,
         'type': certificates[i]['type'] as String,
-        'image': fileUrl,
+        'doc': fileUrl,
+        'fileName': certificates[i]['file name'] as String,
       };
 
       if (currentUserEmail != null) {
@@ -65,9 +68,14 @@ Future<void> uploadCertificateAndSave({
         certificatesMap[fileName] = certificateData;
       }
     }
-    await FirebaseFirestore.instance.collection('Users').doc(userId).set({
-      'certificates': certificatesMap,
-    }, SetOptions(merge: true));
+    try {
+      await FirebaseFirestore.instance.collection('Users').doc(userId).set({
+        'certificates': certificatesMap,
+      }, SetOptions(merge: true));
+      logger.d(certificatesMap);
+    } on Exception catch (e) {
+      logger.e(e);
+    }
     final CertificatePostApi certificatePostApi = CertificatePostApi();
     final success = await certificatePostApi.postData({
       "certificates": certificatesPostMap,

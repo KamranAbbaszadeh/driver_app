@@ -47,6 +47,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   List<Map<String, dynamic>> media = [];
   String error = "No Error Detected";
   final storageRef = FirebaseStorage.instance.ref();
+  String? currentUserId;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     getTourName();
     _scrollController = ScrollController();
     currentChatTourId = widget.tourId;
+    currentUserId = FirebaseAuth.instance.currentUser?.uid;
   }
 
   void _sendMessage() {
@@ -61,6 +63,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       _chatService.sendMessage(
         message: _messageController.text,
         tourID: widget.tourId,
+        currentUserId: currentUserId.toString(),
       );
       _messageController.clear();
       _scrollToBottom();
@@ -358,11 +361,33 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
   Future<void> pickFile(int index) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [
+        'jpg',
+        'jpeg',
+        'png',
+        'pdf',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+        'ppt',
+        'pptx',
+      ],
       withData: true,
     );
 
     if (result != null) {
       PlatformFile doc = result.files.first;
+      final maxSizeInBytes = 5 * 1024 * 1024;
+      if (doc.size > maxSizeInBytes) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('File too large. Max allowed size is 5MB.')),
+          );
+        }
+        return;
+      }
       final file = File(doc.path!);
       updateMedia(index, 'file', file);
       setState(() {});
@@ -391,7 +416,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Widget build(BuildContext context) {
     final width = widget.width;
     final height = widget.height;
-    final User? user = auth.currentUser;
     return Builder(
       builder: (context) {
         context.read<NotificationBloc>().add(MarkAllAsViewed());
@@ -470,7 +494,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                                     ),
                                     ...messageGroup.map((message) {
                                       final bool isMe =
-                                          message['UID'] == user!.uid;
+                                          message['UID'] == currentUserId;
                                       final isAdmin =
                                           message['position'] == 'Admin';
                                       final isRead = message['isRead'];
@@ -830,7 +854,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                       ),
                     ],
                   ),
-                  onTap: () {},
+                  onTap: () async {
+                    setState(() {
+                      media.add({'file': null});
+                    });
+                    await pickFile(media.length - 1);
+                  },
                 ),
               ];
             },
