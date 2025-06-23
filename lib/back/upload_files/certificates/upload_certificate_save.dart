@@ -26,6 +26,10 @@ Future<void> uploadCertificateAndSave({
       );
 
       dynamic file = certificates[i]['file'];
+      if (file == null) {
+        continue;
+      }
+
       final filePath = file is File ? file.path : file;
       String fileUrl = '';
 

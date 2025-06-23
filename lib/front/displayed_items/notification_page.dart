@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:onemoretour/back/bloc/notification_bloc.dart';
 import 'package:onemoretour/back/bloc/notification_event.dart';
 import 'package:onemoretour/back/bloc/notification_state.dart';
@@ -9,6 +12,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationPage extends ConsumerStatefulWidget {
   const NotificationPage({super.key});
@@ -95,6 +99,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 ref.watch(notificationsProvider.notifier).refresh();
               });
+              FlutterAppBadger.removeBadge();
             },
           ),
         ],
@@ -123,6 +128,29 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                     context.read<NotificationBloc>().add(
                       MarkMessageAsViewed(index),
                     );
+                    SharedPreferences prefs =
+                        await SharedPreferences.getInstance();
+                    String? messagesString = prefs.getString(
+                      'notification_messages',
+                    );
+                    List<dynamic> messages =
+                        messagesString != null
+                            ? jsonDecode(messagesString)
+                            : [];
+                    if (messages.length > index) {
+                      messages[index]['isViewed'] = true;
+                      await prefs.setString(
+                        'notification_messages',
+                        jsonEncode(messages),
+                      );
+                    }
+                    final unreadCount =
+                        messages.where((m) => m['isViewed'] == false).length;
+                    if (unreadCount > 0) {
+                      FlutterAppBadger.updateBadgeCount(unreadCount);
+                    } else {
+                      FlutterAppBadger.removeBadge();
+                    }
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       ref.read(notificationsProvider.notifier).refresh();
                     });
@@ -148,7 +176,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                     if (route == "/chat_page") {
                       final tourId = message['data']['tourId'];
                       navigatorKey.currentState?.pushNamed(
-                        '/chat_page',
+                        '/chat_page',∑
                         arguments: {
                           'tourId': tourId,
                           'width': width,
