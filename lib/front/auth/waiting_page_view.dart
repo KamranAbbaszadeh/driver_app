@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
-import 'package:onemoretour/front/auth/forms/application_forms/car_details_form.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
 import 'package:onemoretour/front/intro/route_navigator.dart';
 import 'package:onemoretour/front/intro/welcome_page.dart';
@@ -70,8 +69,6 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
     final hasUnviewedNotifications = notifications.any((notif) {
       return notif['isViewed'] == false;
     });
-    Future<void> emptyFunction(String string) async {}
-    Future<void> emptyMapFunction(Map<String, dynamic> string) async {}
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -590,11 +587,11 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                                                       70,
                                                     ),
                                             borderRadius: BorderRadius.circular(
-                                              10,
+                                              width * 0.025,
                                             ),
                                           ),
                                           height: height * 0.03,
-                                          width: width * 0.4,
+                                          width: width * 0.5,
                                           child: Center(
                                             child: Text(
                                               userData['Personal & Car Details Form'],
@@ -744,11 +741,11 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                                                       70,
                                                     ),
                                             borderRadius: BorderRadius.circular(
-                                              10,
+                                              width * 0.025,
                                             ),
                                           ),
                                           height: height * 0.03,
-                                          width: width * 0.4,
+                                          width: width * 0.5,
                                           child: Center(
                                             child: Text(
                                               userData['Contract Signing'],
@@ -911,21 +908,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                         : SizedBox.shrink(),
                     SizedBox(height: height * 0.01),
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => CarDetailsForm(
-                                  isDeclined: true,
-                                  multiSelection: false,
-                                  onDeleteRemotePhoto: emptyFunction,
-                                  onFormSubmit: emptyMapFunction,
-                                  vehicleType: "Sedan",
-                                ),
-                          ),
-                        );
-                      },
+                      onTap: () {},
                       child: Container(
                         decoration: BoxDecoration(
                           color:
