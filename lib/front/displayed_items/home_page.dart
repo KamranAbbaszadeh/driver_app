@@ -14,6 +14,7 @@ import 'package:onemoretour/front/tools/list_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:onemoretour/front/tools/top_padding_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:collection/collection.dart';
 
@@ -25,7 +26,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-
   dynamic get onLocation => null;
   @override
   void initState() {
@@ -44,6 +44,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _initAsyncTasks();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final topPadding = MediaQuery.of(context).padding.top;
+      ref.read(topPaddingProvider.notifier).state = topPadding;
+    });
   }
 
   Future<void> _initAsyncTasks() async {
@@ -98,7 +102,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final selectedIndex = ref.watch(selectedIndexProvider);
     final height = MediaQuery.of(context).size.height;
-
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(height * 0.075),

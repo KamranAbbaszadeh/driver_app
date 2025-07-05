@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onemoretour/front/tools/top_padding_provider.dart';
 
 class MyRidesBody extends ConsumerStatefulWidget {
   const MyRidesBody({super.key});
@@ -245,12 +246,25 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     final today = DateTime.now();
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final topPadding = ref.watch(topPaddingProvider);
+    final bottomPadding = mediaQuery.padding.bottom;
+
+    final appBarHeight = height * 0.075;
+    final bottomNavHeight = height * 0.1;
+    final availableHeight =
+        screenHeight -
+        topPadding -
+        bottomPadding -
+        appBarHeight -
+        bottomNavHeight;
     return SingleChildScrollView(
       controller: _scrollController,
       child: Container(
         width: width,
         constraints: BoxConstraints(
-          minHeight: height * 0.743,
+          minHeight: availableHeight,
           maxHeight: double.infinity,
         ),
         decoration: BoxDecoration(
