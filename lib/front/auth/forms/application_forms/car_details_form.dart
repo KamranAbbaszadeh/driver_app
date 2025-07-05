@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:onemoretour/front/tools/photo_picker_with_display.dart';
+import 'package:onemoretour/front/tools/signle_photo_picker_with_display.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 
@@ -747,10 +749,11 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       ),
                     ),
                   SizedBox(height: height * 0.015),
-                  //Car photos picker
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () async {
+                  //Car photos picker + display combined
+                  PhotoPickerWithDisplay(
+                    images: carsPhoto,
+                    label: 'Please Upload Vehicle Photos',
+                    onPick: () async {
                       final images =
                           await ImagePickerHelper.selectMultiplePhotos(
                             context: context,
@@ -762,53 +765,20 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         await _saveTempPhotos();
                       }
                     },
-                    child: Row(
-                      children: [
-                        Text('Please Upload Photos of vehicle'),
-                        Spacer(),
-                        Icon(Icons.add),
-                      ],
-                    ),
+                    onRemove: (index) async {
+                      final photo = carsPhoto[index];
+                      setState(() => carsPhoto.removeAt(index));
+                      await _saveTempPhotos();
+                      await _updateVehicleDetailsProvider();
+                      if (photo.path.startsWith('https://') &&
+                          widget.onDeleteRemotePhoto != null) {
+                        await widget.onDeleteRemotePhoto!(photo.path);
+                      }
+                    },
+                    darkMode: darkMode,
+                    minPhotos: "3",
+                    isDeclined: widget.isDeclined,
                   ),
-                  //Car photos display
-                  carsPhoto.isEmpty
-                      ? SizedBox.shrink()
-                      : Container(
-                        width: width,
-                        height: height / 5,
-                        decoration: BoxDecoration(
-                          color: Color.fromARGB(113, 80, 79, 79),
-                          borderRadius: BorderRadius.circular(width * 0.019),
-                        ),
-                        padding: EdgeInsets.all(width * 0.02),
-                        child: ImageGrid(
-                          isDeclined: widget.isDeclined,
-                          images:
-                              carsPhoto
-                                  .where((x) => x.path.isNotEmpty)
-                                  .toList(),
-                          onRemove: (index) async {
-                            final filteredPhotos =
-                                carsPhoto
-                                    .where((x) => x.path.isNotEmpty)
-                                    .toList();
-                            final removedPhoto = filteredPhotos[index];
-                            setState(() {
-                              carsPhoto.removeWhere(
-                                (x) => x.path == removedPhoto.path,
-                              );
-                            });
-                            await _saveTempPhotos();
-                            await _updateVehicleDetailsProvider();
-                            if (removedPhoto.path.startsWith('https://') &&
-                                widget.onDeleteRemotePhoto != null) {
-                              await widget.onDeleteRemotePhoto!(
-                                removedPhoto.path,
-                              );
-                            }
-                          },
-                        ),
-                      ),
                   SizedBox(height: height * 0.015),
                   //Technical Passport Number
                   Container(
@@ -939,10 +909,10 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       ),
                     ),
                   SizedBox(height: height * 0.015),
-                  //Technical Passport photos picker
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () async {
+                  PhotoPickerWithDisplay(
+                    images: technicalPassportNumberPhoto,
+                    label: "Please Upload Photos of Technical Passport",
+                    onPick: () async {
                       final images =
                           await ImagePickerHelper.selectMultiplePhotos(
                             context: context,
@@ -956,57 +926,28 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         await _saveTempPhotos();
                       }
                     },
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Please Upload Photos of Technical Passport',
-                          ),
-                        ),
-                        Spacer(),
-                        Icon(Icons.add),
-                      ],
-                    ),
+                    onRemove: (index) async {
+                      final filteredTechPhotos =
+                          technicalPassportNumberPhoto
+                              .where((x) => x.path.isNotEmpty)
+                              .toList();
+                      final removedPhoto = filteredTechPhotos[index];
+                      setState(() {
+                        technicalPassportNumberPhoto.removeWhere(
+                          (x) => x.path == removedPhoto.path,
+                        );
+                      });
+                      await _saveTempPhotos();
+                      await _updateVehicleDetailsProvider();
+                      if (removedPhoto.path.startsWith('https://') &&
+                          widget.onDeleteRemotePhoto != null) {
+                        await widget.onDeleteRemotePhoto!(removedPhoto.path);
+                      }
+                    },
+                    darkMode: darkMode,
+                    minPhotos: "2",
+                    isDeclined: widget.isDeclined,
                   ),
-                  //Technical passport photos display
-                  technicalPassportNumberPhoto.isEmpty
-                      ? SizedBox.shrink()
-                      : Container(
-                        width: width,
-                        height: height / 5,
-                        decoration: BoxDecoration(
-                          color: Color.fromARGB(113, 80, 79, 79),
-                          borderRadius: BorderRadius.circular(width * 0.019),
-                        ),
-                        padding: EdgeInsets.all(width * 0.02),
-                        child: ImageGrid(
-                          isDeclined: widget.isDeclined,
-                          images:
-                              technicalPassportNumberPhoto
-                                  .where((x) => x.path.isNotEmpty)
-                                  .toList(),
-                          onRemove: (index) async {
-                            final filteredTechPhotos =
-                                technicalPassportNumberPhoto
-                                    .where((x) => x.path.isNotEmpty)
-                                    .toList();
-                            final removedPhoto = filteredTechPhotos[index];
-                            setState(() {
-                              technicalPassportNumberPhoto.removeWhere(
-                                (x) => x.path == removedPhoto.path,
-                              );
-                            });
-                            await _saveTempPhotos();
-                            await _updateVehicleDetailsProvider();
-                            if (removedPhoto.path.startsWith('https://') &&
-                                widget.onDeleteRemotePhoto != null) {
-                              await widget.onDeleteRemotePhoto!(
-                                removedPhoto.path,
-                              );
-                            }
-                          },
-                        ),
-                      ),
                   SizedBox(height: height * 0.015),
                   //Chassis Number
                   Container(
@@ -1130,8 +1071,10 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     ),
                   SizedBox(height: height * 0.015),
                   //Chasis Number photos picker
-                  GestureDetector(
-                    onTap: () async {
+                  SinglePhotoPickerWithDisplay(
+                    image: chassisNumberPhoto,
+                    label: "Please Upload Photos of Chassis Number",
+                    onPick: () async {
                       final selected =
                           await ImagePickerHelper.selectSinglePhoto(
                             context: context,
@@ -1141,54 +1084,22 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       setState(() => chassisNumberPhoto = selected);
                       await _saveTempPhotos();
                     },
-                    behavior: HitTestBehavior.opaque,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Please Upload Photos of Chassis Number',
-                            softWrap: true,
-                          ),
-                        ),
-                        Spacer(),
-                        Icon(Icons.add),
-                      ],
-                    ),
+                    onRemove: () async {
+                      final removedPhoto = chassisNumberPhoto;
+                      setState(() => chassisNumberPhoto = null);
+                      await _saveTempPhotos();
+                      await _updateVehicleDetailsProvider();
+                      if (removedPhoto != null &&
+                          removedPhoto.path.isNotEmpty &&
+                          removedPhoto.path.startsWith('https://') &&
+                          widget.onDeleteRemotePhoto != null) {
+                        await widget.onDeleteRemotePhoto!(removedPhoto.path);
+                      }
+                    },
+                    darkMode: darkMode,
+                    minPhotos: "1",
+                    isDeclined: widget.isDeclined,
                   ),
-                  //Chassis Number photos display
-                  chassisNumberPhoto == null
-                      ? SizedBox.shrink()
-                      : Container(
-                        width: width,
-                        height: height / 5,
-                        decoration: BoxDecoration(
-                          color: Color.fromARGB(113, 80, 79, 79),
-                          borderRadius: BorderRadius.circular(width * 0.019),
-                        ),
-                        padding: EdgeInsets.all(width * 0.02),
-                        child: ImageGrid(
-                          isDeclined: widget.isDeclined,
-                          images:
-                              chassisNumberPhoto != null &&
-                                      chassisNumberPhoto.path.isNotEmpty
-                                  ? [chassisNumberPhoto]
-                                  : [],
-                          onRemove: (index) async {
-                            final removedPhoto = chassisNumberPhoto;
-                            setState(() => chassisNumberPhoto = null);
-                            await _saveTempPhotos();
-                            await _updateVehicleDetailsProvider();
-                            if (removedPhoto != null &&
-                                removedPhoto.path.isNotEmpty &&
-                                removedPhoto.path.startsWith('https://') &&
-                                widget.onDeleteRemotePhoto != null) {
-                              await widget.onDeleteRemotePhoto!(
-                                removedPhoto.path,
-                              );
-                            }
-                          },
-                        ),
-                      ),
                   SizedBox(height: height * 0.015),
                   //Vehicle Registration Number
                   Container(

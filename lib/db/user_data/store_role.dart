@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../back/tools/subscription_manager.dart';
+
 class RoleDataProvider extends StateNotifier<Map<String, dynamic>?> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final User? _currentUser;
@@ -40,6 +42,7 @@ class RoleDataProvider extends StateNotifier<Map<String, dynamic>?> {
             state = null;
           },
         );
+        SubscriptionManager.add(_roleSubscription!);
   }
 
   @override

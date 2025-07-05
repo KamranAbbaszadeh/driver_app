@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/ride/active_vehicle_provider.dart';
+import 'package:onemoretour/back/tools/subscription_manager.dart';
 import 'package:onemoretour/front/displayed_items/tours/my_rides.dart';
 import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -102,6 +103,8 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
               });
             }
           });
+
+      SubscriptionManager.add(carsSubscription!);
     }
 
     if (userData['Role'] == 'Guide' || userData['Role'] == 'Driver Cum Guide') {
@@ -247,7 +250,7 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
       child: Container(
         width: width,
         constraints: BoxConstraints(
-          minHeight: height * 0.823,
+          minHeight: height * 0.743,
           maxHeight: double.infinity,
         ),
         decoration: BoxDecoration(

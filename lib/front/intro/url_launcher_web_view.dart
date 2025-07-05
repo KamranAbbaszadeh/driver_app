@@ -15,6 +15,8 @@ class UrlLauncherWebView extends StatefulWidget {
 class _UrlLauncherWebViewState extends State<UrlLauncherWebView> {
   var loadingPercentage = 0;
   late final WebViewController webViewController;
+  bool hasError = false;
+
   @override
   void initState() {
     super.initState();
@@ -36,8 +38,16 @@ class _UrlLauncherWebViewState extends State<UrlLauncherWebView> {
                   loadingPercentage = 100;
                 });
               },
-              onHttpError: (HttpResponseError error) {},
-              onWebResourceError: (WebResourceError error) {},
+              onHttpError: (HttpResponseError error) {
+                setState(() {
+                  hasError = true;
+                });
+              },
+              onWebResourceError: (WebResourceError error) {
+                setState(() {
+                  hasError = true;
+                });
+              },
               onNavigationRequest: (NavigationRequest request) {
                 if (request.url.startsWith('https://www.youtube.com/')) {
                   return NavigationDecision.prevent;
@@ -52,12 +62,12 @@ class _UrlLauncherWebViewState extends State<UrlLauncherWebView> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-
+    final height = MediaQuery.of(context).size.height;
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: darkMode ? Colors.black : Colors.white,
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
         backgroundColor:
@@ -65,7 +75,7 @@ class _UrlLauncherWebViewState extends State<UrlLauncherWebView> {
                 ? const Color.fromARGB(255, 0, 0, 0)
                 : const Color.fromARGB(255, 255, 255, 255),
         leading: Padding(
-          padding: const EdgeInsets.only(top: 15, left: 5),
+          padding: EdgeInsets.only(top: height * 0.017, left: width * 0.02),
           child: Text(
             widget.title,
             style: TextStyle(
@@ -91,25 +101,37 @@ class _UrlLauncherWebViewState extends State<UrlLauncherWebView> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          WebViewWidget(
-            controller: webViewController,
-            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-              Factory<OneSequenceGestureRecognizer>(
-                () => EagerGestureRecognizer(),
-              ),
-            },
-          ),
-          loadingPercentage < 100
-              ? LinearProgressIndicator(
-                value: loadingPercentage / 100,
-                color: const Color.fromARGB(255, 33, 150, 243),
-                backgroundColor: Colors.transparent,
+      body:
+          hasError
+              ? Center(
+                child: Text(
+                  'Unable to load page.\nPlease check your connection or try again later.',
+                  style: TextStyle(
+                    color: darkMode ? Colors.white : Colors.black,
+                    fontSize: width * 0.045,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               )
-              : const SizedBox.shrink(),
-        ],
-      ),
+              : Stack(
+                children: [
+                  WebViewWidget(
+                    controller: webViewController,
+                    gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                      Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer(),
+                      ),
+                    },
+                  ),
+                  loadingPercentage < 100
+                      ? LinearProgressIndicator(
+                        value: loadingPercentage / 100,
+                        color: const Color.fromARGB(255, 33, 150, 243),
+                        backgroundColor: Colors.transparent,
+                      )
+                      : const SizedBox.shrink(),
+                ],
+              ),
     );
   }
 }

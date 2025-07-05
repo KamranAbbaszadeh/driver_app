@@ -510,6 +510,13 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     _experienceController.addListener(() {
       setState(() {});
       _isEmpty(_experienceController, 'experience');
+      final text = _experienceController.text;
+      if (text.length == 2 && text.startsWith('0')) {
+        _experienceController.text = text.substring(0, 1);
+        _experienceController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _experienceController.text.length),
+        );
+      }
       _saveFormData();
     });
     _languageController.addListener(() {

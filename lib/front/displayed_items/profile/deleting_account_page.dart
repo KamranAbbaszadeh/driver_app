@@ -3,6 +3,7 @@ import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
 import 'package:onemoretour/back/ride/ride_state.dart';
 import 'package:onemoretour/back/rides_history/rides_provider.dart';
 import 'package:onemoretour/back/tools/firebase_service.dart';
+import 'package:onemoretour/back/tools/subscription_manager.dart';
 import 'package:onemoretour/back/user/user_data_provider.dart';
 import 'package:onemoretour/db/user_data/store_role.dart';
 import 'package:onemoretour/front/intro/welcome_page.dart';
@@ -37,13 +38,25 @@ class _DeletingAccountPageState extends ConsumerState<DeletingAccountPage> {
 
   Future<void> _deleteUserCompletely() async {
     try {
+      SubscriptionManager.cancelAll();
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken(true);
 
       if (idToken == null) {
         throw Exception("No ID token available.");
       }
+      ref.invalidate(roleProvider);
+      ref.invalidate(ridesHistoryProvider);
+      ref.invalidate(usersDataProvider);
+      ref.invalidate(authStateChangesProvider);
+      ref.invalidate(firestoreServiceProvider);
+      ref.invalidate(notificationsProvider);
+      ref.invalidate(vehiclesProvider);
+      ref.invalidate(rideFlowProvider);
+      ref.invalidate(rideProvider);
+      ref.invalidate(ridesHistoryProvider);
 
+      await Future.delayed(const Duration(milliseconds: 200));
       final response = await http.post(
         Uri.parse(
           'https://us-central1-one-more-tour.cloudfunctions.net/deleteUserAccount',
@@ -55,17 +68,6 @@ class _DeletingAccountPageState extends ConsumerState<DeletingAccountPage> {
       );
 
       if (response.statusCode == 200 && context.mounted) {
-        ref.invalidate(roleProvider);
-        ref.invalidate(ridesHistoryProvider);
-        ref.invalidate(usersDataProvider);
-        ref.invalidate(authStateChangesProvider);
-        ref.invalidate(firestoreServiceProvider);
-        ref.invalidate(notificationsProvider);
-        ref.invalidate(vehiclesProvider);
-        ref.invalidate(rideFlowProvider);
-        ref.invalidate(rideProvider);
-        ref.invalidate(ridesHistoryProvider);
-
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
@@ -73,7 +75,7 @@ class _DeletingAccountPageState extends ConsumerState<DeletingAccountPage> {
             (route) => false,
           );
         }
-      } 
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

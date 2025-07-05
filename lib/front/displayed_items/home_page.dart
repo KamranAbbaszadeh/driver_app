@@ -25,7 +25,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  StreamSubscription? _locationSubscription;
 
   dynamic get onLocation => null;
   @override
@@ -64,7 +63,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   void dispose() {
-    _locationSubscription?.cancel();
     WakelockPlus.disable();
     super.dispose();
   }

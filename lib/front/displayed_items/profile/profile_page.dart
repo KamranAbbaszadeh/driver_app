@@ -1,6 +1,7 @@
 import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
 import 'package:onemoretour/back/rides_history/rides_provider.dart';
 import 'package:onemoretour/back/tools/firebase_service.dart';
+import 'package:onemoretour/back/tools/subscription_manager.dart';
 import 'package:onemoretour/back/user/user_data_provider.dart';
 import 'package:onemoretour/db/user_data/store_role.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
@@ -340,6 +341,7 @@ class ProfilePage extends ConsumerWidget {
                                   ),
                                 ),
                                 onPressed: () async {
+                                  SubscriptionManager.cancelAll();
                                   ref.invalidate(roleProvider);
                                   ref.invalidate(usersDataProvider);
                                   ref.invalidate(authStateChangesProvider);
@@ -349,6 +351,9 @@ class ProfilePage extends ConsumerWidget {
                                   ref.invalidate(rideFlowProvider);
                                   ref.invalidate(ridesHistoryProvider);
                                   handleLogout(context);
+                                  await Future.delayed(
+                                    const Duration(milliseconds: 200),
+                                  );
                                   await FirebaseAuth.instance.signOut();
                                   if (context.mounted) {
                                     Navigator.pushAndRemoveUntil(

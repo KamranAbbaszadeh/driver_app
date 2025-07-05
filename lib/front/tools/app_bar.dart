@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/tools/firebase_service.dart';
 import 'package:onemoretour/db/user_data/store_role.dart';
+import 'package:onemoretour/front/intro/welcome_page.dart';
 import 'package:onemoretour/front/tools/notification_notifier.dart';
 import 'package:onemoretour/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -40,6 +41,17 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomePage()),
+          (_) => false,
+        );
+      });
+      return const SizedBox.shrink();
+    }
+
     final vehiclesAsync = ref.watch(vehiclesProvider);
 
     if (vehiclesAsync.isLoading) {

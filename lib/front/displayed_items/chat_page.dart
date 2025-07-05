@@ -10,6 +10,7 @@ import 'package:onemoretour/back/chat/media_files_picker.dart';
 import 'package:onemoretour/back/chat/upload_media_files.dart';
 import 'package:onemoretour/back/chat/video_widget.dart';
 import 'package:onemoretour/back/tools/video_player_widget.dart';
+import 'package:onemoretour/front/intro/welcome_page.dart';
 import 'package:onemoretour/front/tools/notification_notifier.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,6 +21,7 @@ import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:onemoretour/main.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -414,6 +416,16 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const WelcomePage()),
+          (route) => false,
+        );
+      });
+      return const SizedBox.shrink();
+    }
     final width = widget.width;
     final height = widget.height;
     return Builder(

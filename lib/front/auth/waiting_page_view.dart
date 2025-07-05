@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/front/auth/forms/application_forms/car_details_form.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
 import 'package:onemoretour/front/intro/route_navigator.dart';
 import 'package:onemoretour/front/intro/welcome_page.dart';
@@ -69,6 +70,18 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
     final hasUnviewedNotifications = notifications.any((notif) {
       return notif['isViewed'] == false;
     });
+    Future<void> emptyFunction(String string) async {}
+    Future<void> emptyMapFunction(Map<String, dynamic> string) async {}
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const WelcomePage()),
+          (route) => false,
+        );
+      });
+      return const SizedBox.shrink();
+    }
 
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
@@ -228,7 +241,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
         stream:
             FirebaseFirestore.instance
                 .collection('Users')
-                .doc(userId)
+                .doc(currentUser.uid)
                 .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -898,7 +911,21 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                         : SizedBox.shrink(),
                     SizedBox(height: height * 0.01),
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => CarDetailsForm(
+                                  isDeclined: true,
+                                  multiSelection: false,
+                                  onDeleteRemotePhoto: emptyFunction,
+                                  onFormSubmit: emptyMapFunction,
+                                  vehicleType: "Sedan",
+                                ),
+                          ),
+                        );
+                      },
                       child: Container(
                         decoration: BoxDecoration(
                           color:

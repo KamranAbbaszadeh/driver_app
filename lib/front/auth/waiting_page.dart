@@ -32,6 +32,18 @@ class _WaitingPageState extends ConsumerState<WaitingPage> {
 
         if (authSnapshot.hasData && authSnapshot.data != null) {
           final user = authSnapshot.data!;
+
+          // Defensive redirect if currentUser is null
+          if (FirebaseAuth.instance.currentUser == null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const WelcomePage()),
+                (_) => false,
+              );
+            });
+            return const SizedBox.shrink();
+          }
+
           return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
             stream: getUserStatusStream(user.uid),
             builder: (context, userStatusSnapshot) {

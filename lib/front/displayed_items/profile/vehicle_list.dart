@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:onemoretour/back/tools/subscription_manager.dart';
 import 'package:onemoretour/back/upload_files/vehicle_details/upload_vehicle_details_save.dart';
 import 'package:onemoretour/front/auth/forms/application_forms/car_details_form.dart';
 import 'package:onemoretour/front/displayed_items/intermediate_page_for_forms.dart';
@@ -10,6 +11,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:onemoretour/front/intro/welcome_page.dart';
+import 'package:onemoretour/main.dart';
 import 'package:page_transition/page_transition.dart';
 
 class VehicleList extends ConsumerStatefulWidget {
@@ -52,6 +55,8 @@ class _VehicleListState extends ConsumerState<VehicleList> {
             activeVehicleIdNotifier.value = data['Active Vehicle'];
           }
         });
+
+    SubscriptionManager.add(activeVehicleSubscription!);
   }
 
   @override
@@ -63,6 +68,16 @@ class _VehicleListState extends ConsumerState<VehicleList> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const WelcomePage()),
+          (route) => false,
+        );
+      });
+      return const SizedBox.shrink();
+    }
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;

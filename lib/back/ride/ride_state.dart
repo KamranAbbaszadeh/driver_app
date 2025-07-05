@@ -11,6 +11,7 @@ import 'package:flutter_background_geolocation/flutter_background_geolocation.da
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:onemoretour/back/tools/subscription_manager.dart';
 import 'package:onemoretour/db/user_data/store_role.dart';
 import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:onemoretour/front/tools/get_location_name.dart';
@@ -96,7 +97,6 @@ class RideNotifier extends StateNotifier<RideState> {
     _refreshTimer = Timer.periodic(Duration(seconds: 30), (_) {});
   }
 
-  StreamSubscription<QuerySnapshot>? carsSubscription;
   Timer? locationTrackingTImer;
 
   void _startListeningToRides() async {
@@ -183,6 +183,7 @@ class RideNotifier extends StateNotifier<RideState> {
           }
         });
         _subscriptions.add(sub);
+        SubscriptionManager.add(sub);
       }
     });
   }
@@ -428,7 +429,6 @@ class RideNotifier extends StateNotifier<RideState> {
 
   @override
   void dispose() async {
-    carsSubscription?.cancel();
     locationTrackingTImer?.cancel();
     _refreshTimer?.cancel();
     for (var sub in _subscriptions) {

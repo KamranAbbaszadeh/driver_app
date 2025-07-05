@@ -35,7 +35,6 @@ class RidePage extends ConsumerStatefulWidget {
 class _RidePageState extends ConsumerState<RidePage>
     with TickerProviderStateMixin {
   final SlidingPanelController _panelController = SlidingPanelController();
-  StreamSubscription? _locationSubscription;
 
   bool isFinished = false;
   bool hasUnreadChat = false;
@@ -134,7 +133,6 @@ class _RidePageState extends ConsumerState<RidePage>
   @override
   void dispose() {
     _isMounted = false;
-    _locationSubscription?.cancel();
     super.dispose();
   }
 

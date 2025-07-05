@@ -145,7 +145,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                       );
                     }
                     final unreadCount =
-                        messages.where((m) => m['isViewed'] == false).length;
+                        messages.where((m) => !m['isViewed']).length;
                     if (unreadCount > 0) {
                       FlutterAppBadger.updateBadgeCount(unreadCount);
                     } else {
@@ -176,7 +176,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                     if (route == "/chat_page") {
                       final tourId = message['data']['tourId'];
                       navigatorKey.currentState?.pushNamed(
-                        '/chat_page',∑
+                        '/chat_page',
                         arguments: {
                           'tourId': tourId,
                           'width': width,

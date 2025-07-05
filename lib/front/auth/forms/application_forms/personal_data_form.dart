@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:onemoretour/front/tools/photo_picker_with_display.dart';
+import 'package:onemoretour/front/tools/signle_photo_picker_with_display.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -233,11 +235,12 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                   'We\'re almost there! Share a few important details to complete your profile and set the stage for an exciting partnership ahead.',
                 ),
                 SizedBox(height: height * 0.015),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () async {
+                SinglePhotoPickerWithDisplay(
+                  image: personalPhoto,
+                  label: "Please Upload Your Photo",
+                  onPick: () async {
                     final selected = await ImagePickerHelper.selectSinglePhoto(
-                      context: context, 
+                      context: context,
                     );
                     if (selected == null) return;
                     if (personalPhoto != null) {
@@ -253,37 +256,19 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                     setState(() => personalPhoto = selected);
                     await _saveTempPersonalPhotos();
                   },
-                  child: Row(
-                    children: [
-                      Text('Please Upload Your Photo'),
-                      Spacer(),
-                      Icon(Icons.add),
-                    ],
-                  ),
+                  onRemove: () async {
+                    setState(() => personalPhoto = null);
+                    await _saveTempPersonalPhotos();
+                  },
+                  darkMode: darkMode,
+                  minPhotos: "1",
+                  isDeclined: isDeclined,
                 ),
-                personalPhoto == null
-                    ? SizedBox.shrink()
-                    : Container(
-                      width: width,
-                      height: height / 5,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(113, 80, 79, 79),
-                        borderRadius: BorderRadius.circular(width * 0.019),
-                      ),
-                      padding: EdgeInsets.all(width * 0.02),
-                      child: ImageGrid(
-                        isDeclined: isDeclined,
-                        images: [personalPhoto],
-                        onRemove: (_) async {
-                          setState(() => personalPhoto = null);
-                          await _saveTempPersonalPhotos();
-                        },
-                      ),
-                    ),
                 SizedBox(height: height * 0.015),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () async {
+                PhotoPickerWithDisplay(
+                  images: iDPhoto,
+                  label: "Please Upload Your ID Photo",
+                  onPick: () async {
                     final images = await ImagePickerHelper.selectMultiplePhotos(
                       context: context,
                       maxImages: 2,
@@ -306,44 +291,21 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                       await _saveTempPersonalPhotos();
                     }
                   },
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Please Upload Your ID Photo (Front and Back)',
-                          softWrap: true,
-                        ),
-                      ),
-                      Spacer(),
-                      Icon(Icons.add),
-                    ],
-                  ),
+                  onRemove: (index) async {
+                    setState(() => iDPhoto.removeAt(index));
+                    await _saveTempPersonalPhotos();
+                  },
+                  darkMode: darkMode,
+                  minPhotos: "1",
+                  isDeclined: isDeclined,
                 ),
-                iDPhoto.isEmpty
-                    ? SizedBox.shrink()
-                    : Container(
-                      width: width,
-                      height: height / 5,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(113, 80, 79, 79),
-                        borderRadius: BorderRadius.circular(width * 0.019),
-                      ),
-                      padding: EdgeInsets.all(width * 0.02),
-                      child: ImageGrid(
-                        isDeclined: isDeclined,
-                        images: iDPhoto,
-                        onRemove: (index) async {
-                          setState(() => iDPhoto.removeAt(index));
-                          await _saveTempPersonalPhotos();
-                        },
-                      ),
-                    ),
                 SizedBox(height: height * 0.025),
                 role == 'Guide'
                     ? SizedBox.shrink()
-                    : GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () async {
+                    : PhotoPickerWithDisplay(
+                      images: driverLicensePhoto,
+                      label: "Please Upload Your Driver License Photo",
+                      onPick: () async {
                         final images =
                             await ImagePickerHelper.selectMultiplePhotos(
                               context: context,
@@ -366,32 +328,13 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                           await _saveTempPersonalPhotos();
                         }
                       },
-                      child: Row(
-                        children: [
-                          Text('Please Upload Your Driver License Photo'),
-                          Spacer(),
-                          Icon(Icons.add),
-                        ],
-                      ),
-                    ),
-                driverLicensePhoto.isEmpty
-                    ? SizedBox.shrink()
-                    : Container(
-                      width: width,
-                      height: height / 5,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(113, 80, 79, 79),
-                        borderRadius: BorderRadius.circular(width * 0.019),
-                      ),
-                      padding: EdgeInsets.all(width * 0.02),
-                      child: ImageGrid(
-                        isDeclined: isDeclined,
-                        images: driverLicensePhoto,
-                        onRemove: (index) async {
-                          setState(() => driverLicensePhoto.removeAt(index));
-                          await _saveTempPersonalPhotos();
-                        },
-                      ),
+                      onRemove: (index) async {
+                        setState(() => driverLicensePhoto.removeAt(index));
+                        await _saveTempPersonalPhotos();
+                      },
+                      darkMode: darkMode,
+                      minPhotos: "2",
+                      isDeclined: isDeclined,
                     ),
                 SizedBox(height: height * 0.025),
                 GestureDetector(

@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:onemoretour/back/rides_history/ride_history_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onemoretour/back/tools/subscription_manager.dart';
 
 class RidesHistoryState {
   final List<RideHistory> allRides;
@@ -86,6 +87,7 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
             }
           }
         });
+        SubscriptionManager.add(carsSubscription!);
     guideSubscription?.cancel();
     guideSubscription = FirebaseFirestore.instance
         .collection('Guide')
@@ -119,6 +121,7 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
             }
           }
         });
+        SubscriptionManager.add(guideSubscription!);
   }
 
   int get nonCompletedRidesCount => state.allRides.length;

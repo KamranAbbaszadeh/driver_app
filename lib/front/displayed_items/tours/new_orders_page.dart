@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
+import 'package:onemoretour/back/tools/subscription_manager.dart';
 import 'package:onemoretour/front/displayed_items/tours/my_rides.dart';
 import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -56,6 +57,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
             listenToRidesUpdates();
           }
         });
+    SubscriptionManager.add(userSubscription!);
   }
 
   void listenToRidesUpdates() async {
@@ -210,6 +212,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
           handleRides(combinedRides);
         });
       }
+      SubscriptionManager.add(carsSubscription!);
     } catch (e) {
       logger.e('Error listening to rides updates: $e');
     }
