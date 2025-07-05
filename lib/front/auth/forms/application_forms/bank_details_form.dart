@@ -441,6 +441,7 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
         bankDetails: bankDetails,
         userId: userId,
         context: context,
+        role: role,
       );
     }
     await _clearTempData();

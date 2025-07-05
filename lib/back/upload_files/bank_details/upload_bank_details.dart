@@ -6,35 +6,71 @@ import 'package:flutter/material.dart';
 Future<void> uploadBankDetails({
   required Map<String, dynamic> bankDetails,
   required String userId,
+  required String role,
   required context,
 }) async {
-  if (bankDetails.isNotEmpty) {
-    await FirebaseFirestore.instance.collection('Users').doc(userId).set({
-      'Bank Details': bankDetails,
-    }, SetOptions(merge: true));
+  if (role != 'Guide') {
+    if (bankDetails.isNotEmpty) {
+      await FirebaseFirestore.instance.collection('Users').doc(userId).set({
+        'Bank Details': bankDetails,
+      }, SetOptions(merge: true));
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
 
-    final currentUserEmail = user.email;
-    if (currentUserEmail != null) {
-      final BankDetailsPostApi bankDetailsPostApi = BankDetailsPostApi();
-      final success = await bankDetailsPostApi.postData({
-        'User': currentUserEmail,
-        'BankName': bankDetails['Bank Name'],
-        'Code': bankDetails['Bank Code'],
-        'MH': bankDetails['M.H'],
-        'SWIFT': bankDetails['SWIFT'],
-        'IBAN': bankDetails['IBAN'],
-        'VAT': bankDetails['VAT'],
-        'RegistrationAddress': bankDetails['Address'],
-        'FINCode': bankDetails['FIN'],
-      });
+      final currentUserEmail = user.email;
+      if (currentUserEmail != null) {
+        final BankDetailsPostApi bankDetailsPostApi = BankDetailsPostApi();
+        final success = await bankDetailsPostApi.postData({
+          'User': currentUserEmail,
+          'BankName': bankDetails['Bank Name'],
+          'Code': bankDetails['Bank Code'],
+          'MH': bankDetails['M.H'],
+          'SWIFT': bankDetails['SWIFT'],
+          'IBAN': bankDetails['IBAN'],
+          'VAT': bankDetails['VAT'],
+          'RegistrationAddress': bankDetails['Address'],
+          'FINCode': bankDetails['FIN'],
+        });
 
-      if (success) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
+        if (success) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
+        }
+      }
+    }
+  } else {
+    if (bankDetails.isNotEmpty) {
+      await FirebaseFirestore.instance.collection('Users').doc(userId).set({
+        'Bank Details': bankDetails,
+        'Personal & Car Details Form': 'APPLICATION RECEIVED',
+        'Personal & Car Details Decline': false,
+      }, SetOptions(merge: true));
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final currentUserEmail = user.email;
+      if (currentUserEmail != null) {
+        final BankDetailsPostApi bankDetailsPostApi = BankDetailsPostApi();
+        final success = await bankDetailsPostApi.postData({
+          'User': currentUserEmail,
+          'BankName': bankDetails['Bank Name'],
+          'Code': bankDetails['Bank Code'],
+          'MH': bankDetails['M.H'],
+          'SWIFT': bankDetails['SWIFT'],
+          'IBAN': bankDetails['IBAN'],
+          'VAT': bankDetails['VAT'],
+          'RegistrationAddress': bankDetails['Address'],
+          'FINCode': bankDetails['FIN'],
+        });
+
+        if (success) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
+        }
       }
     }
   }
