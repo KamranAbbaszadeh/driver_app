@@ -238,6 +238,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                 SinglePhotoPickerWithDisplay(
                   image: personalPhoto,
                   label: "Please Upload Your Photo",
+                  fieldName: "Personal Photo",
                   onPick: () async {
                     final selected = await ImagePickerHelper.selectSinglePhoto(
                       context: context,
@@ -268,6 +269,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                 PhotoPickerWithDisplay(
                   images: iDPhoto,
                   label: "Please Upload Your ID Photo",
+                  fieldName: "ID Photo",
                   onPick: () async {
                     final images = await ImagePickerHelper.selectMultiplePhotos(
                       context: context,
@@ -305,6 +307,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                     : PhotoPickerWithDisplay(
                       images: driverLicensePhoto,
                       label: "Please Upload Your Driver License Photo",
+                      fieldName: "Driver License Photo",
                       onPick: () async {
                         final images =
                             await ImagePickerHelper.selectMultiplePhotos(

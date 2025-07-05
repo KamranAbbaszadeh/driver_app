@@ -10,6 +10,7 @@ class SinglePhotoPickerWithDisplay extends StatelessWidget {
   final bool darkMode;
   final String minPhotos;
   final bool isDeclined;
+  final String fieldName;
 
   const SinglePhotoPickerWithDisplay({
     super.key,
@@ -20,6 +21,7 @@ class SinglePhotoPickerWithDisplay extends StatelessWidget {
     required this.darkMode,
     required this.minPhotos,
     required this.isDeclined,
+    required this.fieldName,
   });
 
   @override
@@ -28,15 +30,20 @@ class SinglePhotoPickerWithDisplay extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     return GestureDetector(
       onTap: onPick,
-      child: Container(
-        width: width,
-        padding: EdgeInsets.all(width * 0.02),
-        decoration: BoxDecoration(
-          color: darkMode ? Colors.grey[900] : Colors.grey[100],
-          border: Border.all(
-            color: darkMode ? Colors.grey[700]! : Colors.grey[400]!,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: image != null ? fieldName : null,
+          filled: true,
+          fillColor: darkMode ? Colors.grey[900] : Colors.grey[100],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(width * 0.04),
           ),
-          borderRadius: BorderRadius.circular(width * 0.04),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(width * 0.04),
+            borderSide: BorderSide(
+              color: darkMode ? Colors.grey[700]! : Colors.grey[400]!,
+            ),
+          ),
         ),
         child:
             image == null

@@ -753,6 +753,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                   PhotoPickerWithDisplay(
                     images: carsPhoto,
                     label: 'Please Upload Vehicle Photos',
+                    fieldName: 'Vehicle Photos',
                     onPick: () async {
                       final images =
                           await ImagePickerHelper.selectMultiplePhotos(
@@ -912,6 +913,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                   PhotoPickerWithDisplay(
                     images: technicalPassportNumberPhoto,
                     label: "Please Upload Photos of Technical Passport",
+                    fieldName: "Technical Passport",
                     onPick: () async {
                       final images =
                           await ImagePickerHelper.selectMultiplePhotos(
@@ -1074,6 +1076,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                   SinglePhotoPickerWithDisplay(
                     image: chassisNumberPhoto,
                     label: "Please Upload Photos of Chassis Number",
+                    fieldName: "Chassis Number",
                     onPick: () async {
                       final selected =
                           await ImagePickerHelper.selectSinglePhoto(

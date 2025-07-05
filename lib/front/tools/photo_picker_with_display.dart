@@ -11,6 +11,7 @@ class PhotoPickerWithDisplay extends StatelessWidget {
   final Future<void> Function(int index) onRemove;
   final bool darkMode;
   final bool isDeclined;
+  final String fieldName;
 
   const PhotoPickerWithDisplay({
     super.key,
@@ -21,6 +22,7 @@ class PhotoPickerWithDisplay extends StatelessWidget {
     required this.darkMode,
     required this.minPhotos,
     required this.isDeclined,
+    required this.fieldName,
   });
 
   @override
@@ -29,15 +31,20 @@ class PhotoPickerWithDisplay extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     return GestureDetector(
       onTap: onPick,
-      child: Container(
-        width: width,
-        padding: EdgeInsets.all(width * 0.02),
-        decoration: BoxDecoration(
-          color: darkMode ? Colors.grey[900] : Colors.grey[100],
-          border: Border.all(
-            color: darkMode ? Colors.grey[700]! : Colors.grey[400]!,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: images.isNotEmpty ? fieldName : null,
+          filled: true,
+          fillColor: darkMode ? Colors.grey[900] : Colors.grey[100],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(width * 0.03),
           ),
-          borderRadius: BorderRadius.circular(width * 0.03),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(width * 0.03),
+            borderSide: BorderSide(
+              color: darkMode ? Colors.grey[700]! : Colors.grey[400]!,
+            ),
+          ),
         ),
         child:
             images.isEmpty
