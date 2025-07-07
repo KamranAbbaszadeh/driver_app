@@ -1,3 +1,5 @@
+// Profile screen that displays the user's personal and account information.
+// Includes profile photo management, statistics, and the ability to delete the account.
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
@@ -14,6 +16,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// A stateful widget that displays detailed profile information for the current user.
+/// Shows profile photo, contact info, personal details, and account actions like delete.
 class ProfileData extends ConsumerStatefulWidget {
   const ProfileData({super.key});
 
@@ -22,6 +26,7 @@ class ProfileData extends ConsumerStatefulWidget {
 }
 
 class _ProfileDataState extends ConsumerState<ProfileData> {
+  /// Clears all locally stored preferences upon user logout or account deletion.
   Future<void> handleLogout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -29,11 +34,13 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch current user data from the provider.
     final userData = ref.watch(currentUserDataProvider);
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    // Retrieve ride statistics and total earnings from ride history.
     final ridesHistoryNotifier = ref.watch(ridesHistoryProvider.notifier);
     dynamic profilePhoto;
     final completedCount = ridesHistoryNotifier.completedRidesCount;
@@ -45,6 +52,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
         actions: [
+          // Menu with 'Delete Account' action, opens confirmation dialog.
           PopupMenuButton<String>(
             onSelected: (value) async {
               if (value == 'delete_account') {
@@ -124,7 +132,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                         ],
                       ),
                 );
-
+                // If user confirms deletion, log out and redirect to DeletingAccountPage.
                 if (confirmDelete == true && context.mounted) {
                   handleLogout(context);
                   Navigator.pushReplacement(
@@ -194,6 +202,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       spacing: height * 0.001,
                       children: [
+                        // Tapping the profile image opens options to view or update the photo.
                         GestureDetector(
                           onTap: () {
                             showModalBottomSheet(
@@ -209,6 +218,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      // Navigate to fullscreen view of the profile image.
                                       ListTile(
                                         leading: Icon(
                                           Icons.image,
@@ -249,6 +259,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                                           );
                                         },
                                       ),
+                                      // Select and upload a new profile photo, replacing the existing one in Firebase.
                                       ListTile(
                                         leading: Icon(
                                           Icons.camera_alt,
@@ -372,6 +383,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                           ),
                         ),
                         SizedBox(height: height * 0.02),
+                        // Display user statistics with stylized font and layout.
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           spacing: width * 0.05,
@@ -379,6 +391,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             Column(
                               spacing: height * 0.01,
                               children: [
+                                // Total Rides row showing icon and corresponding user data.
                                 Text(
                                   "Total Rides",
                                   style: GoogleFonts.cabin(
@@ -404,6 +417,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             Column(
                               spacing: height * 0.01,
                               children: [
+                                // Completed Rides row showing icon and corresponding user data.
                                 Text(
                                   'Completed Rides',
                                   style: GoogleFonts.cabin(
@@ -429,6 +443,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             Column(
                               spacing: height * 0.01,
                               children: [
+                                // Total Earnings row showing icon and corresponding user data.
                                 Text(
                                   'Total Earnings',
                                   style: GoogleFonts.cabin(
@@ -457,6 +472,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                     ),
                   ),
                 ),
+                // Personal and account information display in a styled section.
                 Container(
                   width: width,
                   decoration: BoxDecoration(
@@ -472,6 +488,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                       mainAxisSize: MainAxisSize.max,
                       spacing: height * 0.01,
                       children: [
+                        // Email Address row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [
@@ -512,6 +529,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             ),
                           ],
                         ),
+                        // Phone Number row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [
@@ -552,6 +570,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             ),
                           ],
                         ),
+                        // Gender row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [
@@ -593,6 +612,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             ),
                           ],
                         ),
+                        // Date of Birth row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [
@@ -634,6 +654,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             ),
                           ],
                         ),
+                        // Experience row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [
@@ -675,6 +696,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             ),
                           ],
                         ),
+                        // Address row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [
@@ -716,6 +738,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             ),
                           ],
                         ),
+                        // FIN row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [
@@ -757,6 +780,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             ),
                           ],
                         ),
+                        // Vehicle Type row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [
@@ -798,6 +822,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             ),
                           ],
                         ),
+                        // Language Spoken row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [
@@ -839,6 +864,7 @@ class _ProfileDataState extends ConsumerState<ProfileData> {
                             ),
                           ],
                         ),
+                        // Last Tour End Date row showing icon and corresponding user data.
                         Row(
                           spacing: width * 0.06,
                           children: [

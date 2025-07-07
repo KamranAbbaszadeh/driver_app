@@ -1,3 +1,6 @@
+// Intermediate transition page that executes a background process and routes users to the next screen.
+// Displays a loading spinner during the process, then plays a success animation before navigating forward.
+
 import 'package:onemoretour/back/tools/loading_notifier.dart';
 import 'package:onemoretour/db/user_data/store_role.dart';
 import 'package:onemoretour/front/auth/forms/application_forms/bank_details_form.dart';
@@ -12,6 +15,8 @@ import 'package:lottie/lottie.dart';
 import 'package:onemoretour/front/intro/welcome_page.dart';
 import 'package:page_transition/page_transition.dart';
 
+/// A temporary page shown after form submissions to process data in the background.
+/// Once completed, redirects the user based on their navigation origin.
 class IntermediateFormPage extends ConsumerStatefulWidget {
   final bool isFromPersonalDataForm;
   final bool isFromBankDetailsForm;
@@ -40,12 +45,15 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
     with TickerProviderStateMixin {
   late final AnimationController _controller;
   bool _hasProcessed = false;
+
+  /// Initialize animation controller used for success Lottie animation.
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this);
   }
 
+  /// Dispose the animation controller when the widget is removed from the tree.
   @override
   void dispose() {
     _controller.dispose();
@@ -101,20 +109,24 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                     controller: _controller,
                     key: const ValueKey('animation'),
                     onLoaded: (composition) async {
+                      // Prevent the process from running multiple times by using a flag.
                       if (_hasProcessed) return;
                       _hasProcessed = true;
                       _controller
                         ..duration = composition.duration
                         ..reset();
 
+                      // Start the loading state before executing the background task.
                       ref.read(loadingProvider.notifier).startLoading();
                       try {
+                        // Execute the asynchronous task provided by the previous form.
                         await widget.backgroundProcess();
                         ref.read(loadingProvider.notifier).stopLoading();
 
                         await _controller.forward();
 
                         if (context.mounted) {
+                          // Navigate to the next form or page based on the form origin.
                           if (widget.isFromBankDetailsForm) {
                             Navigator.pushAndRemoveUntil(
                               context,
@@ -178,6 +190,7 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                       } catch (e) {
                         ref.read(loadingProvider.notifier).stopLoading();
 
+                        // If an error occurs, extract and format the message before showing the dialog.
                         if (context.mounted) {
                           final rawMessage = e.toString();
                           final cleanedMessage = rawMessage.replaceFirst(
@@ -259,6 +272,7 @@ class _IntermediateFormPageState extends ConsumerState<IntermediateFormPage>
                                 ),
                           );
 
+                          // If recovery fails, return the user to the welcome screen.
                           if (context.mounted) {
                             Navigator.pushAndRemoveUntil(
                               context,

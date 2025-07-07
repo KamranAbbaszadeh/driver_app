@@ -1,9 +1,12 @@
+// Handles Firebase Cloud Messaging (FCM) and local notification setup for the driver app.
+// Manages FCM token saving, message handlers, badge updates, tour reminders, and routing based on notification content.
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_app_badge_control/flutter_app_badge_control.dart';
 import 'package:onemoretour/front/tools/bottom_bar_provider.dart';
 import 'package:onemoretour/front/tools/notification_notifier.dart';
 import 'package:onemoretour/main.dart';
@@ -19,12 +22,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:flutter_app_badger/flutter_app_badger.dart';
 
 final Logger logger = Logger();
 
 String? currentChatTourId;
 
+/// Background message handler to save incoming notifications locally while app is not active.
+/// Avoids duplication and updates badge count accordingly.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -53,6 +57,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
+/// Singleton service class to configure FCM and handle notification-related logic.
+/// Integrates with shared preferences, local notifications, routing, and permission management.
 class FirebaseApi {
   FirebaseApi._();
   static final FirebaseApi instance = FirebaseApi._();
@@ -62,6 +68,7 @@ class FirebaseApi {
       FlutterLocalNotificationsPlugin();
   bool isFlutterLocalNotificationsInitialized = false;
 
+  /// Sets up FCM, handles permissions, initializes local notifications, and processes initial message if any.
   Future<void> initialize(WidgetRef ref) async {
     try {
       FirebaseMessaging.onBackgroundMessage(
@@ -98,6 +105,7 @@ class FirebaseApi {
     }
   }
 
+  /// Requests system-level notification permissions from the user.
   Future<void> _requestNotificationPermissions() async {
     try {
       await _firebaseMessaging.requestPermission(
@@ -110,6 +118,8 @@ class FirebaseApi {
     }
   }
 
+  /// Saves the current user's FCM token to Firestore and subscribes to their topic.
+  /// Includes fallback logic for iOS token retrieval.
   Future<void> saveFCMToken(String userId) async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
@@ -152,6 +162,7 @@ class FirebaseApi {
     }
   }
 
+  /// Subscribes to token refresh events and updates Firestore accordingly.
   void setupTokenRefresh(String userId) {
     _firebaseMessaging.onTokenRefresh.listen((newToken) async {
       try {
@@ -164,6 +175,7 @@ class FirebaseApi {
     });
   }
 
+  /// Initializes FlutterLocalNotificationsPlugin and sets up click handlers and iOS permissions.
   Future<void> initializeNotifications(WidgetRef ref) async {
     if (isFlutterLocalNotificationsInitialized) return;
 
@@ -239,6 +251,9 @@ class FirebaseApi {
     isFlutterLocalNotificationsInitialized = true;
   }
 
+  /// Processes incoming FCM messages.
+  /// If it's a chat and user is viewing the same tour chat, auto-marks as read.
+  /// Otherwise, stores locally and displays a local notification.
   Future<void> handleMessage(RemoteMessage message, WidgetRef ref) async {
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
@@ -295,7 +310,7 @@ class FirebaseApi {
                   '${message.data['name']} just sent you a message for tour $tourName';
               final unreadCount =
                   messages.where((m) => m['isViewed'] == false).length;
-              FlutterAppBadger.updateBadgeCount(unreadCount);
+              FlutterAppBadgeControl.updateBadgeCount(unreadCount);
               await _localNotifications.show(
                 notification.hashCode,
                 notificationTitle,
@@ -326,7 +341,7 @@ class FirebaseApi {
         } else {
           final unreadCount =
               messages.where((m) => m['isViewed'] == false).length;
-          FlutterAppBadger.updateBadgeCount(unreadCount);
+          FlutterAppBadgeControl.updateBadgeCount(unreadCount);
           await _localNotifications.show(
             notification.hashCode,
             notification.title,
@@ -366,6 +381,7 @@ class FirebaseApi {
     }
   }
 
+  /// Handles user taps on notification and navigates to the appropriate screen.
   void _handleNotificationTap(RemoteMessage message, WidgetRef ref) async {
     try {
       String? messageId = message.messageId;
@@ -414,6 +430,7 @@ class FirebaseApi {
     }
   }
 
+  /// Listens for FCM foreground and on-tap events and routes them accordingly.
   Future<void> _setupMessageHandlers(WidgetRef ref) async {
     FirebaseMessaging.onMessage.listen((message) async {
       await handleMessage(message, ref);
@@ -429,6 +446,7 @@ class FirebaseApi {
     });
   }
 
+  /// Fetches the tour name from Firestore based on user role and tourId.
   Future<String?> _fetchTourName(String tourId) async {
     try {
       String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -499,6 +517,7 @@ class FirebaseApi {
     return null;
   }
 
+  /// Initializes the device timezone using flutter_timezone.
   Future<void> initializeTimeZone() async {
     tz.initializeTimeZones();
 
@@ -510,6 +529,8 @@ class FirebaseApi {
     }
   }
 
+  /// Schedules tour reminder notifications based on 'Notification Period' field from Firestore.
+  /// Avoids duplication using SharedPreferences and notification IDs.
   Future<void> scheduleTourReminders(DateTime startDate, String tourId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -599,6 +620,7 @@ class FirebaseApi {
     }
   }
 
+  /// Cancels scheduled tour reminders for a specific tour ID.
   void cancelTourReminders(String tourId) async {
     final baseId = tourId.hashCode;
     for (int i = 0; i < 4; i++) {
@@ -611,6 +633,8 @@ class FirebaseApi {
     await prefs.setStringList('scheduledTours', scheduled);
   }
 
+  /// For Android 13+, prompts user to enable "Exact Alarm" permission if not already granted.
+  /// Shows dialog linking to system settings page.
   Future<void> checkAndRequestExactAlarmPermission(BuildContext context) async {
     if (!Platform.isAndroid) return;
     final width = MediaQuery.of(context).size.width;
@@ -675,12 +699,13 @@ class FirebaseApi {
   }
 }
 
+/// Updates the application icon badge based on the number of unread notifications.
 void _updateAppBadge(List<dynamic> messages) {
   final unreadCount = messages.where((m) => m['isViewed'] == false).length;
 
   if (unreadCount > 0) {
-    FlutterAppBadger.updateBadgeCount(unreadCount);
+    FlutterAppBadgeControl.updateBadgeCount(unreadCount);
   } else {
-    FlutterAppBadger.removeBadge();
+    FlutterAppBadgeControl.removeBadge();
   }
 }

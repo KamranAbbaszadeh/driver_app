@@ -13,7 +13,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+// Handles switching between multiple car details forms based on the selected vehicle type.
+// Allows users to input and upload details for one or multiple vehicles, including photos and metadata.
 
+
+/// Widget responsible for displaying either a single car details form or a list of vehicles
+/// the user must fill out, depending on how many vehicle types the user has selected.
 class CarDetailsSwitcher extends ConsumerStatefulWidget {
   const CarDetailsSwitcher({super.key});
 
@@ -39,6 +44,8 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
     preloadVehicleDataIfNeeded();
   }
 
+  /// Loads previously saved vehicle details from Firestore if the user had declined the form earlier.
+  /// This helps prepopulate the form with existing data.
   Future<void> preloadVehicleDataIfNeeded() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -112,6 +119,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
     }
   }
 
+  /// Updates the Firestore document of the car with the given registration number using the provided form data.
   Future<void> updateCarIndexDoc({
     required String userId,
     required String regNumber,
@@ -141,6 +149,8 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
     }
   }
 
+  /// Checks whether all required fields for a specific vehicle type are filled out.
+  /// Returns true if valid, false otherwise.
   bool isVehicleFullyFilled(String type) {
     final detailsEntry = ref
         .read(vehicleDetailsProvider)
@@ -331,6 +341,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
             multiSelection: false,
           );
         } else {
+          // Helper function to validate whether all vehicles listed have complete details before submission.
           bool allFormsProperlyFilledOut() {
             final vehicleDetails = ref.read(vehicleDetailsProvider);
             final types = ref.read(vehicleTypeProvider).asData?.value ?? [];
@@ -404,8 +415,10 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                       regNumber != null && regNumber != 'NEW'
                           ? '${types[index]} - $regNumber'
                           : types[index];
+                  // Displays a tile for each vehicle type, indicating completion status and opening its form on tap.
                   return ListTile(
                     title: Container(
+                      width: width,
                       padding: EdgeInsets.symmetric(
                         vertical: height * 0.0005,
                         horizontal: width * 0.03,
@@ -430,11 +443,19 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                             height: height * 0.08,
                             fit: BoxFit.fill,
                           ),
-                          Text(
-                            displayText,
-                            style: GoogleFonts.cabin(
-                              fontSize: width * 0.05,
-                              fontWeight: FontWeight.w700,
+                          Expanded(
+                            flex: 20,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Text(
+                                softWrap: false,
+                                maxLines: 1,
+                                displayText,
+                                style: GoogleFonts.cabin(
+                                  fontSize: width * 0.05,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
                           Spacer(),
@@ -498,6 +519,7 @@ class _CarDetailsSwitcherState extends ConsumerState<CarDetailsSwitcher> {
                   );
                 },
               ),
+              // Handles final submission process for one or more vehicles, including uploading images and Firestore update.
               floatingActionButton: GestureDetector(
                 onTap: () async {
                   if (!allFormsProperlyFilledOut()) {

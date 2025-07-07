@@ -1,11 +1,20 @@
+// A utility helper for image picking functionality using the `image_picker` package.
+// Provides modal options to pick from camera or gallery, and supports multiple image selection with validation.
+// Also handles permission requests for gallery and camera access.
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+/// Provides static methods for picking images from camera or gallery.
+/// Handles permission requests and shows modal bottom sheet for selection.
 class ImagePickerHelper {
   static final ImagePicker _picker = ImagePicker();
 
+  /// Displays a modal bottom sheet allowing user to pick image from camera or gallery.
+  /// Calls [onPicked] callback with a list of selected images.
+  /// Respects dark/light theme and handles permissions.
   static Future<void> pickImage({
     required BuildContext context,
     required Function(List<XFile>) onPicked,
@@ -108,6 +117,8 @@ class ImagePickerHelper {
     }
   }
 
+  /// Opens gallery to select a single photo.
+  /// Returns the selected [XFile] or null if none selected.
   static Future<XFile?> selectSinglePhoto({
     required BuildContext context,
   }) async {
@@ -116,6 +127,9 @@ class ImagePickerHelper {
     return selected;
   }
 
+  /// Opens gallery to select multiple photos.
+  /// Enforces min and max image constraints and shows error messages if violated.
+  /// Returns a list of [XFile]s or null.
   static Future<List<XFile>?> selectMultiplePhotos({
     required BuildContext context,
     required int? maxImages,
@@ -147,6 +161,8 @@ class ImagePickerHelper {
     return images;
   }
 
+  /// Requests photo and camera permissions based on usage.
+  /// Returns true if all required permissions are granted.
   static Future<bool> _requestPermissions({required bool camera}) async {
     final galleryStatus = await Permission.photos.request();
     final cameraStatus =

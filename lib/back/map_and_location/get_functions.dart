@@ -1,3 +1,6 @@
+// Provides functions and handlers for foreground and background geolocation tracking.
+// Includes logic for initializing tracking, sending location updates to backend, and handling platform permissions.
+// Used for accurate tour tracking in both active and terminated app states.
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
@@ -11,8 +14,11 @@ import 'package:flutter_background_geolocation/flutter_background_geolocation.da
     as bg;
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Stores the last known location to determine if significant movement has occurred.
 LatLng? lastLatLng;
 
+/// Returns true if the user has moved more than [thresholdMeters] from the last location.
+/// Uses haversine formula to calculate distance.
 bool hasMovedSignificantly(double lat, double lng, double thresholdMeters) {
   if (lastLatLng == null) return true;
 
@@ -36,6 +42,9 @@ double _degreesToRadians(double degrees) {
   return degrees * pi / 180;
 }
 
+/// Handles background geolocation events even when the app is terminated.
+/// Posts location data if conditions are met (within tour time window and not yet arrived).
+/// Supports various event types such as LOCATION, HEARTBEAT, GEOFENCE, etc.
 @pragma('vm:entry-point')
 void headlessTask(bg.HeadlessEvent headlessEvent) async {
   logger.d('[BackgroundGeolocation HeadlessTask]: $headlessEvent');
@@ -45,6 +54,7 @@ void headlessTask(bg.HeadlessEvent headlessEvent) async {
       logger.d('- State: $state');
       break;
     case bg.Event.HEARTBEAT:
+      // Post location only if shared preferences contain valid tour data and time window is active.
       final prefs = await SharedPreferences.getInstance();
       final docId = prefs.getString('docId');
       final startDateStr = prefs.getString('startDate');
@@ -85,6 +95,7 @@ void headlessTask(bg.HeadlessEvent headlessEvent) async {
       }
       break;
     case bg.Event.LOCATION:
+      // Post location only if shared preferences contain valid tour data and time window is active.
       final prefs = await SharedPreferences.getInstance();
       final docId = prefs.getString('docId');
       final startDateStr = prefs.getString('startDate');
@@ -160,7 +171,7 @@ void headlessTask(bg.HeadlessEvent headlessEvent) async {
   }
 }
 
-/// Initialize foreground geolocation
+/// Initializes foreground location tracking and invokes [onLocation] callback with the current position.
 Future<void> initializeForegroundTracking({
   required BuildContext context,
   required void Function({
@@ -188,7 +199,7 @@ Future<void> initializeForegroundTracking({
   );
 }
 
-/// Initialize background geolocation
+/// Initializes background location tracking service without immediately requesting a position.
 Future<void> initializeBackgroundTracking({
   required void Function({
     required double latitude,
@@ -202,6 +213,8 @@ Future<void> initializeBackgroundTracking({
   await _startTrackingService(onLocation);
 }
 
+/// Configures and starts the background geolocation service.
+/// Registers location and provider change listeners to deliver updates.
 Future<void> _startTrackingService(
   void Function({
     required double latitude,
@@ -253,6 +266,7 @@ Future<void> _startTrackingService(
     );
   });
 
+  // Log provider changes (e.g., GPS or network disabled).
   bg.BackgroundGeolocation.onProviderChange((bg.ProviderChangeEvent event) {
     logger.e(
       '[providerchange] enabled: ${event.enabled}, gps: ${event.gps}, network: ${event.network}',
@@ -264,6 +278,8 @@ Future<void> _startTrackingService(
   });
 }
 
+/// Prompts Android users to disable battery optimization for accurate background tracking.
+/// Displays a custom dialog with user instructions before opening system settings.
 Future<void> requestIgnoreBatteryOptimizations(BuildContext context) async {
   if (!Platform.isAndroid && context.mounted) return;
 
@@ -367,6 +383,8 @@ Future<void> requestIgnoreBatteryOptimizations(BuildContext context) async {
   }
 }
 
+/// Requests location permissions from the user.
+/// Displays rationale dialogs if needed and handles permanent denial by prompting app settings.
 Future<void> requestLocationPermissions(BuildContext context) async {
   final width = MediaQuery.of(context).size.width;
   final height = MediaQuery.of(context).size.height;
@@ -564,6 +582,8 @@ Future<void> requestLocationPermissions(BuildContext context) async {
   }
 }
 
+/// Sends the location data to the backend only if user has moved significantly.
+/// Posts current coordinates and speed along with the document ID.
 Future<void> sendLocationToBackend({
   required String docId,
   required double latitude,

@@ -1,6 +1,9 @@
+// Provides a custom slide-up route transition to navigate to UrlLauncherWebView.
 import 'package:flutter/material.dart';
 import 'package:onemoretour/front/intro/url_launcher_web_view.dart';
 
+/// Creates a [PageRoute] with a slide-up transition to the [UrlLauncherWebView] widget.
+/// Accepts a `title` and `url` to pass into the web view.
 Route route({required String title, required String url}) {
   return PageRouteBuilder(
     pageBuilder:

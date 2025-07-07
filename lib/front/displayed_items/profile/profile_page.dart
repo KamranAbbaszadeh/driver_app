@@ -1,3 +1,5 @@
+// Profile page displaying earnings chart, personal profile, ride history, vehicle list (for drivers),
+// and logout functionality with state cleanup and navigation.
 import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
 import 'package:onemoretour/back/rides_history/rides_provider.dart';
 import 'package:onemoretour/back/tools/firebase_service.dart';
@@ -18,9 +20,13 @@ import 'package:onemoretour/front/tools/bottom_bar_provider.dart';
 import 'package:onemoretour/front/tools/notification_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
+/// A user profile screen showing monthly earnings chart and account navigation options.
+/// Includes profile details, ride history, and vehicle list (if role is Driver), plus logout dialog.
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
+  /// Clears stored preferences during logout. Used to reset app state.
   Future<void> handleLogout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -33,6 +39,7 @@ class ProfilePage extends ConsumerWidget {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
 
+    // Listen to rides history to prepare earnings data.
     ref.watch(ridesHistoryProvider);
     final earningsMap = ref.read(ridesHistoryProvider.notifier).earningsByDate;
     final dates = earningsMap.keys.toList();
@@ -69,6 +76,7 @@ class ProfilePage extends ConsumerWidget {
                         fontSize: width * 0.05,
                       ),
                     ),
+                    // Bar chart visualizing paid and unpaid earnings per month.
                     Expanded(
                       child: BarChart(
                         BarChartData(
@@ -154,6 +162,7 @@ class ProfilePage extends ConsumerWidget {
                   ],
                 ),
               ),
+              // Navigation tile: Profile
               Material(
                 color:
                     darkMode
@@ -190,6 +199,7 @@ class ProfilePage extends ConsumerWidget {
                   ),
                 ),
               ),
+              // Navigation tile: Ride History
               Material(
                 color:
                     darkMode
@@ -227,9 +237,12 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
 
+              // Show "My Vehicles" section only if the user role is not Guide.
               userRole == "Guide"
                   ? SizedBox.shrink()
-                  : Material(
+                  : 
+                  // Navigation tile: My Vehicles
+                  Material(
                     color:
                         darkMode
                             ? const Color(0xFF2C2C2C)
@@ -277,6 +290,7 @@ class ProfilePage extends ConsumerWidget {
                     ),
                   ),
 
+              // Navigation tile: Log out
               Material(
                 color:
                     darkMode
@@ -312,6 +326,7 @@ class ProfilePage extends ConsumerWidget {
                               ),
                             ),
                             actions: [
+                              // Cancel logout and close the dialog.
                               TextButton(
                                 onPressed: () {
                                   Navigator.pop(context, false);
@@ -328,6 +343,7 @@ class ProfilePage extends ConsumerWidget {
                                   ),
                                 ),
                               ),
+                              // Confirm logout: clear providers, sign out, and redirect to WelcomePage.
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor:

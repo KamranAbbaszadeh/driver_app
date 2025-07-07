@@ -1,3 +1,6 @@
+// Manages the ride state and logic for a tour app.
+// Tracks current and upcoming rides, location updates, and manages route listening and state caching.
+// Uses Riverpod for state management and SharedPreferences for persistence.
 import 'dart:async';
 import 'dart:convert';
 
@@ -19,6 +22,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collection/collection.dart';
 
+/// Represents the immutable state of the ride.
+/// Contains information about all filtered and current rides, as well as the next active route.
 class RideState {
   final List<Ride> filteredRides;
   final List<Map<String, dynamic>> currentRides;
@@ -50,6 +55,8 @@ class RideState {
     this.vehicleRegistrationNumber,
   });
 
+  /// Returns a new [RideState] with updated values.
+  /// Falls back to existing values if not explicitly replaced.
   RideState copyWith({
     List<Ride>? filteredRides,
     List<Map<String, dynamic>>? currentRides,
@@ -84,6 +91,8 @@ class RideState {
   }
 }
 
+/// A Riverpod StateNotifier that manages the ride logic and updates state accordingly.
+/// Handles Firestore subscriptions, location updates, route selection, and state persistence.
 class RideNotifier extends StateNotifier<RideState> {
   final List<StreamSubscription<QuerySnapshot>> _subscriptions = [];
   Timer? _refreshTimer;
@@ -99,6 +108,8 @@ class RideNotifier extends StateNotifier<RideState> {
 
   Timer? locationTrackingTImer;
 
+  /// Subscribes to the relevant Firestore collections based on the user's role.
+  /// Filters and maps ride data into the local state.
   void _startListeningToRides() async {
     final subsCopy = List<StreamSubscription<QuerySnapshot>>.from(
       _subscriptions,
@@ -188,6 +199,9 @@ class RideNotifier extends StateNotifier<RideState> {
     });
   }
 
+  /// Determines the next upcoming route from the current list of rides.
+  /// Updates state with next route and relevant metadata such as coordinates and location names.
+  /// Also persists state locally in SharedPreferences.
   Future<void> updateNextRoute(
     List<Map<String, dynamic>> currentRides,
     BuildContext context,
@@ -331,6 +345,8 @@ class RideNotifier extends StateNotifier<RideState> {
     }
   }
 
+  /// Sends updated location to backend if significant movement is detected.
+  /// Also updates the local [locationProvider] state with the latest data.
   void updateCurrentLocation({
     required dynamic latitude,
     required longitude,
@@ -362,6 +378,8 @@ class RideNotifier extends StateNotifier<RideState> {
     };
   }
 
+  /// Periodically checks if the current time falls within the ride window.
+  /// Starts or stops tracking accordingly based on ride state and user presence.
   void startLocationTrackingLoop(BuildContext context) {
     locationTrackingTImer?.cancel();
     locationTrackingTImer = Timer.periodic(Duration(seconds: 5), (_) async {
@@ -427,6 +445,7 @@ class RideNotifier extends StateNotifier<RideState> {
     });
   }
 
+  /// Cleans up timers and Firestore subscriptions on widget or provider disposal.
   @override
   void dispose() async {
     locationTrackingTImer?.cancel();
@@ -438,6 +457,7 @@ class RideNotifier extends StateNotifier<RideState> {
     super.dispose();
   }
 
+  /// Loads cached route and related data from SharedPreferences into current state.
   Future<void> loadCachedRoute() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('cachedNextRoute');
@@ -453,11 +473,14 @@ class RideNotifier extends StateNotifier<RideState> {
     }
   }
 
+  /// Resets the entire ride state to its default empty state.
   void resetState() {
     state = RideState();
   }
 }
 
+/// Global Riverpod provider for [RideNotifier].
+/// Listens to Firebase Auth state changes and resets ride state accordingly.
 final rideProvider = StateNotifierProvider<RideNotifier, RideState>((ref) {
   final context = ref.read(appContextProvider);
   final rideNotifier = RideNotifier(ref, context);
@@ -481,6 +504,8 @@ final rideProvider = StateNotifierProvider<RideNotifier, RideState>((ref) {
   return rideNotifier;
 });
 
+/// Provides access to the app-wide [BuildContext] for use in location and UI logic.
+/// Should be overridden via [ProviderScope].
 final appContextProvider = Provider<BuildContext>((ref) {
   throw UnimplementedError();
 });

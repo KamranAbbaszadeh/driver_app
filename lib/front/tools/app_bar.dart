@@ -1,3 +1,4 @@
+// Custom AppBar widget displaying user info, vehicle selector, and notifications.
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
@@ -11,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// A reusable AppBar widget for the main layout of the Driver App.
+/// Displays user profile picture, first name, active vehicle selector, and notification icon.
 class BuildAppBar extends ConsumerStatefulWidget {
   const BuildAppBar({super.key});
 
@@ -31,6 +34,7 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
   void initState() {
     try {
       super.initState();
+      // Triggers notification refresh once the widget is mounted.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.watch(notificationsProvider.notifier).refresh();
       });
@@ -42,6 +46,7 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
+    // If user is not authenticated, redirect to WelcomePage.
     if (currentUser == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         navigatorKey.currentState?.pushAndRemoveUntil(
@@ -62,17 +67,21 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
       return Text('Error loading vehicles');
     }
 
+    // Determine system brightness and dimensions.
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    // Fetch notifications and check if there are any unviewed ones.
     final notifications = ref.watch(notificationsProvider);
     final hasUnviewedNotifications = notifications.any((notif) {
       return notif['isViewed'] == false;
     });
+    // Retrieve user role from provider.
     final roleDetails = ref.watch(roleProvider);
     final userRole = roleDetails?['Role'];
 
+    // Get current user data.
     var userData = ref.watch(usersDataProvider);
     if (userData == null) {
       return SizedBox(
@@ -82,12 +91,14 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
       );
     }
 
+    // Extract user profile picture and name for AppBar display.
     String profilePicture = userData['personalPhoto'];
     String firstName = userData['First Name'];
-
     return AppBar(
       surfaceTintColor: Colors.transparent,
       title: Row(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           SizedBox(
             width: width * 0.114,
@@ -103,18 +114,17 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
             ),
           ),
           SizedBox(width: width * 0.025),
-          Expanded(
-            child: Text(
-              'Hi, $firstName!',
-              style: GoogleFonts.ptSans(
-                fontSize: width * 0.066,
-                fontWeight: FontWeight.bold,
-              ),
-              overflow: TextOverflow.visible,
+
+          Text(
+            'Hi, $firstName!',
+            style: GoogleFonts.ptSans(
+              fontSize: firstName.length <= 10 ? width * 0.066 : width * 0.051,
+              fontWeight: FontWeight.bold,
             ),
+            overflow: TextOverflow.visible,
           ),
           Spacer(),
-
+          // Only show vehicle dropdown if user is not a Guide.
           userRole == "Guide"
               ? SizedBox.shrink()
               : AnimatedSwitcher(
@@ -145,15 +155,15 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
                     }
                     return SizedBox(
                       key: ValueKey('dropdown'),
-                      width: width * 0.3,
                       child: DropdownButton<String>(
-                        menuWidth: width * 0.5,
+                        menuWidth: width * 0.45,
                         borderRadius: BorderRadius.circular(width * 0.02),
                         value:
                             userData['Active Vehicle'] ??
                             (vehicles.isNotEmpty ? vehicles.first['id'] : null),
                         underline: SizedBox(),
                         iconSize: width * 0.05,
+                        // Update Firestore with new active vehicle selection.
                         onChanged: (String? newValue) {
                           final user = FirebaseAuth.instance.currentUser;
                           if (user == null) return;
@@ -165,6 +175,7 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
                                 .update({'Active Vehicle': newValue});
                           }
                         },
+                        // Builds selected item visuals with vehicle icons.
                         selectedItemBuilder: (BuildContext context) {
                           return vehicles.map<Widget>((vehicle) {
                             return Padding(
@@ -179,6 +190,7 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
                             );
                           }).toList();
                         },
+                        // Build dropdown menu items with vehicle info and selection state.
                         items:
                             vehicles.map((vehicle) {
                               bool isActive =
@@ -215,6 +227,7 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
                                     ),
                                     if (isActive) ...[
                                       SizedBox(width: width * 0.02),
+                                      // Display check icon for active vehicle.
                                       Icon(
                                         Icons.check_circle,
                                         color: const Color.fromARGB(
@@ -239,6 +252,7 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
       ),
       actions: [
         IconButton(
+          // Navigate to notification screen on icon press.
           onPressed: () {
             navigatorKey.currentState?.pushNamed('/notification_screen');
           },
@@ -248,9 +262,10 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
                 Icons.notifications,
                 color: darkMode ? Colors.white : Colors.black,
               ),
+              // Show indicator if there are any unviewed notifications.
               hasUnviewedNotifications
                   ? Positioned(
-                    right: width * 0.033,
+                    left: width * 0.033,
                     top: height * 0.002,
                     child: Icon(
                       Icons.brightness_1,
@@ -266,6 +281,7 @@ class _BuildAppBarState extends ConsumerState<BuildAppBar> {
           ),
         ),
       ],
+      // Set AppBar background color based on theme.
       backgroundColor:
           darkMode
               ? Color.fromARGB(255, 1, 105, 170)

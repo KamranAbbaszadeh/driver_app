@@ -1,5 +1,8 @@
+// Main entry point of the Driver App.
+// Initializes Firebase, Background Geolocation, Notifications, Badge control, and Theme setup.
+
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:flutter_app_badge_control/flutter_app_badge_control.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/bloc/notification_bloc.dart';
 import 'package:onemoretour/back/bloc/notification_event.dart';
@@ -29,20 +32,31 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'firebase_options.dart';
 
+// Global navigator key used for navigation from non-widget classes.
 final navigatorKey = GlobalKey<NavigatorState>();
+
+// Ensures necessary services are initialized before app runs.
 void main() async {
+  // Ensures Flutter binding is initialized (needed before using native plugins).
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  // Keeps the splash screen visible until initialization is complete.
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
+  // Enables immersive full-screen mode with system overlays.
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
+  // Initializes Firebase with platform-specific options.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseApi.instance.initializeTimeZone();
+  // Registers background task for geolocation when app is terminated.
   bg.BackgroundGeolocation.registerHeadlessTask(headlessTask);
-  FlutterAppBadger.removeBadge();
+  // Clears app notification badge when app starts.
+  FlutterAppBadgeControl.removeBadge();
+  // Prevents screen from sleeping while app is running.
   WakelockPlus.enable();
 
+  // Runs the root of the widget tree with BLoC and Riverpod providers.
   runApp(
     BlocProvider(
       create: (context) => NotificationBloc()..add(FetchNotifications()),
@@ -76,6 +90,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     });
   }
 
+  // Initializes Firebase Messaging, Analytics and removes splash after delay.
   Future<void> _loadData() async {
     final firebaseInitFuture = FirebaseApi.instance.initialize(ref);
     final autoInitFuture = FirebaseMessaging.instance.setAutoInitEnabled(true);
@@ -86,6 +101,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       autoInitFuture,
       Future.delayed(const Duration(seconds: 3)),
     ]);
+    // Checks if a user is signed in and saves their FCM token.
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final userID = user.uid;
@@ -105,11 +121,13 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   Future<void> _checkConnection() async {
     var connectivityResult = await Connectivity().checkConnectivity();
+    // Updates connection status based on current connectivity.
     setState(() {
       _isConnected = !connectivityResult.contains(ConnectivityResult.none);
     });
   }
 
+  // Builds the main MaterialApp with theme and route configuration.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -117,23 +135,34 @@ class _MyAppState extends ConsumerState<MyApp> {
       theme: lightMode,
       darkTheme: darkMode,
 
+      // Conditional display of splash or no-internet screen based on connectivity.
       home: _isConnected ? WaitingPage() : NoInternetPage(),
 
       routes: {
+        // Route to waiting screen
         '/waiting_screen': (context) => WaitingPage(),
+        // Route to no internet screen
         '/no_internet_screen': (context) => NoInternetPage(),
+        // Route to application form
         '/application_form': (context) => ApplicationForm(),
+        // Route to personal data form
         '/personal_data_form': (context) => PersonalDataForm(),
+        // Route to car details switcher
         '/car_details': (context) => CarDetailsSwitcher(),
+        // Route to email authentication
         '/auth_email': (context) => AuthEmail(),
+        // Route to notification screen with bloc provider
         '/notification_screen':
             (context) => BlocProvider(
               create:
                   (context) => NotificationBloc()..add(FetchNotifications()),
               child: NotificationPage(),
             ),
+        // Route to home page
         '/home_page': (context) => HomePage(),
+        // Route to chat page
         '/chat_page': (context) {
+          // Extracts arguments to pass to ChatPage for correct tour and layout.
           final args =
               ModalRoute.of(context)!.settings.arguments
                   as Map<String, dynamic>;

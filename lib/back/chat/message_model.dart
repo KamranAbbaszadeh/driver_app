@@ -1,5 +1,10 @@
+// Defines the [Message] model for chat messages exchanged in the app.
+// Includes sender info, message text, timestamp, and read status.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Represents a chat message sent by a user.
+/// Includes metadata such as sender UID, name, position, timestamp, and read status.
 class Message {
   final String userUID;
   final Timestamp createdAt;
@@ -17,6 +22,7 @@ class Message {
     required this.position,
   });
 
+  /// Converts the [Message] object into a Firestore-compatible map for storage.
   Map<String, dynamic> toMap() {
     return {
       'UID': userUID,

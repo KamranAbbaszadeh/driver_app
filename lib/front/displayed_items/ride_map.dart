@@ -1,3 +1,6 @@
+// Displays the real-time Google Map during an ongoing ride.
+// Handles map styling, current position updates, and displays markers for start, end, and current vehicle location.
+
 import 'dart:async';
 import 'dart:math';
 
@@ -10,6 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+/// Widget that renders the Google Map view for an active ride.
+/// Updates markers dynamically and responds to ride state and location changes.
 class RideMap extends ConsumerStatefulWidget {
   const RideMap({super.key});
 
@@ -27,12 +32,15 @@ class _RideMapState extends ConsumerState<RideMap> {
   late double screenWidth;
   late double screenHeight;
 
+  /// Helper to get the current latitude and longitude from the location provider.
   LatLng? _getCurrentLatLng() {
     final pos = ref.read(locationProvider);
     if (pos == null) return null;
     return LatLng(pos['latitude'], pos['longitude']);
   }
 
+  /// Sets up listeners for ride state and location updates.
+  /// Animates camera to the user's position when the ride starts or location updates.
   @override
   void initState() {
     super.initState();
@@ -59,6 +67,7 @@ class _RideMapState extends ConsumerState<RideMap> {
     });
   }
 
+  /// Updates the current vehicle marker on the map with rotation and animation.
   void _updateCurrentLocationMarker(LatLng position, double heading) {
     setState(() {
       _markers = {
@@ -77,6 +86,7 @@ class _RideMapState extends ConsumerState<RideMap> {
     }
   }
 
+  /// Loads screen dimensions and custom map styles on widget dependency change.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -101,6 +111,8 @@ class _RideMapState extends ConsumerState<RideMap> {
     _loadMarkers();
   }
 
+  /// Loads start, end, and current location markers.
+  /// Computes map center and zoom based on ride geometry and user location.
   Future<void> _loadMarkers() async {
     final position = ref.read(locationProvider);
     final rideState = ref.read(rideProvider);
@@ -165,6 +177,7 @@ class _RideMapState extends ConsumerState<RideMap> {
           anchor: const Offset(0.5, 0.5),
         ),
       };
+      // Set the initial camera to the midpoint between start, end, and current location with proper zoom.
       try {
         _initialCameraPosition = CameraPosition(
           target: midPoint,
@@ -174,6 +187,7 @@ class _RideMapState extends ConsumerState<RideMap> {
         logger.e('Error setting initial camera position: $e');
       }
     });
+    // If ride has already started, animate camera to user's live location.
     final rideFlow = ref.read(rideFlowProvider);
     if (rideFlow.startRide && _mapController != null) {
       _mapController!.animateCamera(
@@ -196,6 +210,7 @@ class _RideMapState extends ConsumerState<RideMap> {
     }
     return Stack(
       children: [
+        // Render the Google Map with all markers and dynamic camera handling.
         GoogleMap(
           initialCameraPosition: _initialCameraPosition!,
           markers: _markers,
@@ -216,7 +231,9 @@ class _RideMapState extends ConsumerState<RideMap> {
         Positioned(
           bottom: height * 0.093,
           right: width * 0.04,
-          child: FloatingActionButton(
+          child:
+          // Button to recenter the map to current position or initial midpoint depending on ride state.
+          FloatingActionButton(
             heroTag: 'map_location_btn',
             backgroundColor: Colors.white,
             onPressed: () {
@@ -247,6 +264,7 @@ class _RideMapState extends ConsumerState<RideMap> {
     );
   }
 
+  /// Calculates the average of three LatLng points to determine map center.
   LatLng getMidpoint(LatLng? start, LatLng? end, LatLng? current) {
     if (start == null || end == null || current == null) {
       return const LatLng(0.0, 0.0);
@@ -256,6 +274,8 @@ class _RideMapState extends ConsumerState<RideMap> {
     return LatLng(midLat, midLng);
   }
 
+  /// Calculates an appropriate zoom level based on distance and screen width.
+  /// Clamps the zoom level between 8.0 and 21.0.
   double getZoomLevel(double distanceMeters, double screenWidthInPixels) {
     final zoom =
         log(156543.03392 * cos(0) * screenWidthInPixels / distanceMeters) / ln2;

@@ -1,3 +1,5 @@
+// Form page for uploading personal identification documents.
+// Includes personal photo, ID photo (front/back), and driver license photo (for drivers only).
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/tools/image_picker.dart';
@@ -15,6 +17,8 @@ import 'package:onemoretour/front/tools/signle_photo_picker_with_display.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// A form that collects key identification documents from the user as part of onboarding.
+/// Includes personal photo, ID photo, and (for drivers) driver license photo.
 class PersonalDataForm extends ConsumerStatefulWidget {
   const PersonalDataForm({super.key});
 
@@ -31,6 +35,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
   String error = "No Error Detected";
   late bool isDeclined;
 
+  /// Saves currently selected personal, ID, and driver license photo paths
+  /// to SharedPreferences for temporary storage in case the user leaves the form.
   Future<void> _saveTempPersonalPhotos() async {
     final prefs = await SharedPreferences.getInstance();
     if (personalPhoto != null) {
@@ -46,6 +52,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
     );
   }
 
+  /// Loads personal, ID, and license photos from Firestore if previously declined,
+  /// otherwise retrieves saved temporary paths from SharedPreferences.
   Future<void> _loadTempPersonalPhotos() async {
     final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
@@ -94,6 +102,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
     }
   }
 
+  /// Clears temporarily saved photo paths from SharedPreferences.
   Future<void> _clearTempPersonalPhotos() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('personalPhotoPath');
@@ -101,6 +110,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
     await prefs.remove('idPhotoPaths');
   }
 
+  /// Checks if all required fields are filled based on user role.
+  /// For drivers, all 3 photo sets are required; for guides, driver license is skipped.
   bool _allFilledOut(String role) {
     if (personalPhoto != null &&
         driverLicensePhoto.isNotEmpty &&
@@ -113,6 +124,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
     return false;
   }
 
+  /// Validates which photo fields are missing and shows appropriate SnackBar messages.
   void _checkFields(String role) {
     if (personalPhoto == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -135,6 +147,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
   @override
   void initState() {
     super.initState();
+    // Track scroll to conditionally show or hide app bar title.
     _scrollController.addListener(() {
       if (_scrollController.offset > 5 && !_showTitle) {
         setState(() {
@@ -149,6 +162,8 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
     _loadTempPersonalPhotos();
   }
 
+  /// Uploads all selected photo files to Firebase Storage and writes their URLs to Firestore.
+  /// Clears temporary photo data after successful submission.
   Future<void> _submitForm() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -174,11 +189,13 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    // Get user role (Driver/Guide) from provider to determine form requirements.
     final roleDetails = ref.watch(roleProvider);
     final role = roleDetails?['Role'];
     if (roleDetails == null) {
       return const Center(child: CircularProgressIndicator());
     }
+    // Dynamically set progress indicator text based on role.
     String numOfPages = role == 'Guide' ? '1/3' : '1/4';
 
     return Scaffold(
@@ -235,6 +252,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                   'We\'re almost there! Share a few important details to complete your profile and set the stage for an exciting partnership ahead.',
                 ),
                 SizedBox(height: height * 0.015),
+                // Personal photo picker section.
                 SinglePhotoPickerWithDisplay(
                   image: personalPhoto,
                   label: "Please Upload Your Photo",
@@ -266,6 +284,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                   isDeclined: isDeclined,
                 ),
                 SizedBox(height: height * 0.015),
+                // ID photo picker section (front and back).
                 PhotoPickerWithDisplay(
                   images: iDPhoto,
                   label: "Please Upload Your ID Photo",
@@ -304,6 +323,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                 SizedBox(height: height * 0.025),
                 role == 'Guide'
                     ? SizedBox.shrink()
+                    // Driver license photo picker section (only required if role is not Guide).
                     : PhotoPickerWithDisplay(
                       images: driverLicensePhoto,
                       label: "Please Upload Your Driver License Photo",
@@ -340,6 +360,7 @@ class _PersonalDataFormState extends ConsumerState<PersonalDataForm> {
                       isDeclined: isDeclined,
                     ),
                 SizedBox(height: height * 0.025),
+                // Handle form validation and navigate to the next form screen.
                 GestureDetector(
                   onTap: () {
                     if (_allFilledOut(role)) {

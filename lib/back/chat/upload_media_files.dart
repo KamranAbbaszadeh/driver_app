@@ -1,6 +1,13 @@
+// Handles media file uploads to Firebase Storage.
+// Determines file type (image/video), sets correct file extension, uploads to a structured path,
+// and returns the downloadable URL of the uploaded file.
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:mime/mime.dart';
 
+/// Uploads a media file (image or video) to Firebase Storage.
+/// Automatically determines the file type and extension.
+/// Stores the file under the structure: Users/{userID}/{folderName}/{timestamp}.{ext}
+/// Returns the download URL after successful upload.
 Future<String> uploadMediaFile({
   required Reference storageRef,
   required String userID,

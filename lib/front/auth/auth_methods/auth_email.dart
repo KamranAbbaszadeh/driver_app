@@ -1,3 +1,4 @@
+// Email authentication screen with form validation, sign-in functionality, and error handling.
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/tools/loading_notifier.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
@@ -8,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Sign-in screen that authenticates users using email and password.
+/// Includes field validation, password visibility toggle, and loading feedback.
 class AuthEmail extends ConsumerStatefulWidget {
   const AuthEmail({super.key});
 
@@ -31,6 +34,7 @@ class _AuthState extends ConsumerState<AuthEmail> {
     _emailFocusNode = FocusNode();
     _passwordFocusNode = FocusNode();
 
+    // Automatically hide password after input field loses focus.
     _passwordFocusNode.addListener(() {
       if (!_passwordFocusNode.hasFocus) {
         setState(() {
@@ -39,12 +43,14 @@ class _AuthState extends ConsumerState<AuthEmail> {
       }
     });
 
+    // Update UI when password input changes (to show/hide visibility icon).
     _passwordController.addListener(() {
       setState(() {});
     });
   }
 
   void _validateEmail(String value) {
+    // Validate email input and update error state flags.
     setState(() {
       isEmpty = value.isEmpty;
       isValid = validateEmail(value);
@@ -52,11 +58,13 @@ class _AuthState extends ConsumerState<AuthEmail> {
   }
 
   bool _isFormValid() {
+    // Check if all fields are filled and valid for sign-in.
     return !isEmpty && isValid && _passwordController.text.isNotEmpty;
   }
 
   @override
   void dispose() {
+    // Clean up controllers and focus nodes to avoid memory leaks.
     _emailController.dispose();
     _passwordFocusNode.dispose();
 
@@ -389,6 +397,7 @@ class _AuthState extends ConsumerState<AuthEmail> {
                 onTap: () async {
                   if (_isFormValid()) {
                     try {
+                      // Start loading and attempt sign-in with Firebase.
                       ref.read(loadingProvider.notifier).startLoading();
                       await FirebaseAuth.instance.signInWithEmailAndPassword(
                         email: _emailController.text.trim().toLowerCase(),
@@ -400,6 +409,7 @@ class _AuthState extends ConsumerState<AuthEmail> {
 
                       FirebaseApi.instance.saveFCMToken(userId);
 
+                      // Stop loading after sign-in attempt completes or fails.
                       ref.read(loadingProvider.notifier).stopLoading();
                       if (context.mounted) {
                         Navigator.pushAndRemoveUntil(
@@ -411,8 +421,10 @@ class _AuthState extends ConsumerState<AuthEmail> {
                         );
                       }
                     } catch (_) {
+                      // Stop loading after sign-in attempt completes or fails.
                       ref.read(loadingProvider.notifier).stopLoading();
                       if (context.mounted) {
+                        // Show error message if authentication fails.
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text("Email or password is incorrect"),

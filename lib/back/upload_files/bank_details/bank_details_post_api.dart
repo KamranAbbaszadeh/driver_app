@@ -1,10 +1,17 @@
+// Sends bank account details to an external API endpoint.
+// This API is used to register or update driver bank information for payout purposes.
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+/// A helper class to post bank account details to the external Bubble API.
+/// Sends the data as JSON with appropriate authentication headers.
 class BankDetailsPostApi {
   final String baseUrl = "https://onemoretour.com/version-test/api/1.1/wf";
 
+  /// Posts the provided [data] to the /addbankaccount API endpoint.
+  /// Returns true on success (HTTP 200 or 201), false otherwise.
+  /// Catches any exceptions during the request process.
   Future<bool> postData(Map<String, dynamic> data) async {
     final url = Uri.parse('$baseUrl/addbankaccount');
     try {

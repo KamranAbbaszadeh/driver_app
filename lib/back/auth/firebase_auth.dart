@@ -1,3 +1,6 @@
+// Handles user sign-up and update logic for Firebase Auth and Firestore.
+// Also sends user data to an external API and saves FCM tokens.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/auth/post_api.dart';
@@ -6,6 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+/// Registers a new user with Firebase Auth and Firestore or updates existing user data.
+/// Also posts user information to an external API and saves their FCM token.
 Future<void> signUp({
   required TextEditingController emailController,
   required TextEditingController passwordController,
@@ -21,12 +26,13 @@ Future<void> signUp({
   required TextEditingController genderController,
   required dynamic context,
 }) async {
+  // Check if user is already signed in. If not, proceed with registration.
   final user = FirebaseAuth.instance.currentUser;
   try {
     if (user == null) {
       final ApiService apiService = ApiService();
 
-      // 1. Create user with email and password
+      // Step 1: Create Firebase Auth account using email and password.
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
             email: emailController.text.trim().toLowerCase(),
@@ -36,7 +42,7 @@ Future<void> signUp({
       final user = userCredential.user;
       if (user == null) throw Exception("User creation failed");
 
-      // 2. Create Firestore user document
+      // Step 2: Store initial user profile in Firestore under 'Users' collection.
       await addUserDetails(
         birthDayController: birthDayController,
         emailController: emailController,
@@ -52,7 +58,7 @@ Future<void> signUp({
         vehicleTypeController: vehicleTypeController,
       );
 
-      // 3. 🛠 Confirm Firestore document and "Role" field are available
+      // Step 3: Validate Firestore record and ensure 'Role' field exists.
       final userDocSnapshot =
           await FirebaseFirestore.instance
               .collection('Users')
@@ -66,10 +72,9 @@ Future<void> signUp({
         );
       }
 
-      // 4. Save FCM Token
+      // Step 4: Save FCM token to Firestore.
       await FirebaseApi.instance.saveFCMToken(user.uid);
 
-      // 5. Post additional data (to external API)
       DateTime parsedDate = DateFormat(
         'dd/MM/yyyy',
       ).parse(birthDayController.text);
@@ -92,6 +97,7 @@ Future<void> signUp({
         'UID': user.uid,
       };
 
+      // Step 5: Post user data to external API.
       final success = await apiService.postData(data);
 
       if (success) {
@@ -163,6 +169,8 @@ Future<void> signUp({
   }
 }
 
+/// Adds initial user data to Firestore under 'Users' collection.
+/// Structure varies depending on user role (Guide vs Driver).
 Future<void> addUserDetails({
   required TextEditingController emailController,
   required TextEditingController firstNameController,
@@ -234,6 +242,8 @@ Future<void> addUserDetails({
   }
 }
 
+/// Updates existing Firestore user document with new profile data.
+/// Structure varies depending on user role (Guide vs Driver).
 Future<void> updateUserDetails({
   required TextEditingController emailController,
   required TextEditingController firstNameController,

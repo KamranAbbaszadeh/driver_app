@@ -1,6 +1,11 @@
+// A widget that plays a video from a given network URL and displays a small preview.
+// When tapped, it opens a full-screen dialog with play/pause functionality.
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+/// A widget that shows a thumbnail preview of a network video.
+/// Tapping the preview opens a larger dialog where the user can play or pause the video.
 class VideoPlayerWidget extends StatefulWidget {
   final Uri videoUrl;
   const VideoPlayerWidget({super.key, required this.videoUrl});
@@ -54,6 +59,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         : Center(child: CircularProgressIndicator());
   }
 
+  /// Displays a dialog containing the video player with a play/pause toggle.
+  /// Uses a transparent background and a fixed height for the video.
   void _showVideoDialog() {
     showDialog(
       context: context,

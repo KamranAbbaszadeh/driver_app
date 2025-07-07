@@ -1,3 +1,5 @@
+// In-app chat interface for a tour, supporting media messages and file attachments.
+// Messages are grouped by date and display sender identity with timestamps.
 import 'dart:io';
 import 'dart:math';
 
@@ -24,6 +26,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:onemoretour/main.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Chat interface for the given tour ID, allowing drivers and guides to send messages, images, videos, and documents.
+/// Displays messages grouped by date, with automatic scrolling and Firebase integration.
 class ChatPage extends ConsumerStatefulWidget {
   final String tourId;
   final double width;
@@ -51,6 +55,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   final storageRef = FirebaseStorage.instance.ref();
   String? currentUserId;
 
+  /// Initializes scroll controller and retrieves the current tour name based on user role.
   @override
   void initState() {
     super.initState();
@@ -60,6 +65,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     currentUserId = FirebaseAuth.instance.currentUser?.uid;
   }
 
+  /// Sends the current text in the input field as a message to Firestore.
   void _sendMessage() {
     if (_messageController.text.isNotEmpty) {
       _chatService.sendMessage(
@@ -72,6 +78,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
   }
 
+  /// Fetches the name of the tour from Firestore based on user role (Driver, Guide, or both).
   void getTourName() async {
     try {
       final User? user = auth.currentUser;
@@ -122,6 +129,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
   }
 
+  /// Formats Firestore timestamps into human-readable labels like "Today", "Yesterday", or time.
   String _formatDate(DateTime date) {
     if (date.day == DateTime.now().day) {
       return 'Today';
@@ -133,6 +141,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     return "${date.day}/${date.month}/${date.year}";
   }
 
+  /// Groups incoming messages by date string to render daily message sections.
   Map<String, List<Map<String, dynamic>>> _groupMessagesByDate(
     List<Map<String, dynamic>> messages,
   ) {
@@ -152,6 +161,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     return groupedMessages;
   }
 
+  /// Scrolls the message list to the most recent entry.
   void _scrollToBottom() {
     _scrollController.animateTo(
       _scrollController.position.maxScrollExtent,
@@ -160,6 +170,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
+  /// Detects and renders different media types (image, video, or URL) inside a message.
+  /// If only a URL is present, formats and displays it; otherwise, shows cleaned text with media previews.
   Widget displayMessageWithMedia(
     BuildContext context,
     String text,
@@ -674,6 +686,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
+  /// Formats Firestore timestamps into human-readable labels like "Today", "Yesterday", or time.
   String _formatTimestamp(Timestamp timestamp) {
     DateTime dateTime = timestamp.toDate();
     int hour = dateTime.hour;
@@ -684,6 +697,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     return "$hour:$minute $period";
   }
 
+  /// Renders the input area with support for file and media attachment, and send button.
   Widget _buildMessageInput({required double height, required double width}) {
     return Container(
       decoration: BoxDecoration(
@@ -911,6 +925,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
+  /// Builds the custom AppBar with tour name and loading indicator if not fetched yet.
   Widget _buildAppBar({
     required BuildContext context,
     required double height,

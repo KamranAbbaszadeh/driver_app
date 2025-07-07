@@ -1,3 +1,7 @@
+// A comprehensive application form widget for registering or updating driver or tour guide details.
+// Includes extensive validation, persistent storage using SharedPreferences, Firestore data loading,
+// dynamic UI updates based on user interaction, and integrates with authentication and various pickers.
+
 import 'package:onemoretour/back/auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:onemoretour/back/tools/date_picker.dart';
@@ -18,6 +22,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Main widget for capturing and managing user inputs for driver or guide application.
+/// Implements form validation, real-time error feedback, dynamic focus management,
+/// and persistent form state storage.
 class ApplicationForm extends ConsumerStatefulWidget {
   const ApplicationForm({super.key});
 
@@ -85,18 +92,22 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   bool passwordObscure = true;
   bool confirmPasswordObscure = true;
 
+  /// Validates that the input contains only letters (Latin or Cyrillic).
   bool validateName(String value) {
     return RegExp(r"^[a-zA-Zа-яА-Я\s]+$").hasMatch(value);
   }
 
+  /// Validates international phone number format starting with "+" followed by at least 12 digits.
   bool validatePhoneNumber(String value) {
     return RegExp(r"^\+\d{12,}$").hasMatch(value);
   }
 
+  /// Validates numeric experience input, ensuring it's a positive integer.
   bool validateExperience(String value) {
     return RegExp(r"^\d+$").hasMatch(value) && int.parse(value) > 0;
   }
 
+  /// Validates email format and sets state accordingly.
   void _validateEmail(String value) {
     final trimmedValue = value.trim();
     setState(() {
@@ -104,6 +115,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     });
   }
 
+  /// Validates password complexity including length, uppercase, lowercase, digits, and special characters.
   String? validatePassword(String value) {
     if (value.isEmpty) {
       return 'Password cannot be empty';
@@ -146,6 +158,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     return "valid";
   }
 
+  /// Validates that the confirmed password matches the original password.
   String? validateConfirmPassword(String value) {
     if (value != _passwordController.text) {
       setState(() {
@@ -159,6 +172,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     return 'confirmed';
   }
 
+  /// Checks if the provided date string corresponds to an age greater than or equal to [minAge].
   bool _isAtLeastYearsOld(
     String dateString, {
     int minAge = 18,
@@ -185,6 +199,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     return true;
   }
 
+  /// Checks if all form fields are filled and valid based on current form state.
+  /// Accounts for user authentication status and conditional fields.
   bool _allFilledOut() {
     if (user == null) {
       if (_firstNameController.text.isNotEmpty &&
@@ -243,6 +259,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     }
   }
 
+  /// Sets state flags indicating if individual form fields are empty or invalid.
+  /// Provides immediate feedback to the user interface.
   void _isEmpty(TextEditingController controller, String fieldName) {
     setState(() {
       if (fieldName == 'firstName') {
@@ -279,6 +297,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     });
   }
 
+  /// Submits the form data via the sign-up method and clears stored form data upon success.
   Future<void> _submitForm() async {
     await signUp(
       emailController: _emailController,
@@ -298,6 +317,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     _clearFormData();
   }
 
+  /// Automatically focuses the first incomplete or invalid field in the form.
+  /// Enhances user experience by guiding users directly to fields requiring attention.
   void _checkFields() {
     if (_firstNameController.text.isEmpty) {
       _firstNameFocusNode.requestFocus();
@@ -346,6 +367,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     }
   }
 
+  /// Initializes controllers, listeners, focus nodes, and loads existing form data.
+  /// Sets up UI interaction logic and automatic form state persistence.
   @override
   void initState() {
     super.initState();
@@ -533,6 +556,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     _loadFormData();
   }
 
+  /// Opens respective picker widgets to capture user input.
+  /// Updates the associated controller and validation state.
   Future<void> _openDatePicker() async {
     await Future.delayed(Duration(milliseconds: 100));
     if (mounted) {
@@ -545,6 +570,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     _genderFocusNode.requestFocus();
   }
 
+  /// Opens respective picker widgets to capture user input.
+  /// Updates the associated controller and validation state.
   Future<void> _openGenderPicker() async {
     await Future.delayed(Duration(milliseconds: 100));
     if (mounted) {
@@ -558,6 +585,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     }
   }
 
+  /// Opens respective picker widgets to capture user input.
+  /// Updates the associated controller and validation state.
   Future<void> _openRolePicker() async {
     await Future.delayed(Duration(milliseconds: 100));
     if (mounted) {
@@ -567,6 +596,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     _experienceFocusNode.requestFocus();
   }
 
+  /// Opens respective picker widgets to capture user input.
+  /// Updates the associated controller and validation state.
   Future<void> _openLanguagePicker() async {
     await Future.delayed(Duration(milliseconds: 100));
     if (mounted) {
@@ -574,13 +605,15 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
       _languageController.text = selectedLanguages.join(', ');
       _isEmpty(_languageController, 'language');
     }
-    if (_roleController.text == 'Guide') {
+    if (_roleController.text == 'Guide' || _roleController.text.isEmpty) {
       _languageFocusNode.unfocus();
     } else {
       _vehicleTypeFocusNode.requestFocus();
     }
   }
 
+  /// Opens respective picker widgets to capture user input.
+  /// Updates the associated controller and validation state.
   Future<void> _openVehicleTypePicker() async {
     await Future.delayed(Duration(milliseconds: 100));
     if (mounted) {
@@ -597,6 +630,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     });
   }
 
+  /// Saves form data to persistent storage (SharedPreferences) to maintain state across app launches.
   Future<void> _saveFormData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('firstName', _firstNameController.text);
@@ -614,11 +648,13 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     await prefs.setString('confirmPassword', _confirmPasswordController.text);
   }
 
+  /// Clears all stored form data from persistent storage.
   Future<void> _clearFormData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
 
+  /// Loads form data from persistent storage or Firestore if the user is authenticated.
   Future<void> _loadFormData() async {
     final user = this.user;
     if (user != null) {
@@ -677,6 +713,7 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     _confirmPasswordController.text = prefs.getString('confirmPassword') ?? '';
   }
 
+  /// Disposes controllers, focus nodes, and listeners to prevent memory leaks.
   @override
   void dispose() {
     _scrollController.dispose();
@@ -712,6 +749,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     super.dispose();
   }
 
+  /// Builds the main form UI, handling dynamic focus, field validation, error messaging,
+  /// and user interaction logic. Integrates custom-styled inputs and responsive layouts.
   @override
   Widget build(BuildContext context) {
     final darkMode =
@@ -2207,7 +2246,8 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
                       focusNode: _languageFocusNode,
 
                       onEditingComplete: () {
-                        if (_roleController.text == 'Guide') {
+                        if (_roleController.text == 'Guide' ||
+                            _roleController.text.isEmpty) {
                           FocusScope.of(context).unfocus();
                         } else {
                           _languageFocusNode.unfocus();

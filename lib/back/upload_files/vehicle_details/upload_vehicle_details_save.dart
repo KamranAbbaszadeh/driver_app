@@ -1,3 +1,6 @@
+// Uploads vehicle details and images to Firebase Storage and Firestore.
+// Posts structured vehicle data to an external API after saving.
+// Handles duplication checks, vehicle ID generation, and image compression.
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +12,10 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
+/// Uploads vehicle details for a given [userId] and saves them in Firestore under the user's 'Vehicles' subcollection.
+/// Checks for duplicates based on registration number, updates if exists, or creates a new vehicle entry.
+/// Appends new vehicle types to the user's profile if necessary.
+/// Posts data to an external API and displays success/failure feedback in the app context.
 Future<void> uploadVehicleDetailsAndSave({
   required String userId,
   required Map<String, dynamic> vehicleDetails,
@@ -124,6 +131,8 @@ Future<void> uploadVehicleDetailsAndSave({
   }
 }
 
+/// Compresses and uploads a single image to Firebase Storage.
+/// Returns the download URL for the uploaded image.
 Future<String> uploadSinglePhoto({
   required Reference storageRef,
   required String userID,
@@ -148,6 +157,8 @@ Future<String> uploadSinglePhoto({
   return await taskSnapshot.ref.getDownloadURL();
 }
 
+/// Uploads a list of image files to Firebase Storage.
+/// Returns a list of download URLs for the uploaded images.
 Future<List<String>> uploadMultiplePhotos({
   required Reference storageRef,
   required String userId,
@@ -169,6 +180,8 @@ Future<List<String>> uploadMultiplePhotos({
   return await Future.wait(uploads);
 }
 
+/// Uploads a list of file paths to Firebase Storage under the vehicle's folder.
+/// Returns a list of download URLs, reusing existing hosted URLs if provided.
 Future<List<String>> uploadMultiplePhotosFromPaths(
   List<String> paths,
   Reference storageRef,
@@ -201,6 +214,8 @@ Future<List<String>> uploadMultiplePhotosFromPaths(
   return await Future.wait(uploadFutures);
 }
 
+/// Uploads a single file from the provided [path] to Firebase Storage.
+/// Returns the download URL or returns the original URL if already hosted.
 Future<String> uploadSinglePhotoFromPath(
   String path,
   Reference storageRef,

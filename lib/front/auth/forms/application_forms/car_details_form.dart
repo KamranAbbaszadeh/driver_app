@@ -15,7 +15,8 @@ import 'package:onemoretour/front/tools/signle_photo_picker_with_display.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 
-// Validators
+// Form page for collecting detailed information about the applicant's vehicle.
+// Includes fields for brand, model, plate number, and other required car details.
 bool validateCarName(String value) {
   return RegExp(r"^[A-Za-z0-9\s\-,.]{2,50}$").hasMatch(value);
 }
@@ -47,6 +48,8 @@ bool validateSeatNumber(String value) {
   return seats >= 1 && seats <= 99;
 }
 
+/// Form used during application process to collect car-related information.
+/// Validates input fields and stores the result in the shared application state.
 class CarDetailsForm extends ConsumerStatefulWidget {
   final String vehicleType;
   final bool multiSelection;
@@ -555,6 +558,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
 
   @override
   Widget build(BuildContext context) {
+    // Detect current theme brightness for styling.
     final roleDetails = ref.watch(roleProvider);
     final isRegistered = roleDetails?['isRegistered'] ?? false;
     String numOfPages = isRegistered ? "" : '4/4 ';
@@ -631,7 +635,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                         : 'Let\'s get to know your vehicle! Share the details to ensure you\'re fully equipped to provide reliable and safe service.',
                   ),
                   SizedBox(height: height * 0.015),
-                  //Name of the car
+                  // Input for car brand.
                   Container(
                     width: width,
                     height: height * 0.065,
@@ -680,6 +684,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           nameOfTheCarFocusNode.unfocus();
                         },
                         controller: nameOfTheCarController,
+                        // Update field value in shared form data when user types.
                         decoration: InputDecoration(
                           suffixIcon:
                               nameOfTheCarFocusNode.hasFocus
@@ -781,7 +786,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     isDeclined: widget.isDeclined,
                   ),
                   SizedBox(height: height * 0.015),
-                  //Technical Passport Number
+                  // Input for technical passport number, includes validation.
                   Container(
                     width: width,
                     height: height * 0.065,
@@ -832,6 +837,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           technicalPassportNumberFocusNode.unfocus();
                         },
                         controller: technicalPassportNumberController,
+                        // Update field value in shared form data when user types.
                         inputFormatters: [
                           UpperCaseTextFormatter(),
                           FilteringTextInputFormatter.allow(
@@ -951,7 +957,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     isDeclined: widget.isDeclined,
                   ),
                   SizedBox(height: height * 0.015),
-                  //Chassis Number
+                  // Input for chassis number, includes validation.
                   Container(
                     width: width,
                     height: height * 0.065,
@@ -997,6 +1003,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           chassisNumberFocusNode.unfocus();
                         },
                         controller: chassisNumberController,
+                        // Update field value in shared form data when user types.
                         inputFormatters: [
                           UpperCaseTextFormatter(),
                           FilteringTextInputFormatter.allow(
@@ -1104,7 +1111,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                     isDeclined: widget.isDeclined,
                   ),
                   SizedBox(height: height * 0.015),
-                  //Vehicle Registration Number
+                  // Input for vehicle registration number, includes validation.
                   Container(
                     width: width,
                     height: height * 0.065,
@@ -1158,6 +1165,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           ).requestFocus(yearOfTheCarFocusNode);
                         },
                         controller: vehicleRegistrationNumberController,
+                        // Update field value in shared form data when user types.
                         inputFormatters: [
                           UpperCaseTextFormatter(),
                           FilteringTextInputFormatter.allow(
@@ -1237,7 +1245,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       ),
                     ),
                   SizedBox(height: height * 0.015),
-                  //Year of The Car
+                  // Input for year of the car, includes validation.
                   Container(
                     width: width,
                     height: height * 0.065,
@@ -1267,6 +1275,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           LengthLimitingTextInputFormatter(4),
                         ],
                         onChanged: (value) {
+                          // Update field value in shared form data when user types.
                           final year = int.tryParse(value);
                           if (year != null && year > DateTime.now().year) {
                             yearOfTheCarController.text =
@@ -1373,7 +1382,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       ),
                     ),
                   SizedBox(height: height * 0.015),
-                  //Vehicle Type
+                  // Input for vehicle type, includes validation.
                   Container(
                     width: width,
                     height: height * 0.065,
@@ -1476,7 +1485,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       ),
                     ),
                   SizedBox(height: height * 0.015),
-                  //Seat Number
+                  // Input for seat number, includes validation.
                   Container(
                     width: width,
                     height: height * 0.065,
@@ -1525,6 +1534,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                           seatNumbersFocusNode.unfocus();
                         },
                         controller: seatNumbersController,
+                        // Update field value in shared form data when user types.
                         decoration: InputDecoration(
                           suffixIcon:
                               seatNumbersFocusNode.hasFocus
@@ -1594,6 +1604,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
                       ),
                     ),
                   SizedBox(height: height * 0.025),
+                  // Add spacing at the bottom of the form.
                   GestureDetector(
                     onTap: () async {
                       if (allFilledOut()) {

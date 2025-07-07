@@ -1,9 +1,14 @@
+// Screen displaying the user's ride history.
+// Separates and displays tours where the user was a driver and those where they were a guide.
+// Uses animated expansion tiles for detailed ride information.
 import 'package:onemoretour/back/rides_history/rides_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+/// A custom expansion tile widget with animated expand/collapse behavior.
+/// Replaces the default [ExpansionTile] with a smoother animation.
 class CustomExpansionTile extends StatefulWidget {
   final Widget title;
   final List<Widget> children;
@@ -49,6 +54,7 @@ class _CustomExpansionTileState extends State<CustomExpansionTile>
     super.dispose();
   }
 
+/// Toggles the expansion state and triggers animation.
   void toggleExpansion() {
     setState(() {
       isExpanded = !isExpanded;
@@ -82,6 +88,8 @@ class _CustomExpansionTileState extends State<CustomExpansionTile>
   }
 }
 
+/// Main screen showing the user's full history of completed ride and guide tours.
+/// Fetches data via a Riverpod provider and categorizes entries.
 class RidesHistory extends ConsumerStatefulWidget {
   const RidesHistory({super.key});
 
@@ -91,6 +99,8 @@ class RidesHistory extends ConsumerStatefulWidget {
 
 class _RidesHistoryState extends ConsumerState<RidesHistory> {
   String? expandedTileKey;
+
+  /// Builds the main layout of the ride history screen, including ride and guide tour sections.
   @override
   Widget build(BuildContext context) {
     final ridesState = ref.watch(ridesHistoryProvider);
@@ -151,6 +161,7 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
                             horizontal: width * 0.035,
                             vertical: height * 0.009,
                           ),
+                          // Section header for Ride Tours
                           child: Text(
                             "Ride Tours",
                             style: GoogleFonts.ptSans(
@@ -160,6 +171,7 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
                             ),
                           ),
                         ),
+                        // Generate a list of ride cards for the given tour type.
                         ...rideTours.asMap().entries.map((entry) {
                           final index = entry.key;
                           final ride = entry.value;
@@ -180,6 +192,7 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
                             horizontal: width * 0.035,
                             vertical: height * 0.009,
                           ),
+                          // Section header for Guide Tours
                           child: Text(
                             "Guide Tours",
                             style: GoogleFonts.ptSans(
@@ -189,6 +202,7 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
                             ),
                           ),
                         ),
+                        // Generate a list of ride cards for the given tour type.
                         ...guideTours.asMap().entries.map((entry) {
                           final index = entry.key;
                           final ride = entry.value;
@@ -210,6 +224,8 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
     );
   }
 
+/// Builds a card with expandable detailed information for each ride or guide tour.
+/// Dynamically adjusts label based on section (ride or guide).
   Widget buildRideCard(
     BuildContext context,
     dynamic ride,
@@ -219,6 +235,7 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
     int index,
     String section,
   ) {
+    // Format the start and end date for display.
     final formattedStart = DateFormat(
       'dd MMM yyyy HH:mm',
     ).format(ride.startDate);

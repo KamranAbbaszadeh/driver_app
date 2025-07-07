@@ -1,3 +1,5 @@
+// Displays the active ride screen including a live map, route steps, and swipe-to-progress logic.
+// Handles start, pickup, and end ride states with dynamic button behavior and navigation actions.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -25,6 +27,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipeable_button_view/swipeable_button_view.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+/// Main ride page showing the live Google Map and interactive ride controls.
+/// Provides swipe button for progressing through different ride states, plus access to chat and navigation apps.
 class RidePage extends ConsumerStatefulWidget {
   const RidePage({super.key});
 
@@ -41,6 +45,8 @@ class _RidePageState extends ConsumerState<RidePage>
   bool _isMounted = false;
   bool guestPickedUp = false;
   double? targetRadius;
+
+  /// Initializes location tracking, checks unread messages, and fetches radius from Firestore.
   @override
   void initState() {
     super.initState();
@@ -76,6 +82,7 @@ class _RidePageState extends ConsumerState<RidePage>
     );
   }
 
+  /// Calculates midpoint of three LatLng positions for map centering.
   LatLng getMidpoint(LatLng? start, LatLng? end, LatLng? current) {
     if (start == null || end == null || current == null) {
       return const LatLng(0.0, 0.0);
@@ -86,6 +93,7 @@ class _RidePageState extends ConsumerState<RidePage>
     return LatLng(midLat, midLng);
   }
 
+  /// Determines map zoom level based on distance in meters.
   double getZoomLevel(double distanceInMeters) {
     double zoomLevel = 15.0;
 
@@ -102,6 +110,7 @@ class _RidePageState extends ConsumerState<RidePage>
     return zoomLevel;
   }
 
+  /// Checks local storage for unread chat messages related to the current ride.
   void _checkUnreadMessages() async {
     final prefs = await SharedPreferences.getInstance();
     final messagesString = prefs.getString('notification_messages');
@@ -121,6 +130,7 @@ class _RidePageState extends ConsumerState<RidePage>
     }
   }
 
+  /// Fetches allowed radius (in meters) from Firestore to determine swipe readiness.
   Future<double> getTargetRadius() async {
     DocumentSnapshot targetRadiusDoc =
         await FirebaseFirestore.instance
@@ -130,6 +140,7 @@ class _RidePageState extends ConsumerState<RidePage>
     return targetRadiusDoc['distance']?.toDouble() ?? 100.0;
   }
 
+  /// Ensures location updates are no longer tracked when the page is disposed.
   @override
   void dispose() {
     _isMounted = false;
@@ -209,8 +220,10 @@ class _RidePageState extends ConsumerState<RidePage>
             nextRoute != null
                 ? Stack(
                   children: [
+                    // UI section: Live ride map display
                     SizedBox(child: RideMap()),
 
+                    // UI section: Floating back button
                     Positioned(
                       top: height * 0.057,
                       child: IconButton(
@@ -224,6 +237,7 @@ class _RidePageState extends ConsumerState<RidePage>
                         ),
                       ),
                     ),
+                    // UI section: Ride details panel
                     SlidingPanel(
                       controller: _panelController,
 
@@ -444,6 +458,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                       ),
                                     ),
                                     if (hasUnreadChat)
+                                      // Blue dot indicator shown when there are unread chat messages for this ride.
                                       Positioned(
                                         top: height * 0.027,
                                         left: width * 0.111,
@@ -522,6 +537,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                     if (context.mounted) {
                                       AvailableMap draftMap =
                                           availableMaps.first;
+                                      // Modal bottom sheet to select and remember preferred navigation app.
                                       showModalBottomSheet(
                                         backgroundColor:
                                             darkMode
@@ -802,6 +818,7 @@ class _RidePageState extends ConsumerState<RidePage>
                           ),
 
                           SizedBox(height: height * 0.01),
+                          // UI section: Swipe to progress
                           Padding(
                             padding: EdgeInsets.all(width * 0.0203),
                             child: SwipeableButtonView(
@@ -835,8 +852,10 @@ class _RidePageState extends ConsumerState<RidePage>
                                       rideFlow.pickGuest &&
                                       isWithinRange),
                               isFinished: isFinished,
+                              // Determines which ride phase user is in and processes next step accordingly.
                               onWaitingProcess: () async {
                                 if (!rideFlow.startRide) {
+                                  // Step 1: Start the ride
                                   rideFlowNotifier.setStartRide(true);
                                   setState(() {
                                     isFinished = true;
@@ -844,6 +863,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                 } else if (rideFlow.startRide &&
                                     !startArrivedBool &&
                                     isWithinRange) {
+                                  // Step 2: Confirm arrival at start
                                   try {
                                     await FirebaseFirestore.instance
                                         .collection('Cars')
@@ -875,6 +895,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                     startArrivedBool &&
                                     !rideFlow.pickGuest &&
                                     !rideFlow.finishRide) {
+                                  // Step 3: Guest pickup confirmation
                                   final result = await showDialog<bool>(
                                     context: context,
                                     barrierDismissible: false,
@@ -979,6 +1000,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                     startArrivedBool &&
                                     isWithinRange &&
                                     !rideFlow.finishRide) {
+                                  // Step 4: Confirm arrival at end
                                   try {
                                     await FirebaseFirestore.instance
                                         .collection('Cars')

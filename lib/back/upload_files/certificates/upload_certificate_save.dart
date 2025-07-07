@@ -1,3 +1,6 @@
+// Uploads user certificate files to Firebase Storage and Firestore, and sends metadata to an external API.
+// Handles multiple certificate types, retrieves download URLs, and ensures existing file links are reused.
+
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,6 +11,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
+/// Uploads the provided list of [certificates] to Firebase Storage and saves metadata in Firestore.
+/// If the certificate is already uploaded (valid URL), it reuses the link instead of uploading again.
+/// Also sends certificate data to an external API endpoint for registration.
+/// Displays a success message if the API post is successful.
 Future<void> uploadCertificateAndSave({
   required String userId,
   required List<Map<String, dynamic>> certificates,

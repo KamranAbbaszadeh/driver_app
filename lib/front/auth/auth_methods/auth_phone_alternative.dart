@@ -1,5 +1,11 @@
+// Phone number authentication screen allowing users to input international-format numbers.
+// Validates input and enables the "Next" button when conditions are met.
+
 import 'package:flutter/material.dart';
 
+/// A screen for alternative sign-in using a phone number in international format.
+/// Validates the input to ensure it includes '+' and has a minimum of 7 digits.
+/// Displays error snackbar if input is invalid upon submission.
 class AuthPhoneAlternative extends StatefulWidget {
   const AuthPhoneAlternative({super.key});
 
@@ -20,6 +26,7 @@ class _AuthState extends State<AuthPhoneAlternative> {
     _countryCodeFocusNode = FocusNode();
     _phoneFocusNode = FocusNode();
 
+    // Update character count state as user types phone number.
     _phoneNumberController.addListener(() {
       setState(() {
         _characterCount = _phoneNumberController.text.length;
@@ -29,6 +36,7 @@ class _AuthState extends State<AuthPhoneAlternative> {
 
   @override
   void dispose() {
+    // Dispose controllers and focus nodes to prevent memory leaks.
     _countryCodeController.dispose();
     _phoneNumberController.dispose();
     _countryCodeFocusNode.dispose();
@@ -38,12 +46,14 @@ class _AuthState extends State<AuthPhoneAlternative> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine current theme brightness and screen dimensions.
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
 
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
 
+    // Regex to check if phone number includes a '+' at the beginning.
     final regex = RegExp(r'^(?=.*\+)');
 
     final plusCheck = regex.hasMatch(_phoneNumberController.text);
@@ -160,6 +170,7 @@ class _AuthState extends State<AuthPhoneAlternative> {
           SizedBox(height: height * 0.011),
           GestureDetector(
             onTap: () {
+              // Validate phone number format and show snackbar if invalid.
               if (_phoneNumberController.text.isNotEmpty &&
                   _characterCount >= 7 &&
                   plusCheck) {

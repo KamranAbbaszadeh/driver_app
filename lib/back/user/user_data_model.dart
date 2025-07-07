@@ -1,5 +1,12 @@
+// Model representing a user in the driver app.
+// Includes personal, contact, bank, and role information.
+// Provides factory constructor to build from Firestore data.
+
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Represents a user profile with personal details and metadata.
+/// Contains fields for bank info, role, language, experience, and last tour date.
+/// Factory constructor converts Firestore map into [UserModel] instance.
 class UserModel {
   final String userId;
   final String firstName;
@@ -35,6 +42,9 @@ class UserModel {
     this.vehicleType,
   });
 
+  /// Creates a [UserModel] from a map typically fetched from Firestore.
+  /// Uses the currently authenticated Firebase user UID as [userId].
+  /// Provides default values if any fields are missing or user is not authenticated.
   factory UserModel.fromMap(Map<String, dynamic> data) {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {

@@ -1,3 +1,7 @@
+// Uploads personal photo, ID photos, and driver license photos to Firebase Storage.
+// Saves resulting URLs in Firestore under the 'Users' collection.
+// Also sends photo metadata to an external API for synchronization.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/upload_files/personal_data/photo_post_api.dart';
@@ -7,6 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
+/// Uploads user's personal, ID, and license photos to Firebase Storage.
+/// Saves URLs to Firestore under the user's document.
+/// Sends photo metadata to the backend API and shows a success message if completed.
 Future<void> uploadPhotosAndSaveData({
   required String userId,
   required dynamic personalPhoto,
@@ -118,6 +125,8 @@ Future<void> uploadPhotosAndSaveData({
   }
 }
 
+/// Compresses and uploads a single photo to Firebase Storage.
+/// Returns the file's download URL or the original link if already hosted.
 Future<String> uploadSinglePhoto({
   required Reference storageRef,
   required String userID,
@@ -153,6 +162,8 @@ Future<String> uploadSinglePhoto({
   }
 }
 
+/// Uploads multiple photos by calling [uploadSinglePhoto] for each file.
+/// Returns a list of download URLs for the uploaded or existing files.
 Future<List<String>> uploadMultiplePhotos({
   required Reference storageRef,
   required String userId,

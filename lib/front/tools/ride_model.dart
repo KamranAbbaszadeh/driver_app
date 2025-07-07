@@ -1,5 +1,10 @@
+// Model class representing a Ride document from Firestore.
+// Includes fields for ride details, such as timing, vehicle, driver, guide, and route.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Represents a single ride entry retrieved from Firestore.
+/// Contains metadata such as tour name, start/end time, route, and assigned personnel.
 class Ride {
   String tourName;
   String category;
@@ -37,6 +42,8 @@ class Ride {
     required this.vehicleRegistrationNumber,
   });
 
+  /// Factory constructor for creating a Ride object from Firestore data.
+  /// Maps Firestore field names to Ride class properties, with default fallbacks where necessary.
   factory Ride.fromFirestore({
     required Map<String, dynamic> data,
     required String id,

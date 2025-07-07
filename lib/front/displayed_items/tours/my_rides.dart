@@ -1,3 +1,6 @@
+// Displays a list of rides with collapsible cards showing summary and detailed info.
+// Allows users to view ride details and navigate to a detailed page.
+
 import 'package:onemoretour/front/displayed_items/tours/details_page.dart';
 import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:expandable_section/expandable_section.dart';
@@ -5,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+/// Renders a scrollable list of rides with expandable cards.
+/// Tapping a card reveals more information and a button to navigate to ride details.
 class MyRides extends StatefulWidget {
   final List<Ride> filteredRides;
   final ScrollController parentScrollController;
@@ -30,6 +35,7 @@ class _MyRidesState extends State<MyRides> {
     super.dispose();
   }
 
+  /// Builds a ListView of rides or a message if no rides are available.
   @override
   Widget build(BuildContext context) {
     final darkMode =
@@ -37,7 +43,9 @@ class _MyRidesState extends State<MyRides> {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     return widget.filteredRides.isNotEmpty
-        ? ListView.builder(
+        ? 
+        // List of ride cards with expandable details.
+        ListView.builder(
           controller: null,
           padding: EdgeInsets.zero,
           physics: NeverScrollableScrollPhysics(),
@@ -54,7 +62,9 @@ class _MyRidesState extends State<MyRides> {
                 index: index,
               ),
         )
-        : Center(
+        : 
+        // Show a fallback message if no rides are available.
+        Center(
           child: Text(
             'You don\'t have any Rides.\nNavigate to Rides page and grab some',
             textAlign: TextAlign.center,
@@ -63,6 +73,8 @@ class _MyRidesState extends State<MyRides> {
         );
   }
 
+  /// Builds a single expandable ride card with summary and expanded detail view.
+  /// Includes guest count, price, and button to view full ride information.
   Widget _buildRide({
     required BuildContext context,
     required Ride ride,
@@ -83,6 +95,7 @@ class _MyRidesState extends State<MyRides> {
 
     return Column(
       children: [
+        // Header card that toggles expansion on tap.
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
@@ -193,6 +206,7 @@ class _MyRidesState extends State<MyRides> {
           ),
         ),
 
+        // Expanded content with ride info and navigation button.
         ExpandableSection(
           expand: isExpanded,
           curve: Curves.easeOut,
@@ -222,6 +236,7 @@ class _MyRidesState extends State<MyRides> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: height * 0.005),
+                      // Display End Date with labels.
                       RichText(
                         text: TextSpan(
                           text: 'End Date: ',
@@ -245,6 +260,7 @@ class _MyRidesState extends State<MyRides> {
                         ),
                       ),
                       SizedBox(height: height * 0.005),
+                      // Display Number of Guests with labels.
                       RichText(
                         text: TextSpan(
                           text: 'Numer of Guest: ',
@@ -268,6 +284,7 @@ class _MyRidesState extends State<MyRides> {
                         ),
                       ),
                       SizedBox(height: height * 0.005),
+                      // Display Price with labels.
                       RichText(
                         text: TextSpan(
                           text: 'Price: ',
@@ -292,6 +309,7 @@ class _MyRidesState extends State<MyRides> {
                       ),
                       SizedBox(height: height * 0.005),
 
+                      // Navigate to ride details screen on button press.
                       GestureDetector(
                         onTap: () {
                           expandedIndices.remove(index);

@@ -1,7 +1,12 @@
+// Defines the RideHistory model used for storing and displaying past ride data.
+// Includes Firestore deserialization, total distance calculation from route coordinates, and ride metadata.
+
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Model representing a completed or historical ride.
+/// Contains details such as driver, tour, route data, payment and completion status, and distance metrics.
 class RideHistory {
   final int price;
   final String driver;
@@ -35,6 +40,8 @@ class RideHistory {
     required this.docId
   });
 
+  /// Creates a [RideHistory] instance from Firestore document data and ID.
+  /// Converts route data and timestamps, and assigns default values for missing fields.
   factory RideHistory.fromFirestore({required Map<String, dynamic> data, required String id}) {
     final routesMap = data['Routes'] as Map<String, dynamic>? ?? {};
     final routesList =
@@ -57,6 +64,8 @@ class RideHistory {
       category: data['Category'] ?? '',
     );
   }
+  /// Calculates the total distance of all ride routes in kilometers using haversine formula.
+  /// Iterates through 'Start' and 'End' coordinate strings in the routes list.
   double get totalDistanceKm {
     double total = 0.0;
 
@@ -88,6 +97,8 @@ class RideHistory {
   }
 }
 
+/// Computes distance between two geo-points using the haversine formula.
+/// Returns distance in kilometers.
 double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371;
   double dLat = _degToRad(lat2 - lat1);
@@ -102,4 +113,5 @@ double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
   return R * c;
 }
 
+/// Converts degrees to radians.
 double _degToRad(double deg) => deg * (pi / 180);

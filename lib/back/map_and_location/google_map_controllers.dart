@@ -1,9 +1,14 @@
+// Utility functions for handling Google Maps polyline generation.
+// Includes logic to fetch and draw routes between two coordinates using the Google Directions API.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+/// Fetches a list of LatLng points representing a route from [source] to [destination]
+/// using the Google Directions API via [flutter_polyline_points].
+/// Returns an empty list if no points are found.
 Future<List<LatLng>> getPolyLinePoints({
   required String googleApiKey,
   required LatLng source,
@@ -31,6 +36,8 @@ Future<List<LatLng>> getPolyLinePoints({
   return polylineCoordinates;
 }
 
+/// Generates a Polyline from the provided [polylineCoordinates] and adds it to the map.
+/// The [updatePolylines] callback is used to trigger a rebuild with the new Polyline.
 void generatePolyLineFromPoints({
   required List<LatLng> polylineCoordinates,
   required Map<PolylineId, Polyline> polylines,
@@ -46,4 +53,3 @@ void generatePolyLineFromPoints({
   polylines[id] = polyLine;
   updatePolylines(polylines);
 }
-

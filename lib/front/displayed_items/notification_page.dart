@@ -1,7 +1,10 @@
+// Notification page showing all app notifications stored locally or retrieved from state.
+// Supports marking messages as read, deleting all notifications, and routing to appropriate screens.
+
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:flutter_app_badge_control/flutter_app_badge_control.dart';
 import 'package:onemoretour/back/bloc/notification_bloc.dart';
 import 'package:onemoretour/back/bloc/notification_event.dart';
 import 'package:onemoretour/back/bloc/notification_state.dart';
@@ -14,6 +17,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// A screen that displays a list of notifications for the user.
+/// Supports message tap handling, badge updates, and smart redirection based on message content.
 class NotificationPage extends ConsumerStatefulWidget {
   const NotificationPage({super.key});
 
@@ -23,6 +28,8 @@ class NotificationPage extends ConsumerStatefulWidget {
 
 class _NotificationPageState extends ConsumerState<NotificationPage> {
   late final String contractUrl;
+
+  /// Loads the user's contract URL from Firestore if it exists.
   @override
   void initState() {
     super.initState();
@@ -53,6 +60,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
+      // Top app bar with page title, delete and mark-all-as-read actions.
       appBar: AppBar(
         backgroundColor: darkMode ? Colors.black : Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -76,6 +84,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
           ),
         ),
         actions: [
+          // Delete or mark all notifications as viewed.
           IconButton(
             hoverColor: Colors.transparent,
             icon: Icon(
@@ -87,6 +96,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
               context.read<NotificationBloc>().add(DeleteNotifications());
             },
           ),
+          // Delete or mark all notifications as viewed.
           IconButton(
             hoverColor: Colors.transparent,
             icon: Icon(
@@ -99,11 +109,12 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 ref.watch(notificationsProvider.notifier).refresh();
               });
-              FlutterAppBadger.removeBadge();
+              FlutterAppBadgeControl.removeBadge();
             },
           ),
         ],
       ),
+      // Displays loading, error, or a list of notifications based on Bloc state.
       body: BlocBuilder<NotificationBloc, NotificationState>(
         builder: (context, state) {
           if (state is NotificationLoading) {
@@ -123,6 +134,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                 final title = message['notification']['title'] ?? '';
                 final route = message['data']['route'];
                 final fullBody = message['data']['fullBody'];
+                // Handle tap: update shared prefs, mark as viewed, update badge and navigate accordingly.
                 return GestureDetector(
                   onTap: () async {
                     context.read<NotificationBloc>().add(
@@ -147,9 +159,9 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                     final unreadCount =
                         messages.where((m) => !m['isViewed']).length;
                     if (unreadCount > 0) {
-                      FlutterAppBadger.updateBadgeCount(unreadCount);
+                      FlutterAppBadgeControl.updateBadgeCount(unreadCount);
                     } else {
-                      FlutterAppBadger.removeBadge();
+                      FlutterAppBadgeControl.removeBadge();
                     }
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       ref.read(notificationsProvider.notifier).refresh();
@@ -173,6 +185,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                         userDoc['Personal & Car Details Form Verified'];
                     bool contractSigned =
                         userDoc['Contract Signing'] == 'SIGNED';
+                    // Navigate to the appropriate screen based on message route.
                     if (route == "/chat_page") {
                       final tourId = message['data']['tourId'];
                       navigatorKey.currentState?.pushNamed(
@@ -183,19 +196,23 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                           'height': height,
                         },
                       );
+                      // Navigate to the appropriate screen based on message route.
                     } else if (route == "/tour_list") {
                       ref.read(selectedIndexProvider.notifier).state = 1;
                       navigatorKey.currentState?.pop();
+                      // Navigate to the appropriate screen based on message route.
                     } else if (route == "/application_status" &&
                         !registrationCompleted &&
                         !applicationFormApproved) {
                       navigatorKey.currentState?.pushNamed('/application_form');
+                      // Navigate to the appropriate screen based on message route.
                     } else if (route == "/personalinfo_status" &&
                         !personalDetailsFormApproved &&
                         !registrationCompleted) {
                       navigatorKey.currentState?.pushNamed(
                         '/personal_data_form',
                       );
+                      // Navigate to the appropriate screen based on message route.
                     } else if (route == "/contract_sign" &&
                         context.mounted &&
                         !registrationCompleted &&
@@ -204,11 +221,10 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                         context,
                       ).push(route(title: 'Contract', url: contractUrl));
                     } else {
-                      registrationCompleted
-                          ? navigatorKey.currentState?.pop()
-                          : navigatorKey.currentState?.pushNamed(route);
+                      navigatorKey.currentState?.pop();
                     }
                   },
+                  // Notification tile with title, body, and unread dot indicator.
                   child: Container(
                     padding: EdgeInsets.all(width * 0.025),
                     margin: EdgeInsets.all(width * 0.025),
@@ -257,6 +273,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                           ],
                         ),
                         const Spacer(),
+                        // Blue dot shown only for unread messages.
                         isViewed
                             ? const SizedBox.shrink()
                             : Container(

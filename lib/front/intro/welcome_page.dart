@@ -1,3 +1,6 @@
+// Welcome screen shown to users before signing in.
+// Includes animated logo, sign-in and registration options, and terms link.
+
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/front/auth/forms/application_forms/application_form.dart';
 import 'package:onemoretour/front/intro/route_navigator.dart';
@@ -7,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 
+/// A landing page widget displayed before user authentication.
+/// Provides animation, sign-in with email, and an option to apply as a driver or guide.
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
 
@@ -25,6 +30,7 @@ class _WelcomePageState extends State<WelcomePage>
   void initState() {
     try {
       super.initState();
+      // Initialize animation controller and entry animations.
       _controller = AnimationController(
         vsync: this,
         duration: Duration(seconds: 5),
@@ -50,6 +56,7 @@ class _WelcomePageState extends State<WelcomePage>
         ),
       );
 
+      // Start the animation after a short delay if widget is mounted.
       Future.delayed(Duration(milliseconds: 1), () {
         if (mounted) {
           _controller.forward();
@@ -68,6 +75,7 @@ class _WelcomePageState extends State<WelcomePage>
 
   @override
   Widget build(BuildContext context) {
+    // Fetch screen dimensions and brightness for responsive layout and theming.
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
 
@@ -76,6 +84,7 @@ class _WelcomePageState extends State<WelcomePage>
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final logo = 'assets/splash/onemoretour.png';
+    // Build the main scaffold with animated logo and content.
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -129,6 +138,7 @@ class _WelcomePageState extends State<WelcomePage>
                                 SizedBox(height: height * 0.027),
                                 GestureDetector(
                                   onTap: () {
+                                    // Navigate to email authentication page.
                                     navigatorKey.currentState?.pushNamed(
                                       '/auth_email',
                                     );
@@ -200,6 +210,7 @@ class _WelcomePageState extends State<WelcomePage>
                                 SizedBox(height: height * 0.018),
                                 GestureDetector(
                                   onTap: () {
+                                    // Navigate to the application form for new drivers or guides.
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -258,6 +269,7 @@ class _WelcomePageState extends State<WelcomePage>
                                         recognizer:
                                             TapGestureRecognizer()
                                               ..onTap = () {
+                                                // Open terms and conditions page in a webview.
                                                 Navigator.of(context).push(
                                                   route(
                                                     title: 'Terms & Conditions',

@@ -1,3 +1,6 @@
+// Displays detailed route information for a tour, including start and end locations.
+// Shows the tour path on a styled Google Map with start/end markers and a polyline route.
+
 import 'dart:async';
 
 import 'package:onemoretour/back/map_and_location/google_map_controllers.dart';
@@ -10,6 +13,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 
+/// Widget that displays tour route information for a given tour detail.
+/// Shows start/end locations, date, and renders a Google Map with route preview.
 class RideRoutes extends StatefulWidget {
   final Map<String, dynamic> detail;
   const RideRoutes({super.key, required this.detail});
@@ -34,6 +39,7 @@ class _RideRoutesState extends State<RideRoutes> {
   late String _mapStyleLightString;
   bool _isControllerDisposed = false;
 
+  /// Loads the location names and map styles during widget initialization.
   @override
   void initState() {
     super.initState();
@@ -54,6 +60,7 @@ class _RideRoutesState extends State<RideRoutes> {
     });
   }
 
+  /// Disposes the Google Map controller safely to prevent memory leaks.
   @override
   void dispose() {
     if (mapController != null && !_isControllerDisposed) {
@@ -64,6 +71,7 @@ class _RideRoutesState extends State<RideRoutes> {
     super.dispose();
   }
 
+  /// Re-fetches location names if the widget's tour detail changes.
   @override
   void didUpdateWidget(covariant RideRoutes oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -79,8 +87,11 @@ class _RideRoutesState extends State<RideRoutes> {
     return LatLng(midLat, midLng);
   }
 
+  /// Converts coordinate strings to readable location names and sets map positions.
+  /// Also fetches polyline route between start and end locations.
   Future<void> _fetchLocationNames() async {
     try {
+      // Skip processing if no route detail provided.
       if (widget.detail.isEmpty) {
         setState(() {
           isLoading = false;
@@ -115,6 +126,7 @@ class _RideRoutesState extends State<RideRoutes> {
           mapController!.animateCamera(CameraUpdate.newLatLng(midpoint));
         }
 
+        // Format and store the start date for display.
         final DateTime rawStartDate = DateTime.parse(
           widget.detail['StartDate'],
         );
@@ -154,6 +166,7 @@ class _RideRoutesState extends State<RideRoutes> {
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
 
+    // Display loading spinner or route content once ready.
     return Center(
       child:
           isLoading
@@ -318,7 +331,9 @@ class _RideRoutesState extends State<RideRoutes> {
             height: heigt * 0.469,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(width * 0.019),
-              child: GoogleMap(
+              child:
+              // Render the styled map with markers and route polyline.
+              GoogleMap(
                 initialCameraPosition: initialCameraPosition!,
                 mapType: MapType.normal,
                 myLocationButtonEnabled: false,

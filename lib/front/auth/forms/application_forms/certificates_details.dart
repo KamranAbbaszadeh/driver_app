@@ -1,3 +1,5 @@
+// Certificate details form page for uploading professional credentials.
+// Allows users to add up to 3 certificates with name, type, and file upload.
 import 'dart:io';
 
 import 'package:onemoretour/back/api/firebase_api.dart';
@@ -18,6 +20,8 @@ bool validateCertificateName(String value) {
   return RegExp(r"^[A-Za-z0-9\s\-,.]{2,100}$").hasMatch(value);
 }
 
+/// A form screen for entering and uploading professional certificates.
+/// Supports adding, editing, and removing certificates with validations and temporary saving.
 class CertificatesDetails extends ConsumerStatefulWidget {
   final String role;
   const CertificatesDetails({super.key, required this.role});
@@ -32,6 +36,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   bool _showTitle = false;
   List<Map<String, dynamic>> certificates = [];
   List<bool> isCertificateNameEmpty = [];
+  /// Validates that all certificate fields are properly filled for submission.
   bool _allFilledOut() {
     if (certificates.isEmpty) return false;
 
@@ -54,6 +59,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
   List<FocusNode> certificateNameFocusNodes = [];
   List<FocusNode> certificateTypeFocusNodes = [];
 
+  /// Adds a new empty certificate form, limited to a maximum of 3.
   void addCertificate() {
     if (certificates.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -79,6 +85,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     });
   }
 
+  /// Deletes the file from Firebase Storage (if uploaded) and clears local file info.
   Future<void> deleteFile(int index) async {
     if (certificates[index]['fileUrl'] != null) {
       try {
@@ -103,6 +110,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     }
   }
 
+  /// Updates a specific certificate's data in state and triggers save.
   void updateCertificate(int index, String key, dynamic value) {
     setState(() {
       certificates[index][key] = value;
@@ -113,6 +121,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     _saveTempCertificates();
   }
 
+  /// Updates a specific certificate's data in state and triggers save.
   void updateCertificateFile({
     required int index,
     required String fileName,
@@ -136,6 +145,8 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     }
   }
 
+  /// Opens a file picker and updates selected certificate with uploaded file.
+  /// Enforces a 5MB file size limit and valid extensions.
   Future<void> pickFile(int index) async {
     if (certificates[index]['fileUrl'] != null) {
       try {
@@ -189,6 +200,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     }
   }
 
+  /// Uploads certificates and clears temporary storage upon form submission.
   Future<void> _submitForm() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -202,6 +214,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     await _clearTempCertificates();
   }
 
+  /// Builds UI for a single certificate entry with name input, dropdown, and file picker.
   Widget buildCertificateField({
     required int index,
     required double width,
@@ -450,6 +463,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     });
   }
 
+  /// Stores and retrieves temporary certificate form data using SharedPreferences.
   Future<void> _saveTempCertificates() async {
     final prefs = await SharedPreferences.getInstance();
     final certList =
@@ -460,6 +474,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
     await prefs.setString('certificates', certList.toString());
   }
 
+  /// Stores and retrieves temporary certificate form data using SharedPreferences.
   Future<void> _loadTempCertificates() async {
     final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
@@ -751,6 +766,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                     ],
                   ),
                   SizedBox(height: height * 0.023),
+                  // Navigate to next form step if all certificates are filled.
                   GestureDetector(
                     onTap: () async {
                       if (_allFilledOut()) {
@@ -816,6 +832,7 @@ class _CertificatesDetailsState extends ConsumerState<CertificatesDetails> {
                     ),
                   ),
 
+                  // Skip certificate entry and go to the bank details form.
                   Center(
                     child: TextButton(
                       onPressed: () async {

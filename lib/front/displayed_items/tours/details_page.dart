@@ -1,3 +1,6 @@
+// Page that displays details of a selected tour.
+// Allows date-based filtering of routes and assigning the current user as a driver or guide.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/user_assign.dart/user_assign.dart';
@@ -9,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+/// Displays all available ride routes for a specific tour.
+/// Allows assigning a user to a tour and filters routes by selected day using a calendar view.
 class DetailsPage extends StatefulWidget {
   final Ride ride;
   const DetailsPage({super.key, required this.ride});
@@ -31,6 +36,8 @@ class _DetailsPageState extends State<DetailsPage> {
     fetchUserData();
   }
 
+  /// Fetches current user's profile and vehicle data from Firestore.
+  /// Required for assigning user as driver/guide to the tour.
   Future<void> fetchUserData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -68,6 +75,7 @@ class _DetailsPageState extends State<DetailsPage> {
     }
   }
 
+  /// Updates the selected calendar day and triggers re-filtering of the routes list.
   void updateSelectedDay(DateTime day) {
     if (mounted) {
       setState(() {
@@ -84,6 +92,7 @@ class _DetailsPageState extends State<DetailsPage> {
     final width = MediaQuery.of(context).size.width;
     final detailList = widget.ride.routes;
 
+    // Filter and sort ride route entries based on selected date.
     final sortedEntries =
         detailList.entries.where((entry) {
             DateTime startDate = DateTime.parse(entry.value['StartDate']);
@@ -91,9 +100,11 @@ class _DetailsPageState extends State<DetailsPage> {
           }).toList()
           ..sort((a, b) => a.key.compareTo(b.key));
 
+    // Extract values from sorted map entries to create a list of matching routes.
     List<Map<String, dynamic>> matchingRoutes =
         sortedEntries.map((e) => e.value as Map<String, dynamic>).toList();
 
+    // Main UI layout with themed background and date-filtered route list.
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
       body: SafeArea(
@@ -158,10 +169,12 @@ class _DetailsPageState extends State<DetailsPage> {
     if (userData == null) {
       return Center(child: CircularProgressIndicator());
     }
+    // Determine the appropriate assignment endpoint based on the user's role.
     final baseUrl =
         userData!['Role'] == 'Guide'
             ? 'https://onemoretour.com/version-test/api/1.1/wf/assign-guide'
             : 'https://onemoretour.com/version-test/api/1.1/wf/assign-driver';
+    // Custom AppBar showing tour name and optional action button for assignment.
     return AppBar(
       surfaceTintColor: Colors.transparent,
       backgroundColor: darkMode ? Colors.black : Colors.white,
@@ -183,6 +196,7 @@ class _DetailsPageState extends State<DetailsPage> {
       actions: [
         widget.ride.driver == ''
             ? GestureDetector(
+              // Assign current user to the tour using the external API when tapped.
               onTap: () async {
                 userAssign(
                   docId: widget.ride.docId,

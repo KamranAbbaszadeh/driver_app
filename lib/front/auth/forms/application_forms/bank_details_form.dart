@@ -1,3 +1,6 @@
+// WrapperPage determines the starting page based on user role and profile completion.
+// Fetches user data and navigates to the correct dashboard or application form.
+
 import 'package:onemoretour/back/upload_files/bank_details/upload_bank_details.dart';
 import 'package:onemoretour/db/user_data/store_role.dart';
 import 'package:onemoretour/front/auth/forms/application_forms/upper_case_text_formatter.dart';
@@ -12,6 +15,8 @@ import 'package:page_transition/page_transition.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// A logic gate page that routes users to different pages depending on their role and data availability.
+/// Handles first-time user redirection and waits for user data load.
 class BankDetailsForm extends ConsumerStatefulWidget {
   const BankDetailsForm({super.key});
 

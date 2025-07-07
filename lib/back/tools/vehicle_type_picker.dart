@@ -1,6 +1,13 @@
+// Displays a modal bottom sheet for selecting one or more vehicle types.
+// Uses the WoltModalSheet package and supports both single and multiple selection modes.
+// Updates the provided [selectedVehicles] set based on user interaction.
 import 'package:flutter/material.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
+/// Shows a vehicle type picker modal using WoltModalSheet.
+/// Allows users to choose from a predefined list of vehicle types.
+/// Supports both single and multi-select modes, depending on [singleSelection].
+/// Updates the provided [selectedVehicles] set with the user's final selection on "Done".
 Future<void> showVehicleTypePicker(
   BuildContext context,
 
@@ -11,10 +18,10 @@ Future<void> showVehicleTypePicker(
   final darkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
   final width = MediaQuery.of(context).size.width;
 
-  final vehicleTypes = ['Sedan', 'Minivan', 'SUV', 'Premium SUV', 'Bus'];
+  final vehicleTypes = ['Sedan', 'Minivan', 'SUV', 'Bus'];
 
   final Set<String> currentSelection = Set<String>.from(selectedVehicles);
- 
+
   await WoltModalSheet.show(
     context: context,
     pageListBuilder:

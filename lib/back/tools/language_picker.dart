@@ -1,7 +1,15 @@
+// Displays a modal bottom sheet for selecting spoken languages.
+// Uses the WoltModalSheet package to present a scrollable list of checkboxes.
+// Updates the [selectedLanguages] set with user selections.
+
 import 'package:onemoretour/back/tools/language_list.dart';
 import 'package:flutter/material.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
+/// Shows a language selection modal using WoltModalSheet.
+/// Allows users to select one or more spoken languages using checkboxes.
+/// Selected values are stored in the [selectedLanguages] set.
+/// Applies theming and responsive sizing based on platform brightness and screen width.
 Future<void> showLanguangePicker(
   BuildContext context,
   Set<String> selectedLanguages,

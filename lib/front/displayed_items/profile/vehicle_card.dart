@@ -1,6 +1,12 @@
+// A card widget that displays detailed information about a registered vehicle.
+// Includes registration number, name, type, category, seat count, and manufacturing year.
+// Visual state updates based on approval and selection.
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Displays a vehicle card with key attributes and icon representation.
+/// Highlights the active vehicle and responds to user interaction if approved.
 class VehicleCard extends StatelessWidget {
   final Map<String, dynamic> vehicle;
   final bool isApproved;
@@ -27,13 +33,17 @@ class VehicleCard extends StatelessWidget {
     return ValueListenableBuilder<String?>(
       valueListenable: activeVehicleIdNotifier,
       builder: (context, activeVehicleId, _) {
+        // Determine if this vehicle is currently selected based on the active ID.
         final isSelected =
             activeVehicleId != null && vehicle['docId'] == activeVehicleId;
+        // Extract seat number and vehicle details safely with fallbacks.
         final seatNumber = vehicle['Seat Number']?.toString() ?? '-';
         final vehicleYear = vehicle['Vehicle\'s Year']?.toString() ?? '-';
         final vehicleCategory = vehicle['Vehicle Category']?.toString() ?? '-';
+        // Make the card tappable only if vehicle is approved and not already selected.
         return InkWell(
           onTap: isApproved && !isSelected ? onTap : () {},
+          // Animate scaling of the card for visual feedback when selected.
           child: AnimatedScale(
             scale: isSelected ? 1.05 : 1.0,
             duration: Duration(milliseconds: 400),
@@ -54,6 +64,7 @@ class VehicleCard extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(width * 0.05),
               ),
+              // Smoothly animate background color changes and border styling.
               child: AnimatedContainer(
                 duration: Duration(milliseconds: 400),
                 curve: Curves.easeInOut,
@@ -73,6 +84,7 @@ class VehicleCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
+                          // Display vehicle icon based on its type.
                           Image.asset(
                             vehicleTypeIcons[vehicle['Vehicle\'s Type']] ??
                                 'assets/car_icons/sedan.png',
@@ -84,6 +96,7 @@ class VehicleCard extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Show the vehicle's registration number in bold.
                               Text(
                                 vehicle['Vehicle Registration Number'] ??
                                     'Unknown',
@@ -93,6 +106,7 @@ class VehicleCard extends StatelessWidget {
                                 ),
                               ),
                               RichText(
+                                // Render multiple vehicle details using labeled spans.
                                 text: TextSpan(
                                   style: Theme.of(context).textTheme.bodyMedium,
                                   children: [
@@ -178,6 +192,7 @@ class VehicleCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      // Show "Active" badge when this vehicle is the currently selected one.
                       AnimatedSwitcher(
                         duration: Duration(milliseconds: 300),
                         transitionBuilder: (

@@ -1,6 +1,12 @@
+// Displays a modal bottom sheet for selecting a role (Driver, Guide, or Driver Cum Guide).
+// Uses the WoltModalSheet package to render a scrollable role list with tappable items.
+// Updates the provided TextEditingController with the selected role.
 import 'package:flutter/material.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
+/// Shows a role picker modal using WoltModalSheet.
+/// Updates the [selectedRole] controller when the user selects a role option.
+/// Supports dark mode and adjusts UI sizing based on screen width.
 Future<void> showRolePicker(
   BuildContext context,
   TextEditingController selectedRole,

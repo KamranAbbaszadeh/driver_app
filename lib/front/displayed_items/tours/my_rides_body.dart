@@ -1,3 +1,5 @@
+// Displays the user's past and filtered ride history using a calendar heatmap.
+// Allows toggling between all rides or only those from a selected date.
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +15,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onemoretour/front/tools/top_padding_provider.dart';
 
+/// Widget that shows user's rides as a heatmap calendar and a list of rides by date.
+/// Supports filtering based on vehicle and role (driver or guide).
 class MyRidesBody extends ConsumerStatefulWidget {
   const MyRidesBody({super.key});
 
@@ -34,6 +38,8 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
 
   StreamSubscription<QuerySnapshot>? carsSubscription;
 
+/// Retrieves user's personal and vehicle data from Firestore.
+/// Triggers ride loading once both are available.
   Future<void> fetchUserData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -73,6 +79,8 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
     }
   }
 
+/// Fetches rides from 'Cars' and 'Guide' collections based on user role and filters them.
+/// Populates internal state and ride dataset.
   Future<void> fetchAndFilterRides({
     required Map<String, dynamic> userData,
     required Map<String, dynamic> vehicleData,
@@ -134,6 +142,7 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
     }
   }
 
+/// Fills the heatmap data (datasets) with ride completion status per day.
   void populateDatasets(List<Ride> rides) {
     datasets.clear();
 
@@ -158,6 +167,7 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
     }
   }
 
+/// Filters car and guide rides by a selected date from the heatmap.
   Future<void> filterRidesbyDate({required DateTime selectedDate}) async {
     filteredCarRidesByDate =
         carRides.where((ride) {
@@ -283,6 +293,7 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Display heatmap of ride activity, colored by route completion.
                 HeatMapCalendar(
                   defaultColor: Colors.white,
                   size: width * 0.1,
@@ -311,6 +322,7 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // Section title with option to reset ride filter and show all rides.
                     Text(
                       'My Rides',
                       style: GoogleFonts.daysOne(
@@ -355,6 +367,7 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
 
                 if (showAllRides) ...[
                   if (carRides.isNotEmpty) ...[
+                    // Display section for ride tours of selected type.
                     Text(
                       'Ride Tours',
                       style: GoogleFonts.lexend(
@@ -381,6 +394,7 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
                       parentScrollController: _scrollController,
                     ),
                   ] else if (guideRides.isEmpty && carRides.isEmpty) ...[
+                    // Show fallback message when no rides are available for selected date or overall.
                     Center(
                       child: Text(
                         'No tours available. Press the "Rides" and grab a ride!',

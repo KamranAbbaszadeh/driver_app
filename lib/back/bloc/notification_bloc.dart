@@ -1,3 +1,5 @@
+// Bloc implementation for handling app notification states and events.
+// Manages fetching, deleting, and marking notifications as viewed using local storage.
 import 'dart:convert';
 import 'package:onemoretour/back/bloc/notification_event.dart';
 import 'package:onemoretour/back/bloc/notification_state.dart';
@@ -5,6 +7,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:onemoretour/back/api/get_stored_message.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Bloc class that handles notification-related logic:
+/// - Fetches stored notifications
+/// - Deletes all notifications
+/// - Marks all or individual messages as viewed
+/// Uses SharedPreferences for local persistence.
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   NotificationBloc() : super(NotificationLoading()) {
     on<FetchNotifications>(_fetchNotifications);
@@ -13,6 +20,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<MarkMessageAsViewed>(_markMessageAsViewed);
   }
 
+  /// Loads notification messages from SharedPreferences.
+  /// Emits [NotificationLoading], then [NotificationLoaded] or [NotificationError].
   Future<void> _fetchNotifications(
     FetchNotifications event,
     Emitter<NotificationState> emit,
@@ -29,6 +38,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     }
   }
 
+  /// Clears all saved notification messages from SharedPreferences.
+  /// Emits [NotificationLoaded] with an empty list.
   Future<void> _deleteNotifications(
     DeleteNotifications event,
     Emitter<NotificationState> emit,
@@ -44,6 +55,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     }
   }
 
+  /// Marks all messages as viewed by updating the local SharedPreferences store.
+  /// Re-emits [NotificationLoaded] with updated messages.
   Future<void> _markAllAsViewed(
     MarkAllAsViewed event,
     Emitter<NotificationState> emit,
@@ -64,6 +77,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     }
   }
 
+  /// Marks a specific message (by index) as viewed and updates SharedPreferences.
+  /// Emits a new [NotificationLoaded] state with updated view status.
   Future<void> _markMessageAsViewed(
     MarkMessageAsViewed event,
     Emitter<NotificationState> emit,

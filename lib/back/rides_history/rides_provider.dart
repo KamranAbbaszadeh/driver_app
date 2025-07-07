@@ -1,3 +1,7 @@
+// Provides Riverpod state management for ride history data.
+// Subscribes to 'Cars' and 'Guide' collections from Firestore and filters completed rides.
+// Tracks earnings and ride completion statistics for the current user.
+
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +11,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onemoretour/back/tools/subscription_manager.dart';
 
+/// Immutable state class that holds all rides and filtered (completed) rides.
+/// Also includes summary data like total price and payment status.
 class RidesHistoryState {
   final List<RideHistory> allRides;
   final List<RideHistory> filteredRides;
@@ -20,6 +26,7 @@ class RidesHistoryState {
     this.isPaid = false,
   });
 
+  /// Returns a copy of the current state with updated properties if provided.
   RidesHistoryState copyWith({
     List<RideHistory>? allRides,
     List<RideHistory>? filteredRides,
@@ -35,6 +42,8 @@ class RidesHistoryState {
   }
 }
 
+/// A StateNotifier that manages subscriptions to ride history data in Firestore.
+/// Combines data from both 'Cars' and 'Guide' collections and filters completed rides.
 class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
   RidesHistoryNotifier() : super(RidesHistoryState()) {
     _fetchData();
@@ -44,6 +53,9 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
   StreamSubscription<QuerySnapshot>? carsSubscription;
   StreamSubscription<QuerySnapshot>? guideSubscription;
 
+  /// Sets up Firestore listeners for both 'Cars' and 'Guide' collections.
+  /// Filters rides by current user ID (as driver or guide) and completion status.
+  /// Updates state when new or changed data is detected.
   Future<void> _fetchData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || !_mounted) {
@@ -124,11 +136,18 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
         SubscriptionManager.add(guideSubscription!);
   }
 
+  /// Returns the number of rides based on their completion status or earnings.
   int get nonCompletedRidesCount => state.allRides.length;
 
+  /// Returns the number of rides based on their completion status or earnings.
   int get completedRidesCount => state.filteredRides.length;
+
+  /// Returns the number of rides based on their completion status or earnings.
   double get totalCompletedEarnings =>
       state.allRides.fold(0.0, (calc, ride) => calc + ride.price);
+
+  /// Groups completed rides by date and aggregates earnings split by payment status (paid/unpaid).
+  /// Returns a map of date strings to earnings categorized by payment status.
   Map<String, Map<bool, double>> get earningsByDate {
     final map = <String, Map<bool, double>>{};
 
@@ -143,6 +162,7 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
     return map;
   }
 
+  /// Cancels Firestore subscriptions and marks notifier as unmounted.
   @override
   void dispose() {
     _mounted = false;
@@ -152,6 +172,7 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
   }
 }
 
+/// Global provider to access [RidesHistoryNotifier] and its state.
 final ridesHistoryProvider =
     StateNotifierProvider<RidesHistoryNotifier, RidesHistoryState>((ref) {
       return RidesHistoryNotifier();

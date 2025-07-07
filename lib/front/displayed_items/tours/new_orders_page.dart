@@ -1,3 +1,6 @@
+// Displays a list of available ride opportunities for the user based on role and eligibility.
+// Filters rides dynamically and categorizes them into Ride Tours and Guide Tours.
+
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
@@ -9,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:rxdart/rxdart.dart';
 
+/// Screen that shows new tour opportunities for drivers, guides, or dual-role users.
+/// Filters Firestore ride collections based on seat capacity, vehicle type, language, and tour category.
 class NewOrdersPage extends StatefulWidget {
   const NewOrdersPage({super.key});
 
@@ -24,6 +29,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
   StreamSubscription? carsSubscription;
   late ScrollController _scrollController;
 
+  /// Initialize scroll controller and start listening to user data from Firestore.
   @override
   void initState() {
     super.initState();
@@ -31,6 +37,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
     _scrollController = ScrollController();
   }
 
+  /// Cancel all subscriptions and dispose scroll controller to avoid memory leaks.
   @override
   void dispose() {
     userSubscription?.cancel();
@@ -40,6 +47,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
     super.dispose();
   }
 
+  /// Subscribes to current user's Firestore document and triggers ride filtering when updated.
   void listenToUserData() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -60,6 +68,8 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
     SubscriptionManager.add(userSubscription!);
   }
 
+  /// Listens to updates in both Cars and Guide ride collections.
+  /// Applies user-specific filters like allowed vehicle type, language, category, and tour date.
   void listenToRidesUpdates() async {
     try {
       if (userData == null) return;
@@ -108,6 +118,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
       final guideStream =
           FirebaseFirestore.instance.collection('Guide').snapshots();
 
+      /// Filters incoming ride list based on user eligibility and assigns to respective tour types.
       void handleRides(List<Ride> rides) {
         try {
           final fromCars = <Ride>[];
@@ -224,6 +235,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
+    // Builds UI with background gradient and filtered ride sections based on role.
     return Container(
       width: width,
       height: height,
@@ -245,6 +257,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: height * 0.011),
+                // Page title
                 Text(
                   'Rides',
                   style: GoogleFonts.daysOne(
@@ -253,6 +266,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                   ),
                 ),
                 SizedBox(height: height * 0.011),
+                // Show progress indicator while user data is loading.
                 if (userData == null)
                   Center(
                     child: Padding(
@@ -260,6 +274,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                       child: CircularProgressIndicator(),
                     ),
                   ),
+                // Message shown when there are no new ride opportunities available.
                 if (userData != null &&
                     filteredRidesFromCars.isEmpty &&
                     filteredRidesFromGuide.isEmpty)
@@ -283,6 +298,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  // Renders filtered ride list for Ride Tours depending on user role.
                   MyRides(
                     filteredRides: filteredRidesFromCars,
                     parentScrollController: _scrollController,
@@ -297,6 +313,7 @@ class _NewOrdersPageState extends State<NewOrdersPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  // Renders filtered ride list for Guide Tours depending on user role.
                   MyRides(
                     filteredRides: filteredRidesFromGuide,
                     parentScrollController: _scrollController,

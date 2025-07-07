@@ -1,3 +1,6 @@
+// Page that displays a loading spinner and automatically triggers full user account deletion.
+// Sends a secure HTTP request to a Firebase Function to delete the account and clear app state.
+
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
 import 'package:onemoretour/back/ride/ride_state.dart';
@@ -14,6 +17,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
+/// A transitional screen that deletes the user's account via Firebase Function call.
+/// Displays a loading spinner while invalidating providers and clearing authentication state.
 class DeletingAccountPage extends ConsumerStatefulWidget {
   const DeletingAccountPage({super.key});
 
@@ -30,6 +35,7 @@ class _DeletingAccountPageState extends ConsumerState<DeletingAccountPage> {
     super.didChangeDependencies();
     if (!_hasStartedDeleting) {
       _hasStartedDeleting = true;
+      // Trigger account deletion after a slight delay to allow widget to mount.
       Future.delayed(const Duration(milliseconds: 500), () {
         _deleteUserCompletely();
       });
@@ -38,25 +44,38 @@ class _DeletingAccountPageState extends ConsumerState<DeletingAccountPage> {
 
   Future<void> _deleteUserCompletely() async {
     try {
+      // Cancel any active subscriptions (if applicable).
       SubscriptionManager.cancelAll();
       final user = FirebaseAuth.instance.currentUser;
+      // Retrieve a fresh ID token for secure backend call.
       final idToken = await user?.getIdToken(true);
 
       if (idToken == null) {
         throw Exception("No ID token available.");
       }
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(roleProvider);
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(ridesHistoryProvider);
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(usersDataProvider);
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(authStateChangesProvider);
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(firestoreServiceProvider);
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(notificationsProvider);
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(vehiclesProvider);
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(rideFlowProvider);
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(rideProvider);
+      // Invalidate provider state to clear user-related data.
       ref.invalidate(ridesHistoryProvider);
 
       await Future.delayed(const Duration(milliseconds: 200));
+      // Send HTTP request to Firebase Function to delete the user account.
       final response = await http.post(
         Uri.parse(
           'https://us-central1-one-more-tour.cloudfunctions.net/deleteUserAccount',
@@ -69,6 +88,7 @@ class _DeletingAccountPageState extends ConsumerState<DeletingAccountPage> {
 
       if (response.statusCode == 200 && context.mounted) {
         if (mounted) {
+          // Navigate back to the WelcomePage after deletion completes.
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => WelcomePage()),
@@ -88,11 +108,13 @@ class _DeletingAccountPageState extends ConsumerState<DeletingAccountPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions and theme brightness for styling.
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
 
+    // Display loading UI while account deletion is in progress.
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
       body: Center(

@@ -1,8 +1,14 @@
+// Uploads bank details to Firestore and posts the same data to an external API.
+// Handles special logic for 'Guide' role including form status updates.
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/upload_files/bank_details/bank_details_post_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+/// Uploads the provided [bankDetails] for the user identified by [userId] to Firestore.
+/// If [role] is 'Guide', also updates application form status fields.
+/// Then posts the data to an external API for further processing.
+/// Shows a success message if the data is successfully posted.
 Future<void> uploadBankDetails({
   required Map<String, dynamic> bankDetails,
   required String userId,

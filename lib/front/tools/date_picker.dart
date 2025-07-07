@@ -1,8 +1,11 @@
+// A custom calendar widget for selecting dates within a ride's available range.
 import 'package:onemoretour/front/tools/ride_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+/// Displays a calendar allowing users to select a date within the ride's range.
+/// Notifies the parent widget of the selected day using a callback.
 class DatePicker extends StatefulWidget {
   final Ride ride;
   final Function(DateTime) updateSelectedDay;
@@ -18,19 +21,26 @@ class DatePicker extends StatefulWidget {
 
 class _DatePickerState extends State<DatePicker> {
   late DateTime selectedDate;
+
+  // Initializes the selected date to the ride's start date.
   @override
   void initState() {
     super.initState();
     selectedDate = widget.ride.startDate.toDate();
   }
 
+  // Builds the calendar UI with styling and selection logic.
   @override
   Widget build(BuildContext context) {
+    // Detect dark or light theme.
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
+    // Get device height for responsive layout.
     final height = MediaQuery.of(context).size.height;
+    // Get device width for responsive layout.
     final width = MediaQuery.of(context).size.width;
     final ride = widget.ride;
+    // Wrap calendar in a styled container with height and padding.
     return Container(
       height: height * 0.13,
       padding: EdgeInsets.symmetric(vertical: height * 0.02),
@@ -41,6 +51,7 @@ class _DatePickerState extends State<DatePicker> {
         ),
       ),
       child: TableCalendar(
+        // Set calendar starting day of week based on ride's start date.
         startingDayOfWeek:
             ride.startDate.toDate().weekday == 1
                 ? StartingDayOfWeek.sunday
@@ -52,6 +63,7 @@ class _DatePickerState extends State<DatePicker> {
         rangeStartDay: ride.startDate.toDate(),
         rangeEndDay: ride.endDate.toDate(),
 
+        // Update selected day and notify parent via callback.
         onDaySelected: (selectedDay, focusedDay) {
           setState(() {
             selectedDate = selectedDay;
@@ -60,13 +72,16 @@ class _DatePickerState extends State<DatePicker> {
         },
 
         headerVisible: false,
+        // Mark the currently selected day.
         selectedDayPredicate: (day) {
           return isSameDay(selectedDate, day);
         },
+        // Set font styles for weekday and weekend headers.
         daysOfWeekStyle: DaysOfWeekStyle(
           weekdayStyle: GoogleFonts.ptSans(fontWeight: FontWeight.w600),
           weekendStyle: GoogleFonts.ptSans(fontWeight: FontWeight.w600),
         ),
+        // Configure styles for calendar cells, selection, and range highlighting.
         calendarStyle: CalendarStyle(
           defaultTextStyle: GoogleFonts.ptSans(fontWeight: FontWeight.w600),
           withinRangeTextStyle: GoogleFonts.ptSans(fontWeight: FontWeight.w600),

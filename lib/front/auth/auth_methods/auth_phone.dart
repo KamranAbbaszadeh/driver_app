@@ -1,9 +1,13 @@
+// Phone authentication screen that allows users to select a country code and input their phone number.
+// Includes validation logic, error messages, and alternative input option.
 import 'package:country_picker/country_picker.dart';
 import 'package:onemoretour/front/auth/auth_methods/auth_phone_alternative.dart';
 // import 'package:onemoretour/back/tools/remove_emojis.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// A user interface for entering a phone number for authentication.
+/// Combines country picker and manual phone input with validation and formatting support.
 class AuthPhone extends StatefulWidget {
   const AuthPhone({super.key});
 
@@ -26,6 +30,7 @@ class _AuthState extends State<AuthPhone> {
     _countryCodeFocusNode = FocusNode();
     _phoneFocusNode = FocusNode();
 
+    // Update character count as the user types in the phone number.
     _phoneNumberController.addListener(() {
       setState(() {
         _characterCount = _phoneNumberController.text.length;
@@ -35,6 +40,7 @@ class _AuthState extends State<AuthPhone> {
 
   @override
   void dispose() {
+    // Dispose controllers and focus nodes to prevent memory leaks.
     _countryCodeController.dispose();
     _phoneNumberController.dispose();
     _countryCodeFocusNode.dispose();
@@ -44,6 +50,7 @@ class _AuthState extends State<AuthPhone> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine current theme and get screen dimensions.
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
@@ -457,6 +464,7 @@ class _AuthState extends State<AuthPhone> {
                 SizedBox(height: height * 0.011),
                 TextButton(
                   onPressed: () {
+                    // Navigate to alternative phone authentication screen.
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -474,6 +482,7 @@ class _AuthState extends State<AuthPhone> {
           ),
           GestureDetector(
             onTap: () {
+              // Validate phone number before proceeding or show error snackbar.
               if (_phoneNumberController.text.isNotEmpty &&
                   _characterCount >= 7) {
                 // final countryCode = removeEmojis(_countryCodeController.text);

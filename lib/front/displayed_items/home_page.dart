@@ -18,6 +18,13 @@ import 'package:onemoretour/front/tools/top_padding_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:collection/collection.dart';
 
+// Main home page for the driver app.
+// Initializes wake lock, handles exact alarm permission, sets top padding, listens for ride state changes,
+// and shows a floating action button to start a ride when conditions are met.
+
+
+/// Root widget of the home screen, responsible for displaying content based on navigation bar selection.
+/// Manages ride reminder scheduling and shows "Start Ride" button when eligible.
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -27,6 +34,8 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   dynamic get onLocation => null;
+
+  /// Enables wake lock and requests alarm permission after widget initialization.
   @override
   void initState() {
     try {
@@ -40,6 +49,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
+  /// Called when widget dependencies change.
+  /// Sets top padding and starts async initialization tasks.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -50,6 +61,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
   }
 
+  /// Requests location and battery optimization permissions (Android only).
   Future<void> _initAsyncTasks() async {
     if (!mounted) return;
     await requestLocationPermissions(context);
@@ -58,6 +70,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     await requestIgnoreBatteryOptimizations(context);
   }
 
+  /// Parses different formats into [DateTime] for consistent time comparisons.
   DateTime parseDate(dynamic value) {
     if (value is DateTime) return value;
     if (value is Timestamp) return value.toDate();
@@ -73,6 +86,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for changes in ride state and respond to tour timing and status.
+    // Schedule or cancel ride reminders accordingly.
     ref.listen<RideState>(rideProvider, (previous, next) {
       final prevRoute = previous?.nextRoute;
       final nextRoute = next.nextRoute;
@@ -120,6 +135,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           final assignedVehicle = rideState.vehicleRegistrationNumber;
           final selectedVehicleAsync = ref.watch(vehicleDataProvider);
 
+          // Conditionally show "Start Ride" button if user has selected the right vehicle,
+          // the ride hasn't ended yet, and the current time is within ride window.
           return selectedVehicleAsync.when(
             data: (vehicleData) {
               final selectedVehicle =

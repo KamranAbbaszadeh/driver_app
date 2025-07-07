@@ -1,8 +1,23 @@
+// Handles assigning a user as a driver or guide to a specific tour or car.
+// Updates Firestore collections for Cars/Guides, Users, and Chat.
+// Sends assignment data to an external API endpoint.
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/user_assign.dart/user_assign_post_api.dart';
 import 'package:onemoretour/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Assigns the current user to a tour or car by updating Firestore and notifying external API.
+///
+/// Parameters:
+/// - [docId]: The Firestore document ID of the tour or car.
+/// - [baseUrl]: The base URL for the external API endpoint.
+/// - [collection]: Firestore collection name, either 'Cars' or 'Guides'.
+/// - [carName]: Name of the car or tour.
+/// - [vehicleRegistrationNumber]: Registration number of the vehicle (used if collection is 'Cars').
+/// - [tourEdnDAte]: Timestamp indicating the tour's end date.
+///
+/// If the user is not authenticated, the function returns early.
+/// Upon successful Firestore updates, it triggers an API call and then pops the current navigation context.
 Future<void> userAssign({
   required String docId,
   required String baseUrl,

@@ -1,6 +1,11 @@
+// Displays a modal bottom sheet for gender selection using the WoltModalSheet package.
+// Allows the user to select between 'Male' and 'Female' and updates the provided TextEditingController.
 import 'package:flutter/material.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
+/// Shows a gender picker modal using WoltModalSheet.
+/// Updates the [selectedGender] controller when the user selects a gender option.
+/// Adjusts UI based on dark/light mode and screen width.
 Future<void> showGenderPicker(
   BuildContext context,
   TextEditingController selectedGender,

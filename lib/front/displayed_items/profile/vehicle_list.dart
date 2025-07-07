@@ -1,3 +1,6 @@
+// Vehicle list screen that displays all vehicles submitted by the user.
+// Allows viewing registered vehicles, marking one as active, and adding a new vehicle.
+
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,6 +18,8 @@ import 'package:onemoretour/front/intro/welcome_page.dart';
 import 'package:onemoretour/main.dart';
 import 'package:page_transition/page_transition.dart';
 
+/// Displays a list of registered vehicles from Firestore for the current user.
+/// Enables setting an active vehicle and launching the vehicle details form.
 class VehicleList extends ConsumerStatefulWidget {
   const VehicleList({super.key});
 
@@ -34,12 +39,8 @@ class _VehicleListState extends ConsumerState<VehicleList> {
   final ValueNotifier<String?> activeVehicleIdNotifier = ValueNotifier(null);
   StreamSubscription<DocumentSnapshot>? activeVehicleSubscription;
 
-  @override
-  void initState() {
-    super.initState();
-    listenToActiveVehicleId();
-  }
-
+  /// Listens to the user's Firestore document for changes to the active vehicle ID.
+  /// Updates [activeVehicleIdNotifier] in real time.
   void listenToActiveVehicleId() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -60,6 +61,13 @@ class _VehicleListState extends ConsumerState<VehicleList> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    listenToActiveVehicleId();
+  }
+
+  /// Cleans up listeners and notifiers to prevent memory leaks.
+  @override
   void dispose() {
     activeVehicleSubscription?.cancel();
     activeVehicleIdNotifier.dispose();
@@ -69,6 +77,7 @@ class _VehicleListState extends ConsumerState<VehicleList> {
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
+    // Redirect to welcome page if no authenticated user is found.
     if (currentUser == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         navigatorKey.currentState?.pushAndRemoveUntil(
@@ -115,6 +124,7 @@ class _VehicleListState extends ConsumerState<VehicleList> {
             end: Alignment.bottomCenter,
           ),
         ),
+        // Listen to the user's 'Vehicles' subcollection and build a list of vehicle cards.
         child: StreamBuilder<QuerySnapshot>(
           stream:
               FirebaseFirestore.instance
@@ -142,6 +152,7 @@ class _VehicleListState extends ConsumerState<VehicleList> {
                 final vehicle = vehicles[index];
                 final isApproved = vehicle['isApproved'] == true;
 
+                // Display individual vehicle information with styling and selection logic.
                 return VehicleCard(
                   vehicle: vehicle,
                   isApproved: isApproved,
@@ -168,6 +179,7 @@ class _VehicleListState extends ConsumerState<VehicleList> {
           },
         ),
       ),
+      // Button to add a new vehicle; opens vehicle detail form and uploads photos to Firebase.
       floatingActionButton: FloatingActionButton(
         elevation: width * 0.025,
         backgroundColor: Colors.transparent,
@@ -184,6 +196,7 @@ class _VehicleListState extends ConsumerState<VehicleList> {
                     isDeclined: false,
                     onDeleteRemotePhoto: (url) async {},
                     onFormSubmit: (formData) async {
+                      // Handle submission of the vehicle details form, including photo uploads and Firestore save.
                       final user = FirebaseAuth.instance.currentUser;
                       if (user == null) return;
                       final userId = user.uid;
@@ -262,6 +275,7 @@ class _VehicleListState extends ConsumerState<VehicleList> {
                                   'isApproved': false,
                                 };
 
+                                // Save uploaded photo URLs and vehicle metadata to Firestore.
                                 if (context.mounted) {
                                   await uploadVehicleDetailsAndSave(
                                     userId: userId,

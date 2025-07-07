@@ -1,3 +1,6 @@
+// This view displays the user's onboarding progress and provides action prompts.
+// It guides the user through sending an application, submitting documents, and signing a contract.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
@@ -12,6 +15,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Displays user onboarding steps: application, personal details, and contract signing.
+/// Shows progress indicators and 'Continue' buttons based on Firestore data.
 class WaitingPageView extends ConsumerStatefulWidget {
   const WaitingPageView({super.key});
 
@@ -20,6 +25,7 @@ class WaitingPageView extends ConsumerStatefulWidget {
 }
 
 class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
+  /// Clears shared preferences and logs out the user.
   Future<void> handleLogout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -44,6 +50,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.watch(notificationsProvider.notifier).refresh();
     });
+    // Fetch contract link from Firestore after user authentication.
     FirebaseFirestore.instance.collection('Users').doc(userId).get().then((
       doc,
     ) {
@@ -96,6 +103,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       : const Color.fromARGB(255, 255, 255, 255),
             ),
             padding: EdgeInsets.zero,
+            // Show notification icon with badge if there are unviewed notifications.
             child: Stack(
               children: [
                 IconButton(
@@ -112,17 +120,16 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       ),
                       hasUnviewedNotifications
                           ? Positioned(
-                            right: width * 0.033,
-                            top: height * 0.002,
-                            child: Icon(
-                              Icons.brightness_1,
-                              color:
-                                  darkMode
-                                      ? Color.fromARGB(255, 1, 105, 170)
-                                      : Color.fromARGB(255, 52, 168, 235),
-                              size: width * 0.022,
-                            ),
-                          )
+                              left: width * 0.033,
+                              top: height * 0.002,
+                              child: Icon(
+                                Icons.brightness_1,
+                                color: darkMode
+                                    ? Color.fromARGB(255, 1, 105, 170)
+                                    : Color.fromARGB(255, 52, 168, 235),
+                                size: width * 0.022,
+                              ),
+                            )
                           : SizedBox.shrink(),
                     ],
                   ),
@@ -180,6 +187,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                               ),
                             ),
                           ),
+                          // Sign out user and redirect to WaitingPage after confirmation.
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
@@ -241,6 +249,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                 .doc(currentUser.uid)
                 .snapshots(),
         builder: (context, snapshot) {
+          // Listen to real-time updates from the user's Firestore document.
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -296,6 +305,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       thickness: height * 0.0005,
                     ),
                     SizedBox(height: height * 0.025),
+                    // Send application section - shows current status and instructions.
                     //SEND APPLICATION
                     Row(
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -430,6 +440,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       ],
                     ),
                     SizedBox(height: height * 0.015),
+                    // Contract Details section - shows current status and instructions.
                     //CONTRACT DETAILS
                     Row(
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -613,6 +624,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       ],
                     ),
                     SizedBox(height: height * 0.015),
+                    // Contract Signing section - shows current status and instructions.
                     //CONTRACT
                     Row(
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -773,6 +785,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       thickness: height * 0.0005,
                     ),
                     SizedBox(height: height * 0.025),
+                    // Display appropriate 'Continue' button depending on user's progress in onboarding.
                     userData['Application Form Decline'] == true
                         ? GestureDetector(
                           onTap: () {
@@ -907,6 +920,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                         )
                         : SizedBox.shrink(),
                     SizedBox(height: height * 0.01),
+                    // Option for the user to contact support if they need help during onboarding.
                     GestureDetector(
                       onTap: () {},
                       child: Container(
