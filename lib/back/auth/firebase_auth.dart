@@ -98,13 +98,7 @@ Future<void> signUp({
       };
 
       // Step 5: Post user data to external API.
-      final success = await apiService.postData(data);
-
-      if (success) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
-      }
+      await apiService.postData(data);
 
       Navigator.pushAndRemoveUntil(
         context,
@@ -150,13 +144,7 @@ Future<void> signUp({
         'UID': user.uid,
       };
 
-      final success = await apiService.postData(data);
-
-      if (success) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
-      }
+      await apiService.postData(data);
 
       Navigator.pushAndRemoveUntil(
         context,

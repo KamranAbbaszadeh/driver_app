@@ -1,6 +1,8 @@
 // This view displays the user's onboarding progress and provides action prompts.
 // It guides the user through sending an application, submitting documents, and signing a contract.
 
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/front/auth/waiting_page.dart';
@@ -14,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Displays user onboarding steps: application, personal details, and contract signing.
 /// Shows progress indicators and 'Continue' buttons based on Firestore data.
@@ -33,6 +36,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
 
   late final String? userId;
   late final String contractUrl;
+  late final String customerSupport;
   @override
   void initState() {
     super.initState();
@@ -50,26 +54,64 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.watch(notificationsProvider.notifier).refresh();
     });
-    // Fetch contract link from Firestore after user authentication.
-    FirebaseFirestore.instance.collection('Users').doc(userId).get().then((
-      doc,
-    ) {
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        if (!data.containsKey('ContractLink')) {
-          return;
-        }
-        contractUrl = doc['ContractLink'] ?? '';
+    // Fetch customer support link from Firestore after user authentication.
+    FirebaseFirestore.instance
+        .collection('Details')
+        .doc('CustomerSupport')
+        .get()
+        .then((doc) {
+          if (doc.exists) {
+            final data = doc.data() as Map<String, dynamic>;
+            customerSupport = data['URL'] ?? '';
+          } else {
+            customerSupport = '';
+          }
+        });
+  }
+
+  bool isValidUrl(String url) {
+    final uri = Uri.tryParse(url);
+    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+  }
+
+  Future<void> launchCustomerSupport(String urlString) async {
+    final Uri uri = Uri.parse(urlString);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      final fallbackUri = getFallbackUri(urlString);
+      if (fallbackUri != null && await canLaunchUrl(fallbackUri)) {
+        await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
       } else {
-        contractUrl = '';
+        throw 'Could not launch app or fallback store link';
       }
-    });
+    }
+  }
+
+  Uri? getFallbackUri(String originalUrl) {
+    if (originalUrl.contains("wa.me") || originalUrl.contains("whatsapp")) {
+      return Uri.parse(
+        Platform.isIOS
+            ? "https://apps.apple.com/us/app/whatsapp-messenger/id310633997"
+            : "https://play.google.com/store/apps/details?id=com.whatsapp&hl=en",
+      );
+    } else if (originalUrl.contains("t.me") ||
+        originalUrl.contains("telegram")) {
+      return Uri.parse(
+        Platform.isIOS
+            ? "https://apps.apple.com/us/app/telegram-messenger/id686449807"
+            : "https://play.google.com/store/apps/details?id=org.telegram.messenger&hl=en",
+      );
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
+    bool isSnackBarVisible = false;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     final notifications = ref.watch(notificationsProvider);
@@ -120,16 +162,17 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                       ),
                       hasUnviewedNotifications
                           ? Positioned(
-                              left: width * 0.033,
-                              top: height * 0.002,
-                              child: Icon(
-                                Icons.brightness_1,
-                                color: darkMode
-                                    ? Color.fromARGB(255, 1, 105, 170)
-                                    : Color.fromARGB(255, 52, 168, 235),
-                                size: width * 0.022,
-                              ),
-                            )
+                            left: width * 0.033,
+                            top: height * 0.002,
+                            child: Icon(
+                              Icons.brightness_1,
+                              color:
+                                  darkMode
+                                      ? Color.fromARGB(255, 1, 105, 170)
+                                      : Color.fromARGB(255, 52, 168, 235),
+                              size: width * 0.022,
+                            ),
+                          )
                           : SizedBox.shrink(),
                     ],
                   ),
@@ -258,6 +301,8 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
           }
 
           var userData = snapshot.data!.data() as Map<String, dynamic>;
+          // Dynamically update contractUrl from Firestore data
+          contractUrl = userData['ContractLink'] ?? '';
 
           bool applicationFormVerified = userData['Application Form Verified'];
           bool personalFormReceived =
@@ -922,7 +967,34 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
                     SizedBox(height: height * 0.01),
                     // Option for the user to contact support if they need help during onboarding.
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        if (isValidUrl(customerSupport)) {
+                          launchCustomerSupport(customerSupport);
+                        } else {
+                          if (isSnackBarVisible) return;
+
+                          isSnackBarVisible = true;
+
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Something went wrong. Please try again later.',
+                                  style: TextStyle(
+                                    color:
+                                        darkMode ? Colors.black : Colors.white,
+                                  ),
+                                ),
+                                backgroundColor:
+                                    darkMode ? Colors.white : Colors.black,
+                                duration: const Duration(seconds: 3),
+                              ),
+                            ).closed.then((_) {
+                              isSnackBarVisible = false;
+                            });
+                        }
+                      },
                       child: Container(
                         decoration: BoxDecoration(
                           color:

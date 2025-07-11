@@ -1170,12 +1170,8 @@ class _BankDetailsFormState extends ConsumerState<BankDetailsForm> {
                         onChanged: (value) {
                           setState(() {
                             isBankCodeEmpty = value.isEmpty;
+                            isBankCodeValid = isValidBankCode(value);
                           });
-                          if (!isBankCodeEmpty) {
-                            setState(() {
-                              isBankCodeEmpty = isValidBankCode(value);
-                            });
-                          }
                         },
                         onTapOutside: (_) {
                           _isEmpty(_bankCodeController, 'Bank Code');

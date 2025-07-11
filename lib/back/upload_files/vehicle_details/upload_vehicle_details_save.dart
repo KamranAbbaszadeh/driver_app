@@ -116,18 +116,7 @@ Future<void> uploadVehicleDetailsAndSave({
       "ChasisNumberImage": vehicleDetails['Chassis Number Photo'],
       "DocName": vehicleId,
     };
-    final success = await vehicleDetailsPostApi.postData(vehicleDetailsforPos);
-    if (success && context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
-    } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Data not posted!")));
-      }
-    }
+    await vehicleDetailsPostApi.postData(vehicleDetailsforPos);
   }
 }
 

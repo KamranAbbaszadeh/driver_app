@@ -3,7 +3,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/upload_files/bank_details/bank_details_post_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 
 /// Uploads the provided [bankDetails] for the user identified by [userId] to Firestore.
 /// If [role] is 'Guide', also updates application form status fields.
@@ -27,7 +26,7 @@ Future<void> uploadBankDetails({
       final currentUserEmail = user.email;
       if (currentUserEmail != null) {
         final BankDetailsPostApi bankDetailsPostApi = BankDetailsPostApi();
-        final success = await bankDetailsPostApi.postData({
+        await bankDetailsPostApi.postData({
           'User': currentUserEmail,
           'BankName': bankDetails['Bank Name'],
           'Code': bankDetails['Bank Code'],
@@ -38,12 +37,6 @@ Future<void> uploadBankDetails({
           'RegistrationAddress': bankDetails['Address'],
           'FINCode': bankDetails['FIN'],
         });
-
-        if (success) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
-        }
       }
     }
   } else {
@@ -60,7 +53,7 @@ Future<void> uploadBankDetails({
       final currentUserEmail = user.email;
       if (currentUserEmail != null) {
         final BankDetailsPostApi bankDetailsPostApi = BankDetailsPostApi();
-        final success = await bankDetailsPostApi.postData({
+        await bankDetailsPostApi.postData({
           'User': currentUserEmail,
           'BankName': bankDetails['Bank Name'],
           'Code': bankDetails['Bank Code'],
@@ -72,11 +65,6 @@ Future<void> uploadBankDetails({
           'FINCode': bankDetails['FIN'],
         });
 
-        if (success) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
-        }
       }
     }
   }

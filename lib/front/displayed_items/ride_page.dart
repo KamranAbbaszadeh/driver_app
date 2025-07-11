@@ -10,6 +10,7 @@ import 'package:onemoretour/back/map_and_location/location_provider.dart';
 import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
 import 'package:onemoretour/back/ride/guest_pick_up_api.dart';
 import 'package:onemoretour/back/ride/ride_flow_update_api.dart';
+import 'package:onemoretour/db/user_data/store_role.dart';
 import 'package:onemoretour/front/displayed_items/chat_page.dart';
 import 'package:onemoretour/front/displayed_items/intermediate_page.dart';
 import 'package:onemoretour/front/displayed_items/ride_map.dart';
@@ -31,7 +32,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 /// Provides swipe button for progressing through different ride states, plus access to chat and navigation apps.
 class RidePage extends ConsumerStatefulWidget {
   const RidePage({super.key});
-
   @override
   ConsumerState<RidePage> createState() => _RidePageState();
 }
@@ -150,6 +150,8 @@ class _RidePageState extends ConsumerState<RidePage>
   @override
   Widget build(BuildContext context) {
     final rideState = ref.watch(rideProvider);
+    final userRoleData = ref.watch(roleProvider);
+    final userRole = userRoleData?['Role'] ?? 'Guest';
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
     final darkMode =
@@ -158,10 +160,14 @@ class _RidePageState extends ConsumerState<RidePage>
     final endLatLng = rideState.endLatLng;
     final nextRoute = rideState.nextRoute;
     final docId = rideState.docId;
+    final collection = rideState.collection;
     final startLocationName = rideState.startLocationName;
     final endLocationName = rideState.endLocationName;
     final position = ref.watch(locationProvider);
-    if (startLatLng == null || endLatLng == null || position == null) {
+    if (startLatLng == null ||
+        endLatLng == null ||
+        position == null ||
+        collection == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: Colors.white)),
       );
@@ -856,6 +862,14 @@ class _RidePageState extends ConsumerState<RidePage>
                               onWaitingProcess: () async {
                                 if (!rideFlow.startRide) {
                                   // Step 1: Start the ride
+                                  await FirebaseFirestore.instance
+                                      .collection(collection)
+                                      .doc(docId)
+                                      .set({
+                                        'OnRoad?': true,
+                                        'updatedAt':
+                                            FieldValue.serverTimestamp(),
+                                      }, SetOptions(merge: true));
                                   rideFlowNotifier.setStartRide(true);
                                   setState(() {
                                     isFinished = true;
@@ -866,12 +880,13 @@ class _RidePageState extends ConsumerState<RidePage>
                                   // Step 2: Confirm arrival at start
                                   try {
                                     await FirebaseFirestore.instance
-                                        .collection('Cars')
+                                        .collection(collection)
                                         .doc(docId)
                                         .set({
                                           'Routes': {
                                             routeKey!: {'Start Arrived': true},
                                           },
+                                          'OnRoad?': false,
                                           'updatedAt':
                                               FieldValue.serverTimestamp(),
                                         }, SetOptions(merge: true));
@@ -896,6 +911,7 @@ class _RidePageState extends ConsumerState<RidePage>
                                     !rideFlow.pickGuest &&
                                     !rideFlow.finishRide) {
                                   // Step 3: Guest pickup confirmation
+                                  final bool isGuide = userRole == 'Guide';
                                   final result = await showDialog<bool>(
                                     context: context,
                                     barrierDismissible: false,
@@ -919,7 +935,9 @@ class _RidePageState extends ConsumerState<RidePage>
                                               ),
                                               SizedBox(width: width * 0.025),
                                               Text(
-                                                'Guest Pickup',
+                                                isGuide
+                                                    ? 'Tour Start Confirmation'
+                                                    : 'Guest Pickup',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: width * 0.045,
@@ -928,7 +946,9 @@ class _RidePageState extends ConsumerState<RidePage>
                                             ],
                                           ),
                                           content: Text(
-                                            'Have you picked up the guest?',
+                                            isGuide
+                                                ? 'Have you welcomed the guest and are ready to start the guided tour?'
+                                                : 'Have you picked up the guest?',
                                             style: TextStyle(
                                               fontSize: width * 0.04,
                                             ),
@@ -983,6 +1003,14 @@ class _RidePageState extends ConsumerState<RidePage>
                                         ),
                                   );
                                   if (result == true) {
+                                    await FirebaseFirestore.instance
+                                        .collection(collection)
+                                        .doc(docId)
+                                        .set({
+                                          'OnRoad?': true,
+                                          'updatedAt':
+                                              FieldValue.serverTimestamp(),
+                                        }, SetOptions(merge: true));
                                     rideFlowNotifier.guestPickedUp(true);
                                     final guestPickUpApi = GuestPickUpApi();
                                     guestPickUpApi.postData({"CarID": docId});
@@ -1003,12 +1031,13 @@ class _RidePageState extends ConsumerState<RidePage>
                                   // Step 4: Confirm arrival at end
                                   try {
                                     await FirebaseFirestore.instance
-                                        .collection('Cars')
+                                        .collection(collection)
                                         .doc(docId)
                                         .set({
                                           'Routes': {
                                             routeKey!: {'End Arrived': true},
                                           },
+                                          'OnRoad?': false,
                                           'updatedAt':
                                               FieldValue.serverTimestamp(),
                                         }, SetOptions(merge: true));
@@ -1022,6 +1051,33 @@ class _RidePageState extends ConsumerState<RidePage>
                                       "StartTime": "",
                                       "EndTime": formattedNow,
                                     });
+                                    final carDocSnapshot =
+                                        await FirebaseFirestore.instance
+                                            .collection(collection)
+                                            .doc(docId)
+                                            .get();
+                                    final routes =
+                                        carDocSnapshot.data()?['Routes']
+                                            as Map<String, dynamic>? ??
+                                        {};
+
+                                    bool allRoutesCompleted = routes.values
+                                        .every(
+                                          (route) =>
+                                              (route['Start Arrived'] == true &&
+                                                  route['End Arrived'] == true),
+                                        );
+
+                                    if (allRoutesCompleted) {
+                                      await FirebaseFirestore.instance
+                                          .collection(collection)
+                                          .doc(docId)
+                                          .set({
+                                            'isCompleted': true,
+                                            'completedAt':
+                                                FieldValue.serverTimestamp(),
+                                          }, SetOptions(merge: true));
+                                    }
                                     rideFlowNotifier.setFinishRide(true);
                                     setState(() {
                                       isFinished = true;

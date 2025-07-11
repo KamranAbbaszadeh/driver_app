@@ -1,5 +1,8 @@
 // Profile page displaying earnings chart, personal profile, ride history, vehicle list (for drivers),
 // and logout functionality with state cleanup and navigation.
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:onemoretour/back/map_and_location/ride_flow_provider.dart';
 import 'package:onemoretour/back/rides_history/rides_provider.dart';
 import 'package:onemoretour/back/tools/firebase_service.dart';
@@ -19,12 +22,37 @@ import 'package:intl/intl.dart';
 import 'package:onemoretour/front/tools/bottom_bar_provider.dart';
 import 'package:onemoretour/front/tools/notification_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 
 /// A user profile screen showing monthly earnings chart and account navigation options.
 /// Includes profile details, ride history, and vehicle list (if role is Driver), plus logout dialog.
-class ProfilePage extends ConsumerWidget {
+class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends ConsumerState<ProfilePage> {
+  late String customerSupport;
+  bool isSnackBarVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    FirebaseFirestore.instance
+        .collection('Details')
+        .doc('CustomerSupport')
+        .get()
+        .then((doc) {
+          if (doc.exists) {
+            final data = doc.data() as Map<String, dynamic>;
+            customerSupport = data['URL'] ?? '';
+          } else {
+            customerSupport = '';
+          }
+        });
+  }
 
   /// Clears stored preferences during logout. Used to reset app state.
   Future<void> handleLogout(BuildContext context) async {
@@ -32,8 +60,46 @@ class ProfilePage extends ConsumerWidget {
     await prefs.clear();
   }
 
+  bool isValidUrl(String url) {
+    final uri = Uri.tryParse(url);
+    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+  }
+
+  Future<void> launchCustomerSupport(String urlString) async {
+    final Uri uri = Uri.parse(urlString);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      final fallbackUri = getFallbackUri(urlString);
+      if (fallbackUri != null && await canLaunchUrl(fallbackUri)) {
+        await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch app or fallback store link';
+      }
+    }
+  }
+
+  Uri? getFallbackUri(String originalUrl) {
+    if (originalUrl.contains("wa.me") || originalUrl.contains("whatsapp")) {
+      return Uri.parse(
+        Platform.isIOS
+            ? "https://apps.apple.com/us/app/whatsapp-messenger/id310633997"
+            : "https://play.google.com/store/apps/details?id=com.whatsapp&hl=en",
+      );
+    } else if (originalUrl.contains("t.me") ||
+        originalUrl.contains("telegram")) {
+      return Uri.parse(
+        Platform.isIOS
+            ? "https://apps.apple.com/us/app/telegram-messenger/id686449807"
+            : "https://play.google.com/store/apps/details?id=org.telegram.messenger&hl=en",
+      );
+    }
+    return null;
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final darkMode =
         MediaQuery.of(context).platformBrightness == Brightness.dark;
     final height = MediaQuery.of(context).size.height;
@@ -41,8 +107,23 @@ class ProfilePage extends ConsumerWidget {
 
     // Listen to rides history to prepare earnings data.
     ref.watch(ridesHistoryProvider);
-    final earningsMap = ref.read(ridesHistoryProvider.notifier).earningsByDate;
-    final dates = earningsMap.keys.toList();
+    final rawEarningsMap =
+        ref.read(ridesHistoryProvider.notifier).earningsByDate;
+    final Map<String, Map<bool, double>> monthlyEarnings = {};
+
+    for (final entry in rawEarningsMap.entries) {
+      final parts = entry.key.split('-');
+      final monthKey = '${parts[0]}-${parts[1]}';
+      monthlyEarnings.putIfAbsent(monthKey, () => {true: 0.0, false: 0.0});
+      monthlyEarnings[monthKey]![true] =
+          (monthlyEarnings[monthKey]![true] ?? 0.0) +
+          (entry.value[true] ?? 0.0);
+      monthlyEarnings[monthKey]![false] =
+          (monthlyEarnings[monthKey]![false] ?? 0.0) +
+          (entry.value[false] ?? 0.0);
+    }
+
+    final dates = monthlyEarnings.keys.toList()..sort();
     final roleDetails = ref.watch(roleProvider);
     final userRole = roleDetails?['Role'];
 
@@ -77,82 +158,99 @@ class ProfilePage extends ConsumerWidget {
                       ),
                     ),
                     // Bar chart visualizing paid and unpaid earnings per month.
-                    Expanded(
-                      child: BarChart(
-                        BarChartData(
-                          barTouchData: BarTouchData(
-                            touchTooltipData: BarTouchTooltipData(
-                              direction: TooltipDirection.bottom,
-                              fitInsideHorizontally: true,
-                              fitInsideVertically: true,
-                            ),
-                          ),
-                          alignment: BarChartAlignment.spaceAround,
-                          borderData: FlBorderData(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: const Color.fromARGB(255, 185, 185, 185),
-                                width: width * 0.002,
+                    SizedBox(
+                      height: height * 0.25,
+                      width: width,
+                      child: SingleChildScrollView(
+                        reverse: true,
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width:
+                              dates.length > 4
+                                  ? width * (dates.length / 4)
+                                  : width,
+                          child: BarChart(
+                            BarChartData(
+                              barTouchData: BarTouchData(
+                                touchTooltipData: BarTouchTooltipData(
+                                  direction: TooltipDirection.bottom,
+                                  fitInsideHorizontally: true,
+                                  fitInsideVertically: true,
+                                ),
                               ),
-                            ),
-                          ),
-                          gridData: FlGridData(show: false),
-                          barGroups: List.generate(dates.length, (index) {
-                            final data = earningsMap[dates[index]]!;
-                            final paidValue = data[true] ?? 0.0;
-                            final unpaidValue = data[false] ?? 0.0;
-                            return BarChartGroupData(
-                              x: index,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: paidValue,
-                                  width: width * 0.02,
-                                  rodStackItems: [],
-                                  color: Colors.green,
-                                  borderRadius: BorderRadius.zero,
-                                ),
-                                BarChartRodData(
-                                  toY: unpaidValue,
-                                  width: width * 0.02,
-                                  rodStackItems: [],
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.zero,
-                                ),
-                              ],
-                              barsSpace: width * 0.01,
-                            );
-                          }),
-                          titlesData: FlTitlesData(
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            topTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, _) {
-                                  int index = value.toInt();
-                                  if (index < 0 || index >= dates.length) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  final parts = dates[index].split('-');
-                                  final date = DateTime(
-                                    int.parse(parts[0]),
-                                    int.parse(parts[1]),
-                                  );
-                                  return Text(
-                                    DateFormat.MMM().format(date),
-                                    style: GoogleFonts.cabin(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: width * 0.04,
+                              alignment: BarChartAlignment.spaceAround,
+                              borderData: FlBorderData(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: const Color.fromARGB(
+                                      255,
+                                      185,
+                                      185,
+                                      185,
                                     ),
-                                  );
-                                },
+                                    width: width * 0.002,
+                                  ),
+                                ),
+                              ),
+                              gridData: FlGridData(show: false),
+                              barGroups: List.generate(dates.length, (index) {
+                                final data = monthlyEarnings[dates[index]]!;
+                                final paidValue = data[true] ?? 0.0;
+                                final unpaidValue = data[false] ?? 0.0;
+                                return BarChartGroupData(
+                                  x: index,
+                                  barRods: [
+                                    BarChartRodData(
+                                      toY: paidValue,
+                                      width: width * 0.02,
+                                      rodStackItems: [],
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.zero,
+                                    ),
+                                    BarChartRodData(
+                                      toY: unpaidValue,
+                                      width: width * 0.02,
+                                      rodStackItems: [],
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.zero,
+                                    ),
+                                  ],
+                                  barsSpace: width * 0.01,
+                                );
+                              }),
+                              titlesData: FlTitlesData(
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                topTitles: AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                rightTitles: AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, _) {
+                                      int index = value.toInt();
+                                      if (index < 0 || index >= dates.length) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      final parts = dates[index].split('-');
+                                      final date = DateTime(
+                                        int.parse(parts[0]),
+                                        int.parse(parts[1]),
+                                      );
+                                      return Text(
+                                        DateFormat.MMM().format(date),
+                                        style: GoogleFonts.cabin(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: width * 0.04,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -240,7 +338,7 @@ class ProfilePage extends ConsumerWidget {
               // Show "My Vehicles" section only if the user role is not Guide.
               userRole == "Guide"
                   ? SizedBox.shrink()
-                  : 
+                  :
                   // Navigation tile: My Vehicles
                   Material(
                     color:
@@ -426,6 +524,76 @@ class ProfilePage extends ConsumerWidget {
                         Icon(Icons.arrow_forward_ios),
                       ],
                     ),
+                  ),
+                ),
+              ),
+
+              Spacer(),
+              GestureDetector(
+                onTap: () {
+                  if (isValidUrl(customerSupport)) {
+                    launchCustomerSupport(customerSupport);
+                  } else {
+                    if (isSnackBarVisible) return;
+                    isSnackBarVisible = true;
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Something went wrong. Please try again later.',
+                            style: TextStyle(
+                              color: darkMode ? Colors.black : Colors.white,
+                            ),
+                          ),
+                          backgroundColor:
+                              darkMode ? Colors.white : Colors.black,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      ).closed.then((_) {
+                        isSnackBarVisible = false;
+                      });
+                  }
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors:
+                          darkMode
+                              ? [Color(0xFF2196F3), Color(0xFF0D47A1)]
+                              : [Color(0xFF64B5F6), Color(0xFF1976D2)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 4,
+                        offset: Offset(2, 4),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.circular(width * 0.03),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: width * 0.04),
+                  height: height * 0.06,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.support_agent,
+                        color: Colors.white,
+                        size: width * 0.06,
+                      ),
+                      SizedBox(width: width * 0.02),
+                      Text(
+                        'Contact Support',
+                        style: GoogleFonts.cabin(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: width * 0.045,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

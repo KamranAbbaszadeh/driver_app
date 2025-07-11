@@ -38,6 +38,7 @@ class RideState {
   final bool? endArrived;
   final String? vehicleType;
   final String? vehicleRegistrationNumber;
+  final String? collection;
 
   RideState({
     this.filteredRides = const [],
@@ -53,6 +54,7 @@ class RideState {
     this.endArrived,
     this.vehicleType,
     this.vehicleRegistrationNumber,
+    this.collection,
   });
 
   /// Returns a new [RideState] with updated values.
@@ -71,6 +73,7 @@ class RideState {
     bool? endArrived,
     String? vehicleType,
     String? vehicleRegistrationNumber,
+    String? collection,
   }) {
     return RideState(
       filteredRides: filteredRides ?? this.filteredRides,
@@ -87,6 +90,7 @@ class RideState {
       vehicleType: vehicleType ?? this.vehicleType,
       vehicleRegistrationNumber:
           vehicleRegistrationNumber ?? this.vehicleRegistrationNumber,
+      collection: collection ?? this.collection,
     );
   }
 }
@@ -274,7 +278,7 @@ class RideNotifier extends StateNotifier<RideState> {
       );
 
       final docId = matchingRide?.docId ?? '';
-
+      final collection = matchingRide?.collectionSource ?? '';
       final routeKey =
           matchingRide?.routes.entries
               .firstWhere(
@@ -331,6 +335,7 @@ class RideNotifier extends StateNotifier<RideState> {
         endArrived: newNext["End Arrived"],
         vehicleType: newNext['vehicleType'],
         vehicleRegistrationNumber: newNext['vehicleRegistrationNumber'],
+        collection: collection,
       );
 
       final prefs = await SharedPreferences.getInstance();
@@ -339,6 +344,7 @@ class RideNotifier extends StateNotifier<RideState> {
       await prefs.setString('startDate', newNext['StartDate'] ?? '');
       await prefs.setString('endDate', newNext['EndDate'] ?? '');
       await prefs.setBool('endArrived', newNext['End Arrived'] ?? true);
+      await prefs.setString('collectionSource', collection);
     }
     if (newNext.isNotEmpty && context.mounted) {
       startLocationTrackingLoop(context);

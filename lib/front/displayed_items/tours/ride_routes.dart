@@ -47,16 +47,20 @@ class _RideRoutesState extends State<RideRoutes> {
     DefaultAssetBundle.of(
       context,
     ).loadString('assets/map_style_dark.json').then((value) {
-      setState(() {
-        _mapStyleDarkString = value;
-      });
+      if (mounted) {
+        setState(() {
+          _mapStyleDarkString = value;
+        });
+      }
     });
     DefaultAssetBundle.of(
       context,
     ).loadString('assets/map_style_light.json').then((value) {
-      setState(() {
-        _mapStyleLightString = value;
-      });
+      if (mounted) {
+        setState(() {
+          _mapStyleLightString = value;
+        });
+      }
     });
   }
 
@@ -93,9 +97,11 @@ class _RideRoutesState extends State<RideRoutes> {
     try {
       // Skip processing if no route detail provided.
       if (widget.detail.isEmpty) {
-        setState(() {
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
         return;
       }
       String startCoordinates = widget.detail['Start'];
@@ -113,27 +119,29 @@ class _RideRoutesState extends State<RideRoutes> {
       String startName = await getLocationName(startLat, startLng);
       String endName = await getLocationName(endLat, endLng);
 
-      setState(() {
-        startLocationName = startName;
-        endLocationName = endName;
-        isLoading = false;
-        startLatLngObj = LatLng(startLat, startLng);
-        endLatLngObj = LatLng(endLat, endLng);
+      if (mounted) {
+        setState(() {
+          startLocationName = startName;
+          endLocationName = endName;
+          isLoading = false;
+          startLatLngObj = LatLng(startLat, startLng);
+          endLatLngObj = LatLng(endLat, endLng);
 
-        LatLng midpoint = getMidpoint(startLatLngObj!, endLatLngObj!);
+          LatLng midpoint = getMidpoint(startLatLngObj!, endLatLngObj!);
 
-        if (mapController != null && startLatLngObj != null) {
-          mapController!.animateCamera(CameraUpdate.newLatLng(midpoint));
-        }
+          if (mapController != null && startLatLngObj != null) {
+            mapController!.animateCamera(CameraUpdate.newLatLng(midpoint));
+          }
 
-        // Format and store the start date for display.
-        final DateTime rawStartDate = DateTime.parse(
-          widget.detail['StartDate'],
-        );
-        startDate = DateFormat('dd MMMM yyyy, HH:mm').format(rawStartDate);
+          // Format and store the start date for display.
+          final DateTime rawStartDate = DateTime.parse(
+            widget.detail['StartDate'],
+          );
+          startDate = DateFormat('dd MMMM yyyy, HH:mm').format(rawStartDate);
 
-        initialCameraPosition = CameraPosition(target: midpoint, zoom: 7.0);
-      });
+          initialCameraPosition = CameraPosition(target: midpoint, zoom: 7.0);
+        });
+      }
       getPolyLinePoints(
         googleApiKey: GOOGLE_MAPS_API_KEY,
         source: startLatLngObj!,
@@ -151,11 +159,13 @@ class _RideRoutesState extends State<RideRoutes> {
         ),
       );
     } catch (e) {
-      setState(() {
-        startLocationName = "Error fetching start location";
-        endLocationName = "Error fetching end location";
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          startLocationName = "Error fetching start location";
+          endLocationName = "Error fetching end location";
+          isLoading = false;
+        });
+      }
     }
   }
 

@@ -22,6 +22,7 @@ class Ride {
   String language;
   String? collectionSource;
   String? vehicleRegistrationNumber;
+  bool? isCompleted;
 
   Ride({
     required this.tourName,
@@ -40,6 +41,7 @@ class Ride {
     required this.language,
     this.collectionSource,
     required this.vehicleRegistrationNumber,
+    required this.isCompleted
   });
 
   /// Factory constructor for creating a Ride object from Firestore data.
@@ -65,6 +67,7 @@ class Ride {
       language: data['Languages'] ?? '',
       collectionSource: data['collectionSource'],
       vehicleRegistrationNumber: data['VehicleRegistrationNumber'] ?? '',
+      isCompleted: data['isCompleted'] ?? false,
     );
   }
 }

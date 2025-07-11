@@ -576,7 +576,7 @@ class CarDetailsFormState extends ConsumerState<CarDetailsForm> {
           backgroundColor: darkMode ? Colors.black : Colors.white,
           surfaceTintColor: darkMode ? Colors.black : Colors.white,
           leading:
-              widget.multiSelection
+              widget.multiSelection || isRegistered
                   ? IconButton(
                     onPressed: () {
                       Navigator.pop(context);

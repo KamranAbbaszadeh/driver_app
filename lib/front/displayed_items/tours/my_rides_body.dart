@@ -38,8 +38,8 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
 
   StreamSubscription<QuerySnapshot>? carsSubscription;
 
-/// Retrieves user's personal and vehicle data from Firestore.
-/// Triggers ride loading once both are available.
+  /// Retrieves user's personal and vehicle data from Firestore.
+  /// Triggers ride loading once both are available.
   Future<void> fetchUserData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -79,8 +79,8 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
     }
   }
 
-/// Fetches rides from 'Cars' and 'Guide' collections based on user role and filters them.
-/// Populates internal state and ride dataset.
+  /// Fetches rides from 'Cars' and 'Guide' collections based on user role and filters them.
+  /// Populates internal state and ride dataset.
   Future<void> fetchAndFilterRides({
     required Map<String, dynamic> userData,
     required Map<String, dynamic> vehicleData,
@@ -102,7 +102,8 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
                 allRides.where((ride) {
                   return ride.driver == userId &&
                       ride.vehicleRegistrationNumber ==
-                          vehicleData['Vehicle Registration Number'];
+                          vehicleData['Vehicle Registration Number'] &&
+                      ride.isCompleted == false;
                 }).toList();
 
             if (mounted) {
@@ -129,7 +130,8 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
         final userId = user.uid;
         final filtered =
             allRides.where((ride) {
-              return ride.driver == userId || ride.guide == userId;
+              return ride.driver == userId ||
+                  ride.guide == userId && ride.isCompleted == false;
             }).toList();
 
         if (mounted) {
@@ -142,7 +144,7 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
     }
   }
 
-/// Fills the heatmap data (datasets) with ride completion status per day.
+  /// Fills the heatmap data (datasets) with ride completion status per day.
   void populateDatasets(List<Ride> rides) {
     datasets.clear();
 
@@ -167,7 +169,7 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
     }
   }
 
-/// Filters car and guide rides by a selected date from the heatmap.
+  /// Filters car and guide rides by a selected date from the heatmap.
   Future<void> filterRidesbyDate({required DateTime selectedDate}) async {
     filteredCarRidesByDate =
         carRides.where((ride) {

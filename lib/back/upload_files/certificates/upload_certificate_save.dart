@@ -9,8 +9,6 @@ import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/upload_files/certificates/certificate_post_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
-
 /// Uploads the provided list of [certificates] to Firebase Storage and saves metadata in Firestore.
 /// If the certificate is already uploaded (valid URL), it reuses the link instead of uploading again.
 /// Also sends certificate data to an external API endpoint for registration.
@@ -88,13 +86,9 @@ Future<void> uploadCertificateAndSave({
       logger.e(e);
     }
     final CertificatePostApi certificatePostApi = CertificatePostApi();
-    final success = await certificatePostApi.postData({
+    await certificatePostApi.postData({
       "certificates": certificatesPostMap,
     });
-    if (success) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
-    }
+    
   }
 }

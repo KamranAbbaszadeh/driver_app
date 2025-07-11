@@ -7,7 +7,6 @@ import 'package:onemoretour/back/api/firebase_api.dart';
 import 'package:onemoretour/back/upload_files/personal_data/photo_post_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
@@ -100,7 +99,7 @@ Future<void> uploadPhotosAndSaveData({
     if (currentUserEmail != null) {
       try {
         final PhotoPostApi photoPostApi = PhotoPostApi();
-        final success = await photoPostApi.postData({
+        await photoPostApi.postData({
           'User': currentUserEmail,
           'ProfilPhoto': personalPhotoUrl,
           'Licence1': licenseUrl1,
@@ -108,12 +107,6 @@ Future<void> uploadPhotosAndSaveData({
           'ID1': idUrl1,
           'ID2': idUrl2,
         });
-
-        if (success) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Data posted successfully!")));
-        }
       } catch (e) {
         logger.e('Error posting data: $e');
       }
