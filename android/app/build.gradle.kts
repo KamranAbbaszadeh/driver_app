@@ -1,3 +1,12 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -15,6 +24,7 @@ dependencies{
     implementation("com.google.firebase:firebase-messaging:23.4.1")
     implementation("com.google.android.gms:play-services-location:${rootProject.extra["playServicesLocationVersion"]}")
     implementation("androidx.work:work-runtime:2.7.1")
+    implementation("com.google.android.material:material:1.14.0-alpha03")
 }
 
 val backgroundGeolocation = project(":flutter_background_geolocation")
@@ -29,6 +39,11 @@ android {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    
+    lint {
+        disable.add("Instantiatable")
+        checkReleaseBuilds = false
     }
 
     kotlinOptions {
@@ -47,12 +62,24 @@ android {
         multiDexEnabled = true
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isShrinkResources = false
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
      buildFeatures {

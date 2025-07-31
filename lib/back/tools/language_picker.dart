@@ -2,7 +2,6 @@
 // Uses the WoltModalSheet package to present a scrollable list of checkboxes.
 // Updates the [selectedLanguages] set with user selections.
 
-import 'package:onemoretour/back/tools/language_list.dart';
 import 'package:flutter/material.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
@@ -13,10 +12,12 @@ import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 Future<void> showLanguangePicker(
   BuildContext context,
   Set<String> selectedLanguages,
+  List<dynamic> languageList,
 ) async {
   final darkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
   final width = MediaQuery.of(context).size.width;
 
+  final languages = languageList;
   await WoltModalSheet.show(
     context: context,
     pageListBuilder:

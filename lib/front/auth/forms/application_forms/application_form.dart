@@ -6,6 +6,7 @@ import 'package:onemoretour/back/auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:onemoretour/back/tools/date_picker.dart';
 import 'package:onemoretour/back/tools/gender_picker.dart';
+import 'package:onemoretour/back/tools/language_list.dart';
 import 'package:onemoretour/back/tools/language_picker.dart';
 import 'package:onemoretour/back/tools/role_picker.dart';
 import 'package:onemoretour/back/tools/validate_email.dart';
@@ -50,9 +51,10 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  List<dynamic> latestLanguageList = [];
+
   Set<String> selectedLanguages = {};
   Set<String> selectedVehicleType = {};
-
   late FocusNode _firstNameFocusNode;
   late FocusNode _lastNameFocusNode;
   late FocusNode _emailFocusNode;
@@ -372,7 +374,6 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   @override
   void initState() {
     super.initState();
-
     _firstNameFocusNode = FocusNode();
     _lastNameFocusNode = FocusNode();
     _emailFocusNode = FocusNode();
@@ -601,10 +602,11 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
   Future<void> _openLanguagePicker() async {
     await Future.delayed(Duration(milliseconds: 100));
     if (mounted) {
-      await showLanguangePicker(context, selectedLanguages);
+      await showLanguangePicker(context, selectedLanguages, latestLanguageList);
       _languageController.text = selectedLanguages.join(', ');
       _isEmpty(_languageController, 'language');
     }
+
     if (_roleController.text == 'Guide' || _roleController.text.isEmpty) {
       _languageFocusNode.unfocus();
     } else {
@@ -758,6 +760,22 @@ class _ApplicationFormState extends ConsumerState<ApplicationForm> {
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
 
+    final languageListAsync = ref.watch(languageListProvider);
+
+    languageListAsync.when(
+      data: (languages) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            latestLanguageList = languages;
+          });
+        });
+      },
+      loading: () {},
+      error: (err, stack) {
+        debugPrint('Error fetching language list: $err');
+      },
+    );
     return Scaffold(
       backgroundColor: darkMode ? Colors.black : Colors.white,
       appBar: AppBar(

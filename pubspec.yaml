@@ -62,7 +62,7 @@ dependencies:
   permission_handler: ^12.0.0+1
   syncfusion_flutter_signaturepad: ^30.1.38
   google_maps_flutter: ^2.10.0
-  flutter_polyline_points: ^2.1.0
+  flutter_polyline_points: ^3.0.1
   geocoding: ^4.0.0
   cached_network_image: ^3.4.1
   table_calendar: ^3.2.0

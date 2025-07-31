@@ -2,7 +2,7 @@
 // Includes logic to fetch and draw routes between two coordinates using the Google Directions API.
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Route;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -15,21 +15,24 @@ Future<List<LatLng>> getPolyLinePoints({
   required LatLng destination,
 }) async {
   List<LatLng> polylineCoordinates = [];
-  PolylinePoints polylinePoints = PolylinePoints();
+  PolylinePoints polylinePoints = PolylinePoints(apiKey: googleApiKey);
 
-  PolylineResult polylineResult = await polylinePoints
-      .getRouteBetweenCoordinates(
-        googleApiKey: googleApiKey,
-        request: PolylineRequest(
-          origin: PointLatLng(source.latitude, source.longitude),
-          destination: PointLatLng(destination.latitude, destination.longitude),
-          mode: TravelMode.driving,
-        ),
-      );
+  RoutesApiRequest request = RoutesApiRequest(
+    origin: PointLatLng(source.latitude, source.longitude),
+    destination: PointLatLng(destination.latitude, destination.longitude),
+    travelMode: TravelMode.driving,
+    routingPreference: RoutingPreference.trafficAware,
+  );
+  RoutesApiResponse polylineResult = await polylinePoints
+      .getRouteBetweenCoordinatesV2(request: request);
 
-  if (polylineResult.points.isNotEmpty) {
-    for (PointLatLng point in polylineResult.points) {
-      polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+  if (polylineResult.routes.isNotEmpty) {
+    for (final route in polylineResult.routes) {
+      if (route.polylinePoints != null) {
+        for (final point in route.polylinePoints!) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
+      }
     }
   }
 
