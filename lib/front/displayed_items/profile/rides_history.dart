@@ -54,7 +54,7 @@ class _CustomExpansionTileState extends State<CustomExpansionTile>
     super.dispose();
   }
 
-/// Toggles the expansion state and triggers animation.
+  /// Toggles the expansion state and triggers animation.
   void toggleExpansion() {
     setState(() {
       isExpanded = !isExpanded;
@@ -224,8 +224,8 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
     );
   }
 
-/// Builds a card with expandable detailed information for each ride or guide tour.
-/// Dynamically adjusts label based on section (ride or guide).
+  /// Builds a card with expandable detailed information for each ride or guide tour.
+  /// Dynamically adjusts label based on section (ride or guide).
   Widget buildRideCard(
     BuildContext context,
     dynamic ride,
@@ -259,16 +259,21 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                ride.tourName,
-                style: GoogleFonts.cabin(
-                  fontSize: width * 0.052,
-                  fontWeight: FontWeight.bold,
-                  color: darkMode ? Colors.white : Colors.black,
+              SizedBox(
+                width: width * 0.55,
+                child: Text(
+                  ride.tourName,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.cabin(
+                    fontSize: width * 0.052,
+                    fontWeight: FontWeight.bold,
+                    color: darkMode ? Colors.white : Colors.black,
+                  ),
                 ),
               ),
               Text(
-                " \$${ride.price.toStringAsFixed(2)}",
+                " \$${ride.price.toStringAsFixed(1)}",
                 style: GoogleFonts.cabin(
                   fontSize: width * 0.037,
                   fontWeight: FontWeight.bold,
@@ -456,6 +461,42 @@ class _RidesHistoryState extends ConsumerState<RidesHistory> {
                           ),
                         ),
                         SizedBox(height: height * 0.01),
+                        ride.fine > 0
+                            ? Column(
+                              children: [
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: "Fine:  ",
+                                        style: GoogleFonts.cabin(
+                                          fontSize: width * 0.037,
+                                          fontWeight: FontWeight.bold,
+                                          color:
+                                              darkMode
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text:
+                                            "\$${ride.fine.toStringAsFixed(1)}",
+                                        style: GoogleFonts.cabin(
+                                          fontSize: width * 0.035,
+                                          fontWeight: FontWeight.normal,
+                                          color:
+                                              darkMode
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: height * 0.01),
+                              ],
+                            )
+                            : const SizedBox.shrink(),
                       ],
                     ),
                     Icon(

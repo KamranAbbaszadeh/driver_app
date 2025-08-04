@@ -35,7 +35,7 @@ class _WaitingPageViewState extends ConsumerState<WaitingPageView> {
   }
 
   late final String? userId;
-  late final String contractUrl;
+  String contractUrl = '';
   late final String customerSupport;
   @override
   void initState() {

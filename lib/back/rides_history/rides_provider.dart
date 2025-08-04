@@ -17,6 +17,7 @@ class RidesHistoryState {
   final List<RideHistory> allRides;
   final List<RideHistory> filteredRides;
   final int? price;
+  final int? fine;
   final bool? isPaid;
 
   RidesHistoryState({
@@ -24,6 +25,7 @@ class RidesHistoryState {
     this.filteredRides = const [],
     this.price = 0,
     this.isPaid = false,
+    this.fine = 0,
   });
 
   /// Returns a copy of the current state with updated properties if provided.
@@ -32,12 +34,14 @@ class RidesHistoryState {
     List<RideHistory>? filteredRides,
     int? price,
     bool? isPaid,
+    int? fine,
   }) {
     return RidesHistoryState(
       allRides: allRides ?? this.allRides,
       filteredRides: filteredRides ?? this.filteredRides,
       price: price ?? this.price,
       isPaid: isPaid ?? this.isPaid,
+      fine: fine ?? this.fine,
     );
   }
 }
@@ -99,7 +103,7 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
             }
           }
         });
-        SubscriptionManager.add(carsSubscription!);
+    SubscriptionManager.add(carsSubscription!);
     guideSubscription?.cancel();
     guideSubscription = FirebaseFirestore.instance
         .collection('Guide')
@@ -133,7 +137,7 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
             }
           }
         });
-        SubscriptionManager.add(guideSubscription!);
+    SubscriptionManager.add(guideSubscription!);
   }
 
   /// Returns the number of rides based on their completion status or earnings.
@@ -142,9 +146,11 @@ class RidesHistoryNotifier extends StateNotifier<RidesHistoryState> {
   /// Returns the number of rides based on their completion status or earnings.
   int get completedRidesCount => state.filteredRides.length;
 
-  /// Returns the number of rides based on their completion status or earnings.
-  double get totalCompletedEarnings =>
-      state.allRides.fold(0.0, (calc, ride) => calc + ride.price);
+  /// Returns the total net earnings from completed rides (price minus fine for each ride).
+  double get totalCompletedEarnings => state.filteredRides.fold(
+    0.0,
+    (calc, ride) => calc + ride.price - ride.fine,
+  );
 
   /// Groups completed rides by date and aggregates earnings split by payment status (paid/unpaid).
   /// Returns a map of date strings to earnings categorized by payment status.

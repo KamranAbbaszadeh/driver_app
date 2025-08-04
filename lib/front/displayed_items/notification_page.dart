@@ -236,31 +236,18 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title ?? '',
-                              softWrap: true,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: width * 0.045,
-                                color:
-                                    isViewed
-                                        ? Colors.grey
-                                        : Theme.of(
-                                          context,
-                                        ).textTheme.bodyMedium?.color!,
-                              ),
-                            ),
-                            SizedBox(height: height * 0.005),
-                            SizedBox(
-                              width: width * 0.885,
-                              child: Text(
-                                fullBody ?? '',
+                        SizedBox(
+                          width: width * 0.85,
+
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title ?? '',
                                 softWrap: true,
                                 style: TextStyle(
-                                  fontSize: width * 0.04,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: width * 0.045,
                                   color:
                                       isViewed
                                           ? Colors.grey
@@ -269,20 +256,40 @@ class _NotificationPageState extends ConsumerState<NotificationPage> {
                                           ).textTheme.bodyMedium?.color!,
                                 ),
                               ),
-                            ),
-                          ],
+                              SizedBox(height: height * 0.005),
+                              SizedBox(
+                                width: width * 0.885,
+                                child: Text(
+                                  fullBody ?? '',
+                                  softWrap: true,
+                                  style: TextStyle(
+                                    fontSize: width * 0.04,
+                                    color:
+                                        isViewed
+                                            ? Colors.grey
+                                            : Theme.of(
+                                              context,
+                                            ).textTheme.bodyMedium?.color!,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         const Spacer(),
                         // Blue dot shown only for unread messages.
                         isViewed
                             ? const SizedBox.shrink()
-                            : Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.blue,
+                            : Padding(
+                              padding: EdgeInsets.only(top: height * 0.009),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.blue,
+                                ),
+                                width: width * 0.012,
+                                height: height * 0.005,
                               ),
-                              width: width * 0.012,
-                              height: height * 0.005,
                             ),
                       ],
                     ),

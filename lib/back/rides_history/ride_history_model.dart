@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// Contains details such as driver, tour, route data, payment and completion status, and distance metrics.
 class RideHistory {
   final int price;
+  final int fine;
   final String driver;
   final String tourName;
   final DateTime startDate;
@@ -25,6 +26,7 @@ class RideHistory {
 
   RideHistory({
     required this.price,
+    required this.fine,
     required this.driver,
     required this.startDate,
     required this.isPaid,
@@ -37,19 +39,23 @@ class RideHistory {
     required this.vehicleType,
     required this.guide,
     required this.category,
-    required this.docId
+    required this.docId,
   });
 
   /// Creates a [RideHistory] instance from Firestore document data and ID.
   /// Converts route data and timestamps, and assigns default values for missing fields.
-  factory RideHistory.fromFirestore({required Map<String, dynamic> data, required String id}) {
+  factory RideHistory.fromFirestore({
+    required Map<String, dynamic> data,
+    required String id,
+  }) {
     final routesMap = data['Routes'] as Map<String, dynamic>? ?? {};
     final routesList =
         routesMap.values.map((e) => e as Map<String, dynamic>).toList();
 
     return RideHistory(
-      docId: id, 
-      price: data['Price'] ?? 0.0,
+      docId: id,
+      price: (data['Price'] as num?)?.toInt() ?? 0,
+      fine: (data['Fine'] as num?)?.toInt() ?? 0,
       driver: data['Driver'] ?? '',
       guide: data['Guide'] ?? '',
       tourName: data['TourName'] ?? '',
@@ -64,6 +70,7 @@ class RideHistory {
       category: data['Category'] ?? '',
     );
   }
+
   /// Calculates the total distance of all ride routes in kilometers using haversine formula.
   /// Iterates through 'Start' and 'End' coordinate strings in the routes list.
   double get totalDistanceKm {
