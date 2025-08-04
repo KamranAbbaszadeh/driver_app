@@ -224,13 +224,18 @@ exports.sendNotificationOnFieldChange = onDocumentUpdated("Users/{userId}",
 exports.sendNotificationOnNewChatMessage = onDocumentCreated(
     "Chat/{userId}/{tourId}/{messageId}",
     async (event) => {
-      const {userId, tourId} = event.params;
+      const {userId, tourId, messageId} = event.params;
+
+      if (["init", "meta", "system"].includes(messageId)) return null;
+      if (tourId === "init") return null;
       const messageData = event.data && event.data.data();
 
       if (!messageData) {
         console.error("Message data is missing.");
         return null;
       }
+
+      if (!messageData.name || !messageData.UID) return null;
       const currentUserUid = messageData.UID;
       if (currentUserUid === userId) {
         return null;
