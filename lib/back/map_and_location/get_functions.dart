@@ -16,6 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Stores the last known location to determine if significant movement has occurred.
 LatLng? lastLatLng;
+bool _isRequestingPermission = false;
 
 /// Returns true if the user has moved more than [thresholdMeters] from the last location.
 /// Uses haversine formula to calculate distance.
@@ -386,199 +387,214 @@ Future<void> requestIgnoreBatteryOptimizations(BuildContext context) async {
 /// Requests location permissions from the user.
 /// Displays rationale dialogs if needed and handles permanent denial by prompting app settings.
 Future<void> requestLocationPermissions(BuildContext context) async {
-  final width = MediaQuery.of(context).size.width;
-  final height = MediaQuery.of(context).size.height;
-  final darkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
+  if (_isRequestingPermission) return;
+  _isRequestingPermission = true;
+  try {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+    final darkMode =
+        MediaQuery.of(context).platformBrightness == Brightness.dark;
 
-  final PermissionStatus foregroundStatus =
-      await Permission.locationWhenInUse.request();
-  if (foregroundStatus.isGranted) {
-    final PermissionStatus backgroundStatus =
-        await Permission.locationAlways.status;
-    if (backgroundStatus.isGranted && !Platform.isAndroid) return;
+    final PermissionStatus foregroundStatus =
+        await Permission.locationWhenInUse.request();
+    if (foregroundStatus.isGranted) {
+      final PermissionStatus backgroundStatus =
+          await Permission.locationAlways.status;
+      if (backgroundStatus.isGranted && !Platform.isAndroid) return;
 
-    if (backgroundStatus.isGranted) {
-      return;
-    }
+      if (backgroundStatus.isGranted) {
+        return;
+      }
 
-    bool shouldOpenSettings =
-        context.mounted
-            ? await showDialog<bool>(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (ctx) {
-                    return Dialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      backgroundColor:
-                          darkMode ? Color(0xFF1C1C1E) : Colors.white,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: width * 0.06,
-                          vertical: height * 0.035,
+      bool shouldOpenSettings =
+          context.mounted
+              ? await showDialog<bool>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (ctx) {
+                      return Dialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.location_on_rounded,
-                              size: width * 0.15,
-                              color:
-                                  darkMode
-                                      ? Color(0xFF34A8EB)
-                                      : Color(0xFF0169AA),
-                            ),
-                            SizedBox(height: height * 0.02),
-                            Text(
-                              "Enable Background Location",
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.cabin(
-                                fontSize: width * 0.05,
-                                fontWeight: FontWeight.bold,
-                                color: darkMode ? Colors.white : Colors.black87,
-                              ),
-                            ),
-                            SizedBox(height: height * 0.015),
-                            Text(
-                              "This app needs location access all the time to accurately track your activity even when the app is closed.",
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.cabin(
-                                fontSize: width * 0.04,
-                                color:
-                                    darkMode ? Colors.white70 : Colors.black54,
-                              ),
-                            ),
-                            SizedBox(height: height * 0.03),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(false),
-                                  child: Text(
-                                    "Not Now",
-                                    style: GoogleFonts.cabin(
-                                      fontWeight: FontWeight.w600,
-                                      color:
-                                          darkMode
-                                              ? Colors.white70
-                                              : Colors.black54,
-                                    ),
-                                  ),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () => Navigator.of(ctx).pop(true),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        darkMode
-                                            ? Color(0xFF34A8EB)
-                                            : Color(0xFF0169AA),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: width * 0.08,
-                                      vertical: height * 0.015,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    "Open Settings",
-                                    style: GoogleFonts.cabin(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: width * 0.04,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ) ??
-                false
-            : false;
-
-    if (shouldOpenSettings) {
-      await Permission.locationAlways.request();
-    }
-  } else if (foregroundStatus.isPermanentlyDenied && context.mounted) {
-    await showDialog(
-      context: context,
-      builder:
-          (ctx) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            backgroundColor: darkMode ? Color(0xFF1C1C1E) : Colors.white,
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: width * 0.06,
-                vertical: height * 0.035,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.location_on_rounded,
-                    size: width * 0.15,
-                    color: darkMode ? Color(0xFF34A8EB) : Color(0xFF0169AA),
-                  ),
-                  SizedBox(height: height * 0.02),
-                  Text(
-                    "Location Permission Needed",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.cabin(
-                      fontSize: width * 0.05,
-                      fontWeight: FontWeight.bold,
-                      color: darkMode ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: height * 0.015),
-                  Text(
-                    "To function properly, this app needs location access. Please enable location permission in your app settings.",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.cabin(
-                      fontSize: width * 0.04,
-                      color: darkMode ? Colors.white70 : Colors.black54,
-                    ),
-                  ),
-                  SizedBox(height: height * 0.03),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              darkMode ? Color(0xFF34A8EB) : Color(0xFF0169AA),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                        backgroundColor:
+                            darkMode ? Color(0xFF1C1C1E) : Colors.white,
+                        child: Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: width * 0.08,
-                            vertical: height * 0.015,
+                            horizontal: width * 0.06,
+                            vertical: height * 0.035,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.location_on_rounded,
+                                size: width * 0.15,
+                                color:
+                                    darkMode
+                                        ? Color(0xFF34A8EB)
+                                        : Color(0xFF0169AA),
+                              ),
+                              SizedBox(height: height * 0.02),
+                              Text(
+                                "Enable Background Location",
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.cabin(
+                                  fontSize: width * 0.05,
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      darkMode ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                              SizedBox(height: height * 0.015),
+                              Text(
+                                "This app needs location access all the time to accurately track your activity even when the app is closed.",
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.cabin(
+                                  fontSize: width * 0.04,
+                                  color:
+                                      darkMode
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                ),
+                              ),
+                              SizedBox(height: height * 0.03),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.of(ctx).pop(false),
+                                    child: Text(
+                                      "Not Now",
+                                      style: GoogleFonts.cabin(
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            darkMode
+                                                ? Colors.white70
+                                                : Colors.black54,
+                                      ),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed:
+                                        () => Navigator.of(ctx).pop(true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          darkMode
+                                              ? Color(0xFF34A8EB)
+                                              : Color(0xFF0169AA),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: width * 0.08,
+                                        vertical: height * 0.015,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      "Open Settings",
+                                      style: GoogleFonts.cabin(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: width * 0.04,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        child: Text(
-                          "OK",
-                          style: GoogleFonts.cabin(
-                            fontWeight: FontWeight.bold,
-                            fontSize: width * 0.04,
-                            color: Colors.white,
-                          ),
-                        ),
+                      );
+                    },
+                  ) ??
+                  false
+              : false;
+
+      if (shouldOpenSettings) {
+        await Permission.locationAlways.request();
+      }
+    } else if (foregroundStatus.isPermanentlyDenied && context.mounted) {
+      await showDialog(
+        context: context,
+        builder:
+            (ctx) => Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              backgroundColor: darkMode ? Color(0xFF1C1C1E) : Colors.white,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.06,
+                  vertical: height * 0.035,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: width * 0.15,
+                      color: darkMode ? Color(0xFF34A8EB) : Color(0xFF0169AA),
+                    ),
+                    SizedBox(height: height * 0.02),
+                    Text(
+                      "Location Permission Needed",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.cabin(
+                        fontSize: width * 0.05,
+                        fontWeight: FontWeight.bold,
+                        color: darkMode ? Colors.white : Colors.black87,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    SizedBox(height: height * 0.015),
+                    Text(
+                      "To function properly, this app needs location access. Please enable location permission in your app settings.",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.cabin(
+                        fontSize: width * 0.04,
+                        color: darkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: height * 0.03),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                darkMode
+                                    ? Color(0xFF34A8EB)
+                                    : Color(0xFF0169AA),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: width * 0.08,
+                              vertical: height * 0.015,
+                            ),
+                          ),
+                          child: Text(
+                            "OK",
+                            style: GoogleFonts.cabin(
+                              fontWeight: FontWeight.bold,
+                              fontSize: width * 0.04,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-    );
-    openAppSettings();
+      );
+      openAppSettings();
+    }
+  } finally {
+    _isRequestingPermission = false;
   }
 }
 
