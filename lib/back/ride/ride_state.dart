@@ -147,10 +147,9 @@ class RideNotifier extends StateNotifier<RideState> {
         final sub = stream.listen((snapshot) async {
           final allRides =
               snapshot.docs.map((doc) {
-                return Ride.fromFirestore(
-                  data: doc.data() as Map<String, dynamic>,
-                  id: doc.id,
-                );
+                final data = doc.data() as Map<String, dynamic>;
+                data['collectionSource'] = doc.reference.parent.id;
+                return Ride.fromFirestore(data: data, id: doc.id);
               }).toList();
 
           final filtered =

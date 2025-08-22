@@ -156,6 +156,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   currentDate.isBefore(
                     tourEndDate.add(const Duration(hours: 1)),
                   );
+                  
               if (isTourStarted && index == 0) {
                 final width = MediaQuery.of(context).size.width;
                 final height = MediaQuery.of(context).size.height;

@@ -41,7 +41,7 @@ class Ride {
     required this.language,
     this.collectionSource,
     required this.vehicleRegistrationNumber,
-    required this.isCompleted
+    required this.isCompleted,
   });
 
   /// Factory constructor for creating a Ride object from Firestore data.

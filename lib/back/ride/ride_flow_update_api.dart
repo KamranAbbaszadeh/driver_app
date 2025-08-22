@@ -5,6 +5,7 @@ import 'dart:convert';
 
 /// A helper class that posts ride status updates to the external Bubble API.
 /// Sends data to the '/routestatus' endpoint with authorization and a JSON payload.
+
 class RideFlowUpdateApi {
   final String baseUrl = "https://onemoretour.com/version-test/api/1.1/wf";
 

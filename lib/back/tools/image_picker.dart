@@ -122,6 +122,15 @@ class ImagePickerHelper {
   static Future<XFile?> selectSinglePhoto({
     required BuildContext context,
   }) async {
+    final status = await Permission.photos.request();
+    if (!status.isGranted) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Photo permission denied')),
+        );
+      }
+      return null;
+    }
     final selected = await _picker.pickImage(source: ImageSource.gallery);
     if (selected == null) return null;
     return selected;

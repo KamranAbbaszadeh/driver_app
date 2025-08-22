@@ -6,5 +6,6 @@
     "dart.devToolsTheme": "dark",
     "git-graph.tabIconColourTheme": "colour",
     "oneDarkPro.editorTheme": "One Dark Pro",
-    "workbench.productIconTheme": "developer-icons"
+    "workbench.productIconTheme": "developer-icons",
+    "cmake.sourceDirectory": "/Users/kamranabbaszadeh/Dev/Projects/Main/driver_app/linux"
 }

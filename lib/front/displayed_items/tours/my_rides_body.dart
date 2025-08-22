@@ -93,7 +93,9 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
           .listen((querySnapshot) {
             final allRides =
                 querySnapshot.docs.map((doc) {
-                  return Ride.fromFirestore(data: doc.data(), id: doc.id);
+                  final data = doc.data();
+                  data['collectionSource'] = 'Cars';
+                  return Ride.fromFirestore(data: data, id: doc.id);
                 }).toList();
             final user = FirebaseAuth.instance.currentUser;
             if (user == null) return;
@@ -123,7 +125,9 @@ class _MyRidesBodyState extends ConsumerState<MyRidesBody> {
       ) {
         final allRides =
             querySnapshot.docs.map((doc) {
-              return Ride.fromFirestore(data: doc.data(), id: doc.id);
+              final data = doc.data();
+              data['collectionSource'] = 'Guide';
+              return Ride.fromFirestore(data: data, id: doc.id);
             }).toList();
         final user = FirebaseAuth.instance.currentUser;
         if (user == null) return;

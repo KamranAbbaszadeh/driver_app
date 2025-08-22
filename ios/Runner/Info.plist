@@ -61,8 +61,6 @@
 		<string>This app uses Bluetooth to connect to nearby devices during the ride.</string>
 		<key>NSCalendarsUsageDescription</key>
 		<string>This app may access calendar data if required by scheduling features or third-party integrations.</string>
-		<key>NSCameraUsageDescription</key>
-		<string>We need access to your camera to take pictures.</string>
 		<key>NSContactsUsageDescription</key>
 		<string>This app may access your contacts to enhance communication features or integrations.</string>
 		<key>NSLocalNetworkUsageDescription</key>
@@ -75,12 +73,14 @@
 		<string>Location access is used to determine your current position and provide route navigation.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>We use your location to show nearby pickup points and track your route during rides.</string>
-		<key>NSMicrophoneUsageDescription</key>
-		<string>We use the microphone for in-app voice features and communication during rides.</string>
 		<key>NSMotionUsageDescription</key>
 		<string>We use motion data to detect driving state and improve location accuracy.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>This app uses your camera to take photos for identity verification, vehicle registration, and to share images via in-app messaging. For example, you can capture a photo of your car during registration.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>The microphone is used to enable voice communication and voice note sharing in chat features while driving or during rides.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>We need access to your photo library to upload images.</string>
+		<string>We need access to your photo library to upload required images for vehicle registration, identity verification, and in-app chat. For example, you may upload a driver's license or car photo to complete registration.</string>
 		<key>NSSiriUsageDescription</key>
 		<string>This app may interact with Siri for hands-free commands or shortcuts related to ride features.</string>
 		<key>NSSpeechRecognitionUsageDescription</key>

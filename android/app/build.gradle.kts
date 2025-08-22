@@ -83,7 +83,7 @@ android {
         }
     }
      buildFeatures {
-        buildConfig = true // Ensure this is set to true
+        buildConfig = true
     }
 }
 

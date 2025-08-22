@@ -891,15 +891,16 @@ class _RidePageState extends ConsumerState<RidePage>
                                               FieldValue.serverTimestamp(),
                                         }, SetOptions(merge: true));
                                     final DateTime now = DateTime.now();
-                                    final String formattedNow =
+                                    final formattedNow =
                                         now.toUtc().toIso8601String();
                                     await rideFlowAPI.postData({
                                       "RouteID": nextRoute['ID'],
                                       "EndArrived?": false,
                                       "StartArrived?": true,
                                       "StartTime": formattedNow,
-                                      "EndTime": "",
+                                      "EndTime": null,
                                     });
+
                                     setState(() {
                                       isFinished = true;
                                     });
@@ -1042,13 +1043,14 @@ class _RidePageState extends ConsumerState<RidePage>
                                               FieldValue.serverTimestamp(),
                                         }, SetOptions(merge: true));
                                     final DateTime now = DateTime.now();
-                                    final String formattedNow =
+                                    final formattedNow =
                                         now.toUtc().toIso8601String();
+
                                     await rideFlowAPI.postData({
                                       "RouteID": nextRoute['ID'],
                                       "EndArrived?": true,
                                       "StartArrived?": true,
-                                      "StartTime": "",
+                                      "StartTime": null,
                                       "EndTime": formattedNow,
                                     });
                                     final carDocSnapshot =
